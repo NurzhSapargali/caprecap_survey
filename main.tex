@@ -84,14 +84,21 @@
         L(\alpha, \beta; T, d_{i(T)} = k_i \forall i \in S_T^{in}) &= \prod_{i \in S_T^{in}} \binom{T}{k_i} \frac{\Gamma(\alpha) \Gamma(\beta) \Gamma(\alpha + \beta)}{\Gamma(\alpha)\Gamma(\beta)\Gamma(\alpha + \beta)}\\
         &\times \frac{\prod_{j=1}^{k_i} (\alpha + k_i - j)\prod_{j=1}^{T - k_i} (\beta + T - k_i - j)}{\prod_{j=1}^T(\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j)} \\
         &= \prod_{i \in S_T^{in}} \binom{T}{k_i} \frac{\prod_{j=1}^{k_i} (\alpha + k_i - j) \prod_{j=1}^{T - k_i} (\beta + T - k_i - j)}{\prod_{j=1}^T (\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j )}\\
-        &\propto \left[\prod_{j=1}^T (\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j)\right]^{-|S_T^{in}|}\\
-        &\times   \prod_{i \in S_T^{in}} \prod_{j=1}^{k_i} (\alpha + k_i - j)  \prod_{j=1}^{T - k_i} (\beta + T - k_i - j)
+        &\propto \prod_{i \in S_T^{in}} \frac{\prod_{j=1}^{k_i} (\alpha + k_i - j) \prod_{j=1}^{T - k_i} (\beta + T - k_i - j)}{\prod_{j=1}^T (\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j )}
     \end{align*}
+    The product terms are computationally expensive to calculate, as even small values of $T$ and $k_i$ will yield extremely large quantities. Taking logarithms alleviates the problem with the numerator but not the denominator. Therefore, further simplification of the marginal likelihood is required.
+    \begin{align}
+        L(\alpha, \beta; T, d_{i(T)} = k_i \forall i \in S_T^{in}) &\propto \prod_{i \in S_T^{in}} \frac{\prod_{j=1}^{k_i} (\alpha + k_i - j) \prod_{j=1}^{T - k_i} (\beta + T - k_i - j)}{\prod_{j=1}^T (\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j )} \nonumber \\
+        &= \prod_{i \in S_T^{in}} \frac{\prod_{j=1}^{k_i} (\alpha + k_i)(1 - \frac{j}{\alpha + k_i}) \prod_{j=1}^{T - k_i} (\beta + T)(1 - \frac{k_i + j}{\beta + T})}{\prod_{j=1}^T (\beta + T)(1 -\frac{j - \alpha}{\beta + T}) - \prod_{j=1}^T (\beta + T)(1 - \frac{j}{\beta + T} )} \nonumber \\
+        &= \prod_{i \in S_T^{in}} \left(\frac{\alpha + k_i}{\beta + T}\right)^{k_i} \frac{\prod_{j=1}^{k_i} (1 - \frac{j}{\alpha + k_i}) \prod_{j=1}^{T - k_i} (1 - \frac{k_i + j}{\beta + T})}{\prod_{j=1}^T (1 -\frac{j - \alpha}{\beta + T}) - \prod_{j=1}^T (1 - \frac{j}{\beta + T} )} \nonumber \\
+        &= \left[\prod_{j=1}^T \left(1 -\frac{j - \alpha}{\beta + T}\right) - \prod_{j=1}^T \left(1 - \frac{j}{\beta + T}\right)\right]^{-|S_T^{in}|} \nonumber \\
+        &\times \prod_{i \in S_T^{in}} \left[\left(\frac{\alpha + k_i}{\beta + T}\right)^{k_i} \prod_{j=1}^{k_i}  \left(1 - \frac{j}{\alpha + k_i}\right) \prod_{j=1}^{T - k_i} \left(1 - \frac{k_i + j}{\beta + T}\right) \right]
+    \end{align}
     The corresponding marginal log-likelihood is
     \begin{align}
         l(\alpha, \beta) &:= \log L(\alpha, \beta; T, d_{i(T)} = k_i \forall i \in S_T^{in}) \nonumber \\
-        &= const + \left[\sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} \log(\alpha + k_i - j) + \sum_{j = 1}^{T - k_i} \log(\beta + T - k_i - j)\right] \nonumber\\
-        &- |S_T^{in}|\log\left(\prod_{j=1}^T (\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j)\right)
+        &= const - |S_T^{in}|\log\left[\prod_{j=1}^T (1 - \frac{j - \alpha}{\beta + T}) - \prod_{j=1}^T (1 - \frac{j}{\beta + T})\right] \nonumber \\
+        &+ \sum_{i \in S_T^{in}} \left[k_i\log(\alpha + k_i) - k_i\log(\beta + T) + \sum_{j = 1}^{k_i} \log(1 - \frac{j}{\alpha + k_i}) + \sum_{j = 1}^{T - k_i} \log(1 - \frac{k_i - j}{\beta + T})\right] \nonumber \\
     \end{align}
     Derivatives:
     \begin{align}
