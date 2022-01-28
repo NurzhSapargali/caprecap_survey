@@ -1,0 +1,105 @@
+\documentclass[a4paper, 12pt]{article}
+
+\usepackage{amsmath}
+\usepackage[a4paper,width=150mm,top=20mm,bottom=20mm,left=30mm,right=20mm]{geometry}
+\usepackage{amsfonts}
+\usepackage{dsfont}
+
+
+\begin{document}
+
+\section{Test}
+\begin{itemize}
+    \item $S_t$: the $t$-th sample.
+    \item $S_T^{in} = \bigcup \limits_{t=1}^{T} S_t$: set of sampled individuals up to and including $T$-th sample.
+    \item $S_T^{out}$: set of individuals that has not been sampled after $T$ sample draws. ($S_T^{out} \cap S_T^{in} = \emptyset$).
+    \item $\mathcal{P} = S_T^{in} \cup S_T^{out}$: the entire population.
+    \item $d_{i(T)}$: number of samples that contained individual $i$:
+    \begin{equation*}
+        d_{i(T)} = \sum_{t=1}^T \mathds{1}\{i \in S_t \}
+    \end{equation*}
+    Assuming that samples are drawn independently:
+    \begin{equation*}
+        \mathbb{E}[d_{i(T)}] = \sum_{t = 1}^T \pi_i = T\pi_i
+    \end{equation*}
+    where $\pi_i$ denotes inclusion probability of $i$. This suggests estimating $\pi_i$ by
+    \begin{equation} \label{eq:1}
+        \hat{\pi}_i = \frac{d_{i(T)}}{T} \quad \text{or} \quad \hat{\pi}_i = \frac{1 + d_{i(T)}}{1 + T}
+    \end{equation}
+    where the latter comes from enforcing that probabilities be non-zero. Note that in this case $\hat{\pi_i} = \frac{1}{1 + T} \forall i \in S_T^{out}$.
+    
+    Consider the problem from the Bayesian perspective. Assume Beta prior for inclusion probabilities:
+    \begin{equation*}
+        \pi_i \sim Be(\alpha, \beta)
+    \end{equation*}
+    Then
+    \begin{equation*}
+        \mathbb{E}[\sum_{i \in \mathcal{P}} \pi_i] = \sum_{i \in \mathcal{P}} \frac{\alpha}{\alpha + \beta} = |\mathcal{P}| \frac{\alpha}{\alpha + \beta} = (|S_T^{out}| + |S_T^{in}|) \frac{\alpha}{\alpha + \beta}
+    \end{equation*}
+    Let $n_t := |S_t|$ be the sample size. While we assume independent replications of the same sampling scheme, depending on the chosen scheme, it is possible for $n_t$ to be random.
+    \begin{equation} \label{eq:2}
+        \mathbb{E}[\sum_{i \in \mathcal{P}} \pi_i] = \mathbb{E}[n_t]
+        \Leftrightarrow (|S_T^{out}| + |S_T^{in}|) \frac{\alpha}{\alpha + \beta} = \mathbb{E}[n_t]
+    \end{equation}
+    Estimating $\mathbb{E}[n_t]$ by $T^{-1} \sum_{t=1}^T n_t$, if $\alpha$ and $\beta$ were known, $|S_T^{out}|$ could be inferred from \eqref{eq:2}.
+    
+    The likelihood would be
+    \begin{equation*}
+        d_{i(T)} |\pi_i \sim Bin(T, \pi)
+    \end{equation*}
+    
+    Then the posterior distribution is
+    \begin{align*}
+        f(\pi_i | d_{i(T)} = k) &= \frac{\mathbb{P}(d_{i(T)} = k | \pi_i) f(\pi_i)}{\mathbb{P}(d_{i(T)} = k)} \\
+        &\propto \pi_i^k(1 - \pi_i)^{T - k}\pi_i^{\alpha - 1}(1 - \pi_i)^{\beta - 1}\\
+        &= \pi_i^{\alpha + k - 1}(1 - \pi_i)^{\beta + T - k - 1}\\
+        &\Rightarrow \pi_i | d_{i(T)} = k \sim Be(\alpha + k, \beta + T - k)\\
+        &\Rightarrow \mathbb{E}[\pi_i|d_{i(T)} = k] = \frac{\alpha + k}{\alpha + \beta + T}
+    \end{align*}
+    The marginal likelihood is:
+    \begin{align*}
+        \mathbb{P}(d_{i(T)} = k) &= \int_0^1 f(\pi_i, d_{i(T)})d\pi_i = \int_0^1 \mathbb{P}(d_{i(T)} = k | \pi_i)f(\pi_i)d\pi_i\\
+        &= \binom{T}{k} \frac{B(\alpha + k, \beta + T - k)}{B(\alpha, \beta)}
+    \end{align*}
+    Note that we never observe $d_{i(T)} = 0$. The observed frequences $d_{i(T)} > 0$ for $i \in S_{T}^{in}$ follow a truncated distribution:
+    \begin{align*}
+    \mathbb{P}(d_{i(T)} = k | d_{i(T)} > 0) &= 
+    \begin{cases}
+        \frac{\mathbb{P}(d_{i(T)} = k)}{1 - \mathbb{P}(d_{i(T)} = 0)},& \text{if } k > 0 \\
+        0, & \text{otherwise}
+    \end{cases}\\
+    &=
+    \begin{cases}
+        \binom{T}{k} \frac{B(\alpha + k, \beta + T - k)}{B(\alpha, \beta) - B(\alpha, \beta + T)},& \text{if } k > 0 \\
+        0, & \text{otherwise}
+    \end{cases}
+    \end{align*}
+    Following empirical Bayes approach, maximise the marginal likelihood to obtain hyperparameters $\alpha$ and $\beta$.
+    \begin{align*}
+        L(\alpha, \beta; T, k_1, \dots, k_i) &\overset{indep}{=} \prod_{i \in S_T^{in}} \binom{T}{k_i} \frac{\Gamma(\alpha + k_i)\Gamma(\beta + T - k_i)}{\Gamma(\alpha + \beta + T)} \cdot \frac{1}{\frac{\Gamma(\alpha)\Gamma(\beta)}{\Gamma(\alpha + \beta)} - \frac{\Gamma(\alpha)\Gamma(\beta + T)}{\Gamma(\alpha + \beta + T)}} \\
+        &= \prod_{i \in S_T^{in}} \binom{T}{k_i} \frac{\Gamma(\alpha + k_i)\Gamma(\beta + T - k_i)\Gamma(\alpha + \beta)}{\Gamma(\alpha)\Gamma(\beta)\Gamma(\alpha + \beta + T) - \Gamma(\alpha)\Gamma(\beta + T)\Gamma(\alpha + \beta)}\\
+    \end{align*}
+    Using the recursive formula of gamma function $\Gamma(x) = (x - 1)\Gamma(x - 1)$ and the fact that $T, k_i \in \mathbb{N}_0 := \mathbb{N} \cup \{0\}$ allows to rewrite the marginal likelihood as:
+    \begin{align*}
+        L(\alpha, \beta; T, d_{i(T)} = k_i \forall i \in S_T^{in}) &= \prod_{i \in S_T^{in}} \binom{T}{k_i} \frac{\Gamma(\alpha) \Gamma(\beta) \Gamma(\alpha + \beta)}{\Gamma(\alpha)\Gamma(\beta)\Gamma(\alpha + \beta)}\\
+        &\times \frac{\prod_{j=1}^{k_i} (\alpha + k_i - j)\prod_{j=1}^{T - k_i} (\beta + T - k_i - j)}{\prod_{j=1}^T(\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j)} \\
+        &= \prod_{i \in S_T^{in}} \binom{T}{k_i} \frac{\prod_{j=1}^{k_i} (\alpha + k_i - j) \prod_{j=1}^{T - k_i} (\beta + T - k_i - j)}{\prod_{j=1}^T (\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j )}\\
+        &\propto \left[\prod_{j=1}^T (\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j)\right]^{-|S_T^{in}|}\\
+        &\times   \prod_{i \in S_T^{in}} \prod_{j=1}^{k_i} (\alpha + k_i - j)  \prod_{j=1}^{T - k_i} (\beta + T - k_i - j)
+    \end{align*}
+    The corresponding marginal log-likelihood is
+    \begin{align}
+        l(\alpha, \beta) &:= \log L(\alpha, \beta; T, d_{i(T)} = k_i \forall i \in S_T^{in}) \nonumber \\
+        &= const + \left[\sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} \log(\alpha + k_i - j) + \sum_{j = 1}^{T - k_i} \log(\beta + T - k_i - j)\right] \nonumber\\
+        &- |S_T^{in}|\log\left(\prod_{j=1}^T (\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j)\right)
+    \end{align}
+    Derivatives:
+    \begin{align}
+        \frac{\partial l(\alpha, \beta)}{\partial \alpha} &= \sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} (\alpha + k_i - j)^{-1} \nonumber \\
+        &- |S_T^{in}|\frac{\sum_{j = 1}^T \prod_{m = 1}^{j - 1} (\alpha + \beta + T - m) \prod_{m = j + 1}^T (\alpha + \beta + T - m)}{\prod_{j=1}^T (\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j)}\\
+        \frac{\partial l(\alpha, \beta)}{\partial \beta} &= \sum_{i \in S_T^{in}} \sum_{j = 1}^{T - k_i} (\beta + T + k_i - j)^{-1} \nonumber \\
+        &- |S_T^{in}|\frac{\sum_{j = 1}^T \prod_{m = 1}^{j - 1} (\beta + T - m) \prod_{m = j + 1}^T (\beta + T - m)}{\prod_{j=1}^T (\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j)}
+    \end{align}
+\end{itemize}
+
+\end{document}
