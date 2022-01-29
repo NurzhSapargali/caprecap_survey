@@ -98,7 +98,8 @@
     \begin{align}
         l(\alpha, \beta) &:= \log L(\alpha, \beta; T, d_{i(T)} = k_i \forall i \in S_T^{in}) \nonumber \\
         &= const - |S_T^{in}|\log\left[\prod_{j=1}^T (1 - \frac{j - \alpha}{\beta + T}) - \prod_{j=1}^T (1 - \frac{j}{\beta + T})\right] \nonumber \\
-        &+ \sum_{i \in S_T^{in}} \left[k_i\log(\alpha + k_i) - k_i\log(\beta + T) + \sum_{j = 1}^{k_i} \log(1 - \frac{j}{\alpha + k_i}) + \sum_{j = 1}^{T - k_i} \log(1 - \frac{k_i - j}{\beta + T})\right] \nonumber \\
+        &+ \sum_{i \in S_T^{in}} k_i\log(\alpha + k_i) - \log(\beta + T) \sum_{i \in S_T^{in}} k_i\nonumber \\
+        &+ \sum_{i \in S_T^{in}} \left[\sum_{j = 1}^{k_i} \log(1 - \frac{j}{\alpha + k_i}) + \sum_{j = 1}^{T - k_i} \log(1 - \frac{k_i - j}{\beta + T})\right] \nonumber \\
     \end{align}
     Derivatives:
     \begin{align}
