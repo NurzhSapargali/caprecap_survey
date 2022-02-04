@@ -98,15 +98,20 @@
     \begin{align}
         l(\alpha, \beta) &:= \log L(\alpha, \beta; T, d_{i(T)} = k_i \forall i \in S_T^{in}) \nonumber \\
         &= const - |S_T^{in}|\log\left[\prod_{j=1}^T (1 - \frac{j - \alpha}{\beta + T}) - \prod_{j=1}^T (1 - \frac{j}{\beta + T})\right] \nonumber \\
-        &+ \sum_{i \in S_T^{in}} k_i\log(\alpha + k_i) - \log(\beta + T) \sum_{i \in S_T^{in}} k_i\nonumber \\
-        &+ \sum_{i \in S_T^{in}} \left[\sum_{j = 1}^{k_i} \log(1 - \frac{j}{\alpha + k_i}) + \sum_{j = 1}^{T - k_i} \log(1 - \frac{k_i - j}{\beta + T})\right] \nonumber \\
+        &- \log(\beta + T) \sum_{i \in S_T^{in}} k_i + \sum_{i \in S_T^{in}} k_i\log(\alpha + k_i) \nonumber \\
+        &+ \sum_{i \in S_T^{in}}\sum_{j = 1}^{k_i} \log(1 - \frac{j}{\alpha + k_i}) + \sum_{i \in S_T^{in}} \sum_{j = 1}^{T - k_i} \log(1 - \frac{k_i - j}{\beta + T}) \nonumber \\
     \end{align}
     Derivatives:
     \begin{align}
-        \frac{\partial l(\alpha, \beta)}{\partial \alpha} &= \sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} (\alpha + k_i - j)^{-1} \nonumber \\
-        &- |S_T^{in}|\frac{\sum_{j = 1}^T \prod_{m = 1}^{j - 1} (\alpha + \beta + T - m) \prod_{m = j + 1}^T (\alpha + \beta + T - m)}{\prod_{j=1}^T (\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j)}\\
-        \frac{\partial l(\alpha, \beta)}{\partial \beta} &= \sum_{i \in S_T^{in}} \sum_{j = 1}^{T - k_i} (\beta + T + k_i - j)^{-1} \nonumber \\
-        &- |S_T^{in}|\frac{\sum_{j = 1}^T \prod_{m = 1}^{j - 1} (\beta + T - m) \prod_{m = j + 1}^T (\beta + T - m)}{\prod_{j=1}^T (\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j)}
+        \frac{\partial l(\alpha, \beta)}{\partial \alpha} &= - \frac{|S_T^{in}|}{(\beta + T)}\frac{\sum_{j = 1}^T \prod_{1 \leq m \neq j \leq T} (1 - \frac{m - \alpha}{\beta + T})}{\prod_{j=1}^T (1 - \frac{j - \alpha}{\beta + T}) - \prod_{j=1}^T (1 - \frac{j}{\beta + T})}\nonumber \\
+        &+ \sum_{i \in S_T^{in}} (\alpha + k_i)^{-1}\left(k_i + \sum_{j = 1}^{k_i} \frac{j}{\alpha + k_i - j}\right) \nonumber \\
+        &= - \frac{|S_T^{in}|}{(\beta + T)} \frac{\prod_{m=1}^T (1 - \frac{m - \alpha}{\beta + T}) \sum_{j = 1}^T (1 - \frac{j - \alpha}{\beta + T})^{-1}}{\prod_{j=1}^T (1 - \frac{j - \alpha}{\beta + T}) - \prod_{j=1}^T (1 - \frac{j}{\beta + T})} \nonumber \\
+        &+ \sum_{i \in S_T^{in}} (\alpha + k_i)^{-1}\left(k_i + \sum_{j = 1}^{k_i} \frac{j}{\alpha + k_i - j}\right)  \\
+        \frac{\partial l(\alpha, \beta)}{\partial \beta} &= - \frac{|S_T^{in}|}{(\beta + T)^2}\frac{\sum_{j = 1}^T (j - \alpha)\prod_{1 \leq m \neq j \leq T} (1 - \frac{m - \alpha}{\beta + T}) - j\prod_{1 \leq m \neq j \leq T} (1 - \frac{m}{\beta + T})}{\prod_{j=1}^T (1 - \frac{j - \alpha}{\beta + T}) - \prod_{j=1}^T (1 - \frac{j}{\beta + T})}\nonumber \\
+        &-(\beta + T)^{-1}\sum_{i \in S_T^{in}} \left(k_i - \sum_{j = 1}^{T - k_i} \frac{k_i - j}{\beta + T - k_i + j}\right) \nonumber \\
+        &= -\frac{|S_T^{in}|}{(\beta + T)^2}\frac{\prod_{ m =1}^{T} (1 - \frac{m - \alpha}{\beta + T}) \sum_{j = 1}^T (j - \alpha)(1 - \frac{j - \alpha}{\beta + T})^{-1}}{\prod_{j=1}^T (1 - \frac{j - \alpha}{\beta + T}) - \prod_{j=1}^T (1 - \frac{j}{\beta + T})}\nonumber \\
+        &+ \frac{|S_T^{in}|}{(\beta + T)^2} \frac{\prod_{m = 1}^{T} (1 - \frac{m}{\beta + T}) \sum_{j = 1}^{T} j (1 - \frac{j}{\beta + T})^{-1}}{\prod_{j=1}^T (1 - \frac{j - \alpha}{\beta + T}) - \prod_{j=1}^T (1 - \frac{j}{\beta + T})} \nonumber \\
+        &-(\beta + T)^{-1}\sum_{i \in S_T^{in}} \left(k_i - \sum_{j = 1}^{T - k_i} \frac{k_i - j}{\beta + T - k_i + j}\right)
     \end{align}
 \end{itemize}
 
