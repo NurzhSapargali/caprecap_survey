@@ -1,6 +1,6 @@
 module Utils
 
-import StatsBase: sample, countmap, Weights, addcounts!
+import StatsBase: sample, countmap, ProbabilityWeights, addcounts!
 import SpecialFunctions: gamma
 
 export simulate_caprecap, likelihood, likelihood_simple, loglikelihood
@@ -16,7 +16,7 @@ function simulate_caprecap(pop_size::Int, sample_size::Int,
     K = Dict{Int, Int}();
     pop = collect(1:pop_size);
     for t in 1:reps
-        cap = sample(pop, Weights(prob), sample_size, replace=false);
+        cap = sample(pop, ProbabilityWeights(prob), sample_size, replace=false);
         addcounts!(K, cap);
     end
     return K
