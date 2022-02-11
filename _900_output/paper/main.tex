@@ -111,7 +111,7 @@
         l(\alpha, q) &:= \log L(\alpha, q) \nonumber \\
         &= const - |S_T^{in}|\log\left[\prod_{j=1}^T (1 - \frac{j - \alpha}{q\alpha + T}) - \prod_{j=1}^T (1 - \frac{j}{q\alpha + T})\right] \nonumber \\
         &- \log(q\alpha + T) \sum_{i \in S_T^{in}} k_i + \sum_{i \in S_T^{in}} k_i\log(\alpha + k_i) \nonumber \\
-        &+ \sum_{i \in S_T^{in}}\sum_{j = 1}^{k_i} \log(1 - \frac{j}{\alpha + k_i}) + \sum_{j = 1}^{T - k_i} \log(1 - \frac{k_i - j}{q\alpha + T}) \nonumber \\
+        &+ \sum_{i \in S_T^{in}}\sum_{j = 1}^{k_i} \log(1 - \frac{j}{\alpha + k_i}) + \sum_{j = 1}^{T - k_i} \log(1 - \frac{k_i + j}{q\alpha + T}) \nonumber \\
     \end{align}
     Derivatives:
     \begin{align} \label{eq:6}

@@ -1,9 +1,34 @@
 module Utils
 
-import StatsBase: sample, countmap, ProbabilityWeights, addcounts!
+import StatsBase: addcounts!
 import SpecialFunctions: gamma
+import Distributions: Multinomial
 
-export simulate_caprecap, likelihood, likelihood_simple, loglikelihood
+export simulate_caprecap, likelihood, likelihood_simple, loglikelihood, sampford
+
+function sampford(prob::Array{Float64, 1}, max_iter=500)
+    n = sum(prob);
+    n = floor(Int, round(n, digits=0));
+    N = length(prob);
+    y = prob ./ (1.0 .- prob) ./ sum(prob ./ (1.0 .- prob));
+    if sum(y) != 1
+        y[length(y)] += 1.0 - sum(y);
+    end
+    step = 0;
+    sb = repeat([2], N);
+    a = Multinomial(1, prob ./ sum(prob));
+    b = Multinomial(n - 1, y);
+    while (sum(sb .<= 1) != N && step <= max_iter)
+        sb = rand(a, 1) + rand(b, 1);
+        step += 1;
+    end
+    if (sum(sb .<= 1) == N)
+        return sb
+    else
+        return [];
+    end
+end
+
 
 function simulate_caprecap(pop_size::Int, sample_size::Int,
                            reps::Int, prob::Array{Float64, 1})
@@ -13,17 +38,24 @@ function simulate_caprecap(pop_size::Int, sample_size::Int,
     if length(prob) != pop_size
         error("Length of probabilities array is not equal to population size")
     end
+    if round(sum(prob), digits=0) != sample_size
+        prob = prob ./ sum(prob) .* sample_size;
+    end
     K = Dict{Int, Int}();
     pop = collect(1:pop_size);
     for t in 1:reps
-        cap = sample(pop, ProbabilityWeights(prob), sample_size, replace=false);
-        addcounts!(K, cap);
+        mask = [];
+        while length(mask) == 0
+            mask = sampford(prob);
+        end
+        s = [i for i in pop if mask[i] == 1];
+        addcounts!(K, s);
     end
     return K
 end
 
 
-function likelihood(alpha, beta,
+function likelihood(alpha, q,
                     freqs::Dict{Int, Int}, reps::Int,
                     form::String="proportional")
     if !(form in ("proportional", "full"))
@@ -32,10 +64,10 @@ function likelihood(alpha, beta,
     lh = 1.0;
     for k in values(freqs)
         numerator = ( gamma(alpha + k) 
-                    * gamma(beta + reps - k) 
-                    * gamma(alpha + beta) );
-        denom = ( gamma(alpha) * gamma(beta) * gamma(alpha + beta + reps)
-                - gamma(alpha) * gamma(beta + reps) * gamma(alpha + beta) );
+                    * gamma(q * alpha + reps - k) 
+                    * gamma(alpha + q * alpha) );
+        denom = ( gamma(alpha) * gamma(q * alpha) * gamma(alpha + q * alpha + reps)
+                - gamma(alpha) * gamma(q * alpha + reps) * gamma(alpha + q * alpha) );
         lh *= numerator / denom;
         if form == "full"
             lh *= binomial(reps, k);
@@ -45,7 +77,7 @@ function likelihood(alpha, beta,
 end
 
 
-function likelihood_simple(alpha, beta,
+function likelihood_simple(alpha, q,
                            freqs::Dict{Int, Int}, reps::Int,
                            form::String="proportional")
     if !(form in ("proportional", "full"))
@@ -55,18 +87,18 @@ function likelihood_simple(alpha, beta,
     secondprod = 1.0;
     thirdprod = 1.0;
     for t in 1:reps
-        firstprod *= ( 1.0 - (t - alpha) / (beta + reps) );
-        secondprod *= ( 1.0 - t / (beta + reps) );
+        firstprod *= ( 1.0 - (t - alpha) / (q * alpha + reps) );
+        secondprod *= ( 1.0 - t / (q * alpha + reps) );
     end
     for k in values(freqs)
-        multiplier = ( (alpha + k) / (beta + reps) )^k;
+        multiplier = ( (alpha + k) / (q * alpha + reps) )^k;
         firstinnerprod = 1.0;
         secondinnerprod = 1.0;
         for j in 1:k
             firstinnerprod *= ( 1.0 - j / (alpha + k) );
         end
         for j in 1:(reps - k)
-            secondinnerprod *= ( 1.0 - (k + j) / (beta + reps) );
+            secondinnerprod *= ( 1.0 - (k + j) / (q * alpha + reps) );
         end
         thirdprod *= ( multiplier * firstinnerprod * secondinnerprod );
         if form == "full"
@@ -77,7 +109,7 @@ function likelihood_simple(alpha, beta,
 end
 
 
-function loglikelihood(alpha, beta,
+function loglikelihood(alpha, q,
                        freqs::Dict{Int, Int}, reps::Int,
                        form::String="proportional")
     if !(form in ("proportional", "full"))
@@ -89,8 +121,8 @@ function loglikelihood(alpha, beta,
     secondsum = 0.0;
     bin_num = 0.0;
     for t in 1:reps
-        firstprod *= ( 1.0 - (t - alpha) / (beta + reps) );
-        secondprod *= ( 1.0 - t / (beta + reps) );
+        firstprod *= ( 1.0 - (t - alpha) / (q * alpha + reps) );
+        secondprod *= ( 1.0 - t / (q * alpha + reps) );
         if form == "full"
             bin_num += log(t);
         end
@@ -106,7 +138,7 @@ function loglikelihood(alpha, beta,
             end
         end
         for j in 1:(reps - k)
-            secondinnersum += log( 1.0 - (k + j) / (beta + reps) );
+            secondinnersum += log( 1.0 - (k + j) / (q * alpha + reps) );
             if form == "full"
                 secondinnersum += -log(j);
             end
@@ -115,7 +147,7 @@ function loglikelihood(alpha, beta,
     end
     return ( -length(freqs) * log( firstprod - secondprod ) 
             + length(freqs) * bin_num
-            - log(beta + reps) * firstsum
+            - log(q * alpha + reps) * firstsum
             + secondsum);
 end
 
