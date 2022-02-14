@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020/Debian) (preloaded format=pdflatex 2021.9.22)  12 FEB 2022 01:27
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020/Debian) (preloaded format=pdflatex 2021.11.3)  14 FEB 2022 17:22
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -147,23 +147,33 @@ File: l3backend-pdftex.def 2020-01-29 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count266
 \l__pdf_internal_box=\box49
 )
-(./main.aux)
+(./main.aux
+
+LaTeX Warning: Label `eq:5' multiply defined.
+
+
+LaTeX Warning: Label `eq:6' multiply defined.
+
+
+LaTeX Warning: Label `eq:7' multiply defined.
+
+)
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 10.
-LaTeX Font Info:    ... okay on input line 10.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 10.
-LaTeX Font Info:    ... okay on input line 10.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 10.
-LaTeX Font Info:    ... okay on input line 10.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 10.
-LaTeX Font Info:    ... okay on input line 10.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 10.
-LaTeX Font Info:    ... okay on input line 10.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 10.
-LaTeX Font Info:    ... okay on input line 10.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 10.
-LaTeX Font Info:    ... okay on input line 10.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 14.
+LaTeX Font Info:    ... okay on input line 14.
  (/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
 \scratchcounter=\count267
@@ -220,115 +230,144 @@ e
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-LaTeX Font Info:    Trying to load font information for U+msa on input line 14.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 18.
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 14.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 18.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
 LaTeX Font Info:    Trying to load font information for U+dsrom on input line 2
-0.
+4.
 
 (/usr/share/texlive/texmf-dist/tex/latex/doublestroke/Udsrom.fd
 File: Udsrom.fd 1995/08/01 v0.1 Double stroke roman font definitions
 ) [1
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2]
-Overfull \hbox (32.51451pt too wide) detected at line 125
+Overfull \hbox (24.11383pt too wide) detected at line 125
+[]
+ []
+
+
+Overfull \hbox (0.44742pt too wide) detected at line 132
 []
  []
 
 [3]
-Overfull \hbox (32.51451pt too wide) detected at line 132
+Overfull \hbox (47.7691pt too wide) detected at line 145
+[]
+ []
+
+
+Overfull \hbox (48.93794pt too wide) detected at line 151
+[]
+ []
+
+
+Overfull \hbox (24.11383pt too wide) detected at line 159
+[]
+ []
+
+
+Overfull \hbox (0.44742pt too wide) detected at line 166
 []
  []
 
 [4]
-<../figures/Likelihood_sfplt_1.pdf, id=28, 722.7pt x 650.43pt>
-File: ../figures/Likelihood_sfplt_1.pdf Graphic file (type pdf)
-<use ../figures/Likelihood_sfplt_1.pdf>
-Package pdftex.def Info: ../figures/Likelihood_sfplt_1.pdf  used on input line 
-155.
+<../figures/Likelihood_sfplt_0.25.pdf, id=28, 722.7pt x 650.43pt>
+File: ../figures/Likelihood_sfplt_0.25.pdf Graphic file (type pdf)
+<use ../figures/Likelihood_sfplt_0.25.pdf>
+Package pdftex.def Info: ../figures/Likelihood_sfplt_0.25.pdf  used on input li
+ne 187.
 (pdftex.def)             Requested size: 225.34554pt x 202.81226pt.
-<../figures/Likelihood_contplt_1.pdf, id=29, 722.7pt x 650.43pt>
-File: ../figures/Likelihood_contplt_1.pdf Graphic file (type pdf)
-<use ../figures/Likelihood_contplt_1.pdf>
-Package pdftex.def Info: ../figures/Likelihood_contplt_1.pdf  used on input lin
-e 159.
+<../figures/Likelihood_contplt_0.25.pdf, id=29, 722.7pt x 650.43pt>
+File: ../figures/Likelihood_contplt_0.25.pdf Graphic file (type pdf)
+<use ../figures/Likelihood_contplt_0.25.pdf>
+Package pdftex.def Info: ../figures/Likelihood_contplt_0.25.pdf  used on input 
+line 191.
 (pdftex.def)             Requested size: 184.37135pt x 165.93188pt.
-<../figures/Likelihood_sfplt_2.pdf, id=30, 722.7pt x 650.43pt>
-File: ../figures/Likelihood_sfplt_2.pdf Graphic file (type pdf)
-<use ../figures/Likelihood_sfplt_2.pdf>
-Package pdftex.def Info: ../figures/Likelihood_sfplt_2.pdf  used on input line 
-168.
+<../figures/Likelihood_sfplt_1.0.pdf, id=30, 722.7pt x 650.43pt>
+File: ../figures/Likelihood_sfplt_1.0.pdf Graphic file (type pdf)
+<use ../figures/Likelihood_sfplt_1.0.pdf>
+Package pdftex.def Info: ../figures/Likelihood_sfplt_1.0.pdf  used on input lin
+e 200.
 (pdftex.def)             Requested size: 225.34554pt x 202.81226pt.
-<../figures/Likelihood_contplt_2.pdf, id=31, 722.7pt x 650.43pt>
-File: ../figures/Likelihood_contplt_2.pdf Graphic file (type pdf)
-<use ../figures/Likelihood_contplt_2.pdf>
-Package pdftex.def Info: ../figures/Likelihood_contplt_2.pdf  used on input lin
-e 172.
+<../figures/Likelihood_contplt_1.0.pdf, id=31, 722.7pt x 650.43pt>
+File: ../figures/Likelihood_contplt_1.0.pdf Graphic file (type pdf)
+<use ../figures/Likelihood_contplt_1.0.pdf>
+Package pdftex.def Info: ../figures/Likelihood_contplt_1.0.pdf  used on input l
+ine 204.
 (pdftex.def)             Requested size: 184.37135pt x 165.93188pt.
-<../figures/Likelihood_sfplt_3.pdf, id=32, 722.7pt x 650.43pt>
-File: ../figures/Likelihood_sfplt_3.pdf Graphic file (type pdf)
-<use ../figures/Likelihood_sfplt_3.pdf>
-Package pdftex.def Info: ../figures/Likelihood_sfplt_3.pdf  used on input line 
-181.
+<../figures/Likelihood_sfplt_4.0.pdf, id=32, 722.7pt x 650.43pt>
+File: ../figures/Likelihood_sfplt_4.0.pdf Graphic file (type pdf)
+<use ../figures/Likelihood_sfplt_4.0.pdf>
+Package pdftex.def Info: ../figures/Likelihood_sfplt_4.0.pdf  used on input lin
+e 213.
 (pdftex.def)             Requested size: 225.34554pt x 202.81226pt.
-<../figures/Likelihood_contplt_3.pdf, id=33, 722.7pt x 650.43pt>
-File: ../figures/Likelihood_contplt_3.pdf Graphic file (type pdf)
-<use ../figures/Likelihood_contplt_3.pdf>
-Package pdftex.def Info: ../figures/Likelihood_contplt_3.pdf  used on input lin
-e 185.
+<../figures/Likelihood_contplt_4.0.pdf, id=33, 722.7pt x 650.43pt>
+File: ../figures/Likelihood_contplt_4.0.pdf Graphic file (type pdf)
+<use ../figures/Likelihood_contplt_4.0.pdf>
+Package pdftex.def Info: ../figures/Likelihood_contplt_4.0.pdf  used on input l
+ine 217.
 (pdftex.def)             Requested size: 184.37135pt x 165.93188pt.
- [5 <../figures/Likelihood_sfplt_1.pdf> <../figures/Likelihood_contplt_1.pdf
+ [5] [6 <../figures/Likelihood_sfplt_0.25.pdf> <../figures/Likelihood_contplt_0
+.25.pdf
 
-pdfTeX warning: pdflatex (file ../figures/Likelihood_contplt_1.pdf): PDF inclus
+pdfTeX warning: pdflatex (file ../figures/Likelihood_contplt_0.25.pdf): PDF inc
+lusion: multiple pdfs with page group included in a single page
+> <../figures/Likelihood_sfplt_1.0.pdf
+
+pdfTeX warning: pdflatex (file ../figures/Likelihood_sfplt_1.0.pdf): PDF inclus
 ion: multiple pdfs with page group included in a single page
-> <../figures/Likelihood_sfplt_2.pdf
+> <../figures/Likelihood_contplt_1.0.pdf
 
-pdfTeX warning: pdflatex (file ../figures/Likelihood_sfplt_2.pdf): PDF inclusio
-n: multiple pdfs with page group included in a single page
-> <../figures/Likelihood_contplt_2.pdf
+pdfTeX warning: pdflatex (file ../figures/Likelihood_contplt_1.0.pdf): PDF incl
+usion: multiple pdfs with page group included in a single page
+> <../figures/Likelihood_sfplt_4.0.pdf
 
-pdfTeX warning: pdflatex (file ../figures/Likelihood_contplt_2.pdf): PDF inclus
+pdfTeX warning: pdflatex (file ../figures/Likelihood_sfplt_4.0.pdf): PDF inclus
 ion: multiple pdfs with page group included in a single page
->] [6 <../figures/Likelihood_sfplt_3.pdf> <../figures/Likelihood_contplt_3.pdf
+> <../figures/Likelihood_contplt_4.0.pdf
 
-pdfTeX warning: pdflatex (file ../figures/Likelihood_contplt_3.pdf): PDF inclus
-ion: multiple pdfs with page group included in a single page
->] (./main.aux) ) 
+pdfTeX warning: pdflatex (file ../figures/Likelihood_contplt_4.0.pdf): PDF incl
+usion: multiple pdfs with page group included in a single page
+>] (./main.aux)
+
+LaTeX Warning: There were multiply-defined labels.
+
+ ) 
 Here is how much of TeX's memory you used:
- 2539 strings out of 479304
- 36778 string characters out of 5869779
- 347097 words of memory out of 5000000
- 19707 multiletter control sequences out of 15000+600000
- 410950 words of font info for 58 fonts, out of 8000000 for 9000
+ 2543 strings out of 479304
+ 36903 string characters out of 5869779
+ 346162 words of memory out of 5000000
+ 19711 multiletter control sequences out of 15000+600000
+ 411555 words of font info for 60 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  68i,16n,74p,429b,280s stack positions out of 5000i,500n,10000p,200000b,80000s
-{/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.enc}</
-usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/sh
-are/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/te
-xlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/
-texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texmf-
-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/share/texlive/texmf-dist/fo
-nts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/typ
-e1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/publ
-ic/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsf
-onts/cm/cmr6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/
-cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.p
-fb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></us
-r/share/texlive/texmf-dist/fonts/type1/public/doublestroke/dsrom12.pfb></usr/sh
-are/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/sha
-re/texmf/fonts/type1/public/cm-super/sfrm1200.pfb>
-Output written on main.pdf (6 pages, 362241 bytes).
+{/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.enc}</usr/share/texli
+ve/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/texlive/tex
+mf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texmf-dis
+t/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/font
+s/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texmf-dist/fonts/type
+1/public/amsfonts/cm/cmmi6.pfb></usr/share/texlive/texmf-dist/fonts/type1/publi
+c/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfo
+nts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/
+cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pf
+b></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/
+share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/
+texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texlive
+/texmf-dist/fonts/type1/public/doublestroke/dsrom12.pfb></usr/share/texlive/tex
+mf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb></usr/share/texmf/fonts/
+type1/public/cm-super/sfrm1200.pfb>
+Output written on main.pdf (6 pages, 374692 bytes).
 PDF statistics:
- 254 PDF objects out of 1000 (max. 8388607)
- 95 compressed objects within 1 object stream
+ 255 PDF objects out of 1000 (max. 8388607)
+ 94 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  31 words of extra memory for PDF output out of 10000 (max. 10000000)
 
