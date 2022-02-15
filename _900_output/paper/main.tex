@@ -207,17 +207,17 @@ and
 \section{Simulation results}
 We simulate capture-recapture procedure to produce $d_{i(T)}$ as follows:
 \begin{enumerate}
-    \item Set the true population size to $N$, sample size at each capture to $n$ and number of captures to $T$.
-    \item Set the true parameters $\alpha$ and $\beta$.
-    \item Draw $N$ values from $\pi \sim Beta(\alpha, \beta)$.
-    \item Normalise $\pi_i$ by dividing by the sum $\sum_{i=1}^{N} \pi_i$.
+    \item Set the true population size to $|\mathcal{P}|$, sample size at each capture to $n$ and number of captures to $T$. This results in setting $q = (\frac{\mathcal{P}}{n} - 1)$. 
+    \item Set the parameter $\alpha$.
+    \item Draw $|\mathcal{P}|$ values from $\pi \sim Beta(\alpha, q\alpha)$.
+    \item Normalise $\pi_i$ by dividing by $n$.
     \item At each replication $t = 1,\dots,T$:
         \begin{enumerate}
-            \item Draw a sample of $n$ numbers from $\{1,\dots,N\}$. Denote with $s_t$.
-            \item For each $i \in s_t$, increment $d_{i(T)}$ by 1. If $d_{i(T)}$ was never recorded before set $d_{i(T)} = 1$.
+            \item Given $\pi_i \forall$ $i = 1,\dots,|\mathcal{P}|$, draw a sample of $n$ numbers from $\{1,\dots,|\mathcal{P}|\}$ using Sampford's method. Denote the sample with $S_t$.
+            \item For each $i \in S_t$, increment $d_{i(T)}$ by 1. If $d_{i(T)}$ was never recorded before set $d_{i(T)} = 1$.
         \end{enumerate}
 \end{enumerate}
-Once we acquire $d_{i(T)}$, it is possible to calculate the exact likelihood using (3) multiplied by the prduct of binomial coefficients $\binom{T}{k_i}$. Figures 1-3 show surface and contour plots of the likelihood function for data simulated using different true $\alpha, \beta$ at parameter values $\{0.1, 0.6, \dots, 15.1\}$. The population size was set to 100, two samples of size 25 were drawn.
+Once we acquire $d_{i(T)}$, it is possible to calculate the likelihood function from section 1.1. Figures 1-3 show surface and contour plots of the likelihood for data simulated using different true $\alpha$ at parameter values $\{0.1, 0.6, \dots, 15.1\}$. The population size was set to 100, 5 samples of size 10 were drawn.
 
 
 \begin{figure}
@@ -230,7 +230,7 @@ Once we acquire $d_{i(T)}$, it is possible to calculate the exact likelihood usi
         \centering
         \includegraphics[width=0.9\textwidth]{../figures/Likelihood_contplt_0.25.pdf} % second figure itself
     \end{minipage}
-    \caption{\small Likelihood function for data simulated by $\pi \sim Beta(1, 4), N = 100, n = 25, T = 2$}
+    \caption{\small Likelihood function for data simulated by $\pi \sim Beta(0.25, 9 \cdot 0.25), |\mathcal{P}| = 100, n = 10, T = 5$}
 \end{figure}
 
 \begin{figure}
@@ -243,7 +243,7 @@ Once we acquire $d_{i(T)}$, it is possible to calculate the exact likelihood usi
         \centering
         \includegraphics[width=0.9\textwidth]{../figures/Likelihood_contplt_1.0.pdf} % second figure itself
     \end{minipage}
-    \caption{\small Likelihood function for data simulated by $\pi \sim Beta(1, 1), N = 100, n = 25, T = 2$}
+    \caption{\small Likelihood function for data simulated by $\pi \sim Beta(1, 9 \cdot 1), |\mathcal{P}| = 100, n = 10, T = 5$}
 \end{figure}
 
 \begin{figure}
@@ -256,7 +256,7 @@ Once we acquire $d_{i(T)}$, it is possible to calculate the exact likelihood usi
         \centering
         \includegraphics[width=0.9\textwidth]{../figures/Likelihood_contplt_4.0.pdf} % second figure itself
     \end{minipage}
-    \caption{\small Likelihood function for data simulated by $\pi \sim Beta(4, 1), N = 100, n = 25, T = 2$}
+    \caption{\small \small Likelihood function for data simulated by $\pi \sim Beta(4, 9 \cdot 4), |\mathcal{P}| = 100, n = 10, T = 5$}
 \end{figure}
 
 \end{document}

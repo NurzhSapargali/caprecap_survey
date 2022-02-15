@@ -18,6 +18,7 @@ const PARAMS = [0.25, 1.0, 4.0];
 
 seed!(555);
 q = (N / n - 1.0);
+io = open("optim_data.csv", "w");
 for alpha in PARAMS
     beta = alpha * q;
     d = Beta(alpha, beta);
@@ -27,8 +28,8 @@ for alpha in PARAMS
         p = rand(d, N);
         p = p ./ sum(p) .* n;
     end
-    estis = [];
     for i in 1:100
+        write(io, "$alpha,$N,$n,$T");
         K = simulate_caprecap(N, n, T, p);
         println("Data simulated");
         function g!(G, x)
@@ -66,29 +67,35 @@ for alpha in PARAMS
         inner_optimizer = GradientDescent()
         println("....Solving")
         results = optimize(L, lower, upper, initial_x, Fminbox(inner_optimizer));
-        push!(estis, Optim.minimizer(results));
+        converged = Optim.converged(results);
+        write(io, ",$converged");
+        row = Optim.minimizer(results);
+        for r in row
+            write(io, ",$r");
+        end
+        write(io, "\n");
         println("....Solved! $i");
     end
     
-    histogram([i[1] for i in estis],
-              xlabel="α_hat", label=false,
-              size=(1200, 900), xtickfontsize=22,
-              xguidefontsize=24, ytickfontsize=22);
-    vline!([alpha],
-           label="True α = $alpha",
-           linewidth=12,
-           legendfontsize=22);
-    savefig("$(FIGURES_FOLDER)hist_alpha_$alpha.pdf");
-    histogram([i[2] for i in estis],
-              xlabel="q", label=false,
-              size=(1200, 900), xtickfontsize=22,
-              xguidefontsize=24, ytickfontsize=22,
-              color="purple");
-    vline!([q],
-           label="True q = $q",
-           linewidth=12,
-           legendfontsize=22,
-           color="gold");
-    savefig("$(FIGURES_FOLDER)hist_q_$q.pdf");
+#     histogram([i[1] for i in estis],
+#               xlabel="α_hat", label=false,
+#               size=(1200, 900), xtickfontsize=22,
+#               xguidefontsize=24, ytickfontsize=22);
+#     vline!([alpha],
+#            label="True α = $alpha",
+#            linewidth=12,
+#            legendfontsize=22);
+#     savefig("$(FIGURES_FOLDER)hist_alpha_$alpha.pdf");
+#     histogram([i[2] for i in estis],
+#               xlabel="q", label=false,
+#               size=(1200, 900), xtickfontsize=22,
+#               xguidefontsize=24, ytickfontsize=22,
+#               color="purple");
+#     vline!([q],
+#            label="True q = $q",
+#            linewidth=12,
+#            legendfontsize=22,
+#            color="gold");
+#     savefig("$(FIGURES_FOLDER)hist_q_$q.pdf");
 end
-
+close(io);
