@@ -27,8 +27,8 @@ for i in PARAMS
         p = p ./ sum(p) .* n;
     end
     K = simulate_caprecap(N, n, T, p);
-    LL(x, y) = loglikelihood(x, y, K, T, "full");
-    L(x, y) = likelihood_simple(x, y, K, T, "full");
+    LL(x, y) = loglikelihood(x, y, K, T);
+    L(x, y) = likelihood_simple(x, y, K, T);
     flabels = Dict(LL => "Log-likelihood", L => "Likelihood")
     for f in (L, LL)
         title = "α = $i, q = $(N / n - 1.0)";

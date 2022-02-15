@@ -7,8 +7,8 @@
 \usepackage{dsfont}
 
 
-\newcommand{\sout}{|S_{out}^T|}
-\newcommand{\sint}{|S_{in}^T|}
+\newcommand{\sout}{|S^{out}_T|}
+\newcommand{\sint}{|S^{in}_T|}
 
 
 \begin{document}
@@ -67,7 +67,7 @@ Then the posterior distribution is
 The marginal likelihood is:
 \begin{align*}
     \mathbb{P}(d_{i(T)} = k) &= \int_0^1 f(\pi_i, d_{i(T)})d\pi_i = \int_0^1 \mathbb{P}(d_{i(T)} = k | \pi_i)f(\pi_i)d\pi_i\\
-    &= \binom{T}{k} \frac{B(\alpha + k, \beta + T - k)}{B(\alpha, \beta)}
+    &= \binom{T}{k} \frac{\mathrm{B}(\alpha + k, \beta + T - k)}{\mathrm{B}(\alpha, \beta)}
 \end{align*}
 Note that we never observe $d_{i(T)} = 0$. The observed frequences $d_{i(T)} > 0$ for $i \in S_{T}^{in}$ follow a truncated distribution:
 \begin{align*}
@@ -78,7 +78,7 @@ Note that we never observe $d_{i(T)} = 0$. The observed frequences $d_{i(T)} > 0
 \end{cases}\\
 &=
 \begin{cases}
-    \binom{T}{k} \frac{B(\alpha + k, \beta + T - k)}{B(\alpha, \beta) - B(\alpha, \beta + T)},& \text{if } k > 0 \\
+    \binom{T}{k} \frac{\mathrm{B}(\alpha + k, \beta + T - k)}{\mathrm{B}(\alpha, \beta) - \mathrm{B}(\alpha, \beta + T)},& \text{if } k > 0 \\
     0, & \text{otherwise}
 \end{cases}
 \end{align*}
@@ -100,7 +100,7 @@ The parameters $\alpha$ and $\beta$ must satisfy \eqref{eq:2}, so equation \eqre
     &\Leftrightarrow \beta = \left(\frac{|\mathcal{P}|}{n} - 1 \right)\alpha := q\alpha\\
     \Rightarrow \max_{\alpha, q} L(\alpha, q) &
 \end{align*}
-Alternatively,
+More explicitly,
 \begin{align*}
     \max_{\alpha, \beta} L(\alpha, \beta) &\quad \text{s.t.} \quad (\sint + \sout)\frac{\alpha}{\alpha + \beta} = n \\
     &\Leftrightarrow \beta = n^{-1}\alpha\sint + n^{-1}\alpha\sout - \alpha\\
@@ -110,26 +110,50 @@ Alternatively,
 \begin{align*}
     L(\alpha, q) &\propto \prod_{i \in S_T^{in}} \frac{\prod_{j=1}^{k_i} (\alpha + k_i - j)\prod_{j=1}^{T - k_i} (q\alpha + T - k_i - j)}{\prod_{j=1}^T(\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)} \\
 \end{align*}
-\begin{align} \label{eq:5}
+\begin{align} \label{eq:4}
     l(\alpha, q) &:= \log L(\alpha, q) \nonumber \\
     &= const - |S_T^{in}|\log\left[\prod_{j=1}^T(\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)\right] \nonumber \\
     &+ \sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} \log(\alpha + k_i - j) + \sum_{j = 1}^{T - k_i} \log(q\alpha + T - k_i - j) \nonumber \\
 \end{align}
 Derivatives:
-\begin{align} \label{eq:6}
+\begin{align} \label{eq:5}
     \frac{\partial l(\alpha, q)}{\partial \alpha} =& -\sint \frac{\sum_{j = 1}^{T} (1 + q) \prod_{1 \leq m \neq j \leq T} (\alpha + q\alpha + T - m) - \sum_{j = 1}^{T} q \prod_{1 \leq m \neq j \leq T} (q\alpha + T - m)}{\prod_{j = 1}^{T} (\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)}\nonumber \\
     &+ \sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} (\alpha + k_i - j)^{-1} + q\sum_{j = 1}^{T - k_i} (q\alpha + T - k_i - j)^{-1} \nonumber \\
     =& -(1 + q)\sint \frac{ \prod_{j = 1}^{T} (\alpha + q\alpha + T - j) \sum_{j = 1}^{T} (\alpha + q\alpha + T - j)^{-1} }{\prod_{j = 1}^{T} (\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)} \nonumber \\
     &+ q|S_T^{in}| \frac{\prod_{j = 1}^{T} (q\alpha + T - j) \sum_{j = 1}^{T} (q\alpha + T - j)^{-1}  }{ \prod_{j = 1}^{T} (\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)} \nonumber \\
     &+ \sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} (\alpha + k_i - j)^{-1} + q\sum_{j = 1}^{T - k_i} (q\alpha + T - k_i - j)^{-1} \nonumber \\
+    =& -(1 + q)\sint \frac{ A_p(\alpha, q) A_s(\alpha, q) }{A_p(\alpha, q) - B_p(\alpha, q)} + q|S_T^{in}| \frac{B_p(\alpha, q) B_s(\alpha, q)  }{ A_p(\alpha, q) - B_p(\alpha, q)} \nonumber \\
+    &+ \sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} (\alpha + k_i - j)^{-1} + q\sum_{j = 1}^{T - k_i} (q\alpha + T - k_i - j)^{-1} \nonumber \\
 \end{align}
-\begin{align} \label{eq:7}
-    \frac{\partial l(\alpha, q)}{\partial \alpha} =& -\sint \frac{\sum_{j = 1}^{T} \alpha \prod_{1 \leq m \neq j \leq T} (\alpha + q\alpha + T - m) - \sum_{j = 1}^{T} \alpha \prod_{1 \leq m \neq j \leq T} (q\alpha + T - m)}{\prod_{j = 1}^{T} (\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)}\nonumber \\
+\begin{align} \label{eq:6}
+    \frac{\partial l(\alpha, q)}{\partial q} =& -\sint \frac{\sum_{j = 1}^{T} \alpha \prod_{1 \leq m \neq j \leq T} (\alpha + q\alpha + T - m) - \sum_{j = 1}^{T} \alpha \prod_{1 \leq m \neq j \leq T} (q\alpha + T - m)}{\prod_{j = 1}^{T} (\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)}\nonumber \\
     &+ \sum_{i \in S_T^{in}} \alpha \sum_{j = 1}^{T - k_i} (q\alpha + T - k_i - j)^{-1} \nonumber \\
     =& -\alpha\sint \frac{ \prod_{j = 1}^{T} (\alpha + q\alpha + T - j) \sum_{j = 1}^{T} (\alpha + q\alpha + T - j)^{-1} }{\prod_{j = 1}^{T} (\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)} \nonumber \\
     &+ \alpha|S_T^{in}| \frac{\prod_{j = 1}^{T} (q\alpha + T - j) \sum_{j = 1}^{T} (q\alpha + T - j)^{-1}  }{ \prod_{j = 1}^{T} (\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)} \nonumber \\
     &+ \alpha \sum_{i \in S_T^{in}} \sum_{j = 1}^{T - k_i} (q\alpha + T - k_i - j)^{-1} \nonumber \\
+    &= -\alpha \sint \frac{ A_p(\alpha, q) A_s(\alpha, q) - B_p(\alpha, q) B_s(\alpha, q)  }{ A_p(\alpha, q) - B_p(\alpha, q)} + \alpha \sum_{i \in S_T^{in}} \sum_{j = 1}^{T - k_i} (q\alpha + T - k_i - j)^{-1} \nonumber \\
 \end{align}
+where
+\begin{align*}
+A_p(\alpha, q) := \prod_{j = 1}^{T} (\alpha + q\alpha + T - j) &,\quad A_s(\alpha, q) := \sum_{j = 1}^{T} (\alpha + q\alpha + T - j)^{-1} \\
+B_p(\alpha, q) := \prod_{j = 1}^{T} (q\alpha + T - j) &,\quad B_s(\alpha, q) := \sum_{j = 1}^{T} (q\alpha + T - j)^{-1} \\
+\end{align*}
+The product terms $A_p(\alpha, q)$ and $B_p(\alpha, q)$ are computationally expensive to calculate, as even small values of $T$ will lead yield extremely large quantities. For practical purposes, one can factor out $q\alpha + T$ from both expressions. Then the log-likelihood and the derivatives can be re-written as
+\begin{align*}
+    l(\alpha, q) &= const - T|S_T^{in}| \log(q\alpha + T) - \sint \log\left[ \widetilde{A_p}(\alpha, q) - \widetilde{B_p}(\alpha, q) \right] \nonumber \\
+    &+ \sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} \log(\alpha + k_i - j) + \sum_{j = 1}^{T - k_i} \log(q\alpha + T - k_i - j) \nonumber \\
+\end{align*}
+\begin{align*}
+    \frac{\partial l(\alpha, q)}{\partial \alpha} = &-(1 + q)\sint \frac{ \widetilde{A_p}(\alpha, q) A_s(\alpha, q) }{\widetilde{A_p}(\alpha, q) - \widetilde{B_p}(\alpha, q)} + q|S_T^{in}| \frac{\widetilde{B_p}(\alpha, q) B_s(\alpha, q)  }{ \widetilde{A_p}(\alpha, q) - \widetilde{B_p}(\alpha, q)} \\
+    &+ \sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} (\alpha + k_i - j)^{-1} + q\sum_{j = 1}^{T - k_i} (q\alpha + T - k_i - j)^{-1} \\
+\end{align*}
+\begin{align*}
+    \frac{\partial l(\alpha, q)}{\partial q} =& -\alpha \sint \frac{ \widetilde{A_p}(\alpha, q) A_s(\alpha, q) - \widetilde{B_p}(\alpha, q) B_s(\alpha, q)  }{ \widetilde{A_p}(\alpha, q) - \widetilde{B_p}(\alpha, q)} + \alpha \sum_{i \in S_T^{in}} \sum_{j = 1}^{T - k_i} (q\alpha + T - k_i - j)^{-1} \\
+\end{align*}
+where
+\begin{align*}
+\widetilde{A_p}(\alpha, q) := \prod_{j = 1}^{T} \left(1 - \frac{j - \alpha}{q\alpha + T}\right)  ,\quad \widetilde{B_p}(\alpha, q) := \prod_{j = 1}^{T} \left(1 - \frac{j}{q\alpha + T}\right) \\
+\end{align*}
 % The product terms are computationally expensive to calculate, as even small values of $T$ and $k_i$ will yield extremely large quantities. Taking logarithms alleviates the problem with the numerator but not the denominator. Therefore, further simplification of the marginal likelihood is required.
 % \begin{align} \label{eq:4}
 %     L(\alpha, q) &\propto \frac{\prod_{j=1}^{k_i} (\alpha + k_i - j)\prod_{j=1}^{T - k_i} (q\alpha + T - k_i - j)}{\prod_{j=1}^T(\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)} \nonumber \\
@@ -141,29 +165,45 @@ Derivatives:
 
 \subsection{Variant 2}
 \begin{align*}
-    L(\alpha, q) &\propto \prod_{i \in S_T^{in}} \frac{\prod_{j=1}^{k_i} (\alpha + k_i - j)\prod_{j=1}^{T - k_i} (n^{-1} \alpha \sint + n^{-1} \alpha \sout + T - k_i - j)}{\prod_{j=1}^T(\alpha + n^{-1}\alpha \sint + n^{-1} \alpha \sout + T - j) - \prod_{j=1}^T (n^{-1} \alpha \sint + n^{-1} \alpha \sout + T - j)} \\
+    \hspace*{-1cm}
+    L(\alpha, \sout) &\propto \prod_{i \in S_T^{in}} \frac{\prod_{j=1}^{k_i} (\alpha + k_i - j)\prod_{j=1}^{T - k_i} (n^{-1} \alpha \sint + n^{-1} \alpha \sout -\alpha + T - k_i - j)}{\prod_{j=1}^T(n^{-1}\alpha \sint + n^{-1} \alpha \sout + T - j) - \prod_{j=1}^T (n^{-1} \alpha \sint + n^{-1} \alpha \sout - \alpha + T - j)} \\
 \end{align*}
-\begin{align} \label{eq:5}
-    l(\alpha, q) &:= \log L(\alpha, q) \nonumber \\
-    &= const \nonumber \\ 
-    &-\sint \log\left[\prod_{j=1}^T(\alpha + n^{-1}\alpha \sint + n^{-1} \alpha \sout + T - j) - \prod_{j=1}^T (n^{-1} \alpha \sint + n^{-1} \alpha \sout + T - j)\right] \nonumber \\
-    &+ \sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} \log(\alpha + k_i - j) + \sum_{j = 1}^{T - k_i} \log(q\alpha + T - k_i - j) \nonumber \\
+\begin{align} \label{eq:7}
+    \hspace*{-1cm}
+    l(\alpha, \sout) &:= \log L(\alpha, \sout) \nonumber \\
+    &= const - \sint \log \left[A_p(\alpha, \sout) - B_p(\alpha, \sout) \right] \nonumber \\
+    &+ \sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} \log(\alpha + k_i - j) + \sum_{j = 1}^{T - k_i} \log(n^{-1} \alpha \sint + n^{-1} \alpha \sout - \alpha + T - k_i - j) \nonumber \\
+    &= const - T\sint \log(n^{-1}\alpha\sint + n^{-1}\alpha\sout + T) - \sint \log \left[\widetilde{A_p}(\alpha, \sout) - \widetilde{B_p}(\alpha, \sout) \right] \nonumber \\
+    &+ \sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} \log(\alpha + k_i - j) + \sum_{j = 1}^{T - k_i} \log(n^{-1} \alpha \sint + n^{-1} \alpha \sout - \alpha + T - k_i - j) \nonumber \\
 \end{align}
 Derivatives:
-\begin{align} \label{eq:6}
-    \frac{\partial l(\alpha, q)}{\partial \alpha} =& -\sint \frac{\sum_{j = 1}^{T} (1 + q) \prod_{1 \leq m \neq j \leq T} (\alpha + q\alpha + T - m) - \sum_{j = 1}^{T} q \prod_{1 \leq m \neq j \leq T} (q\alpha + T - m)}{\prod_{j = 1}^{T} (\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)}\nonumber \\
-    &+ \sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} (\alpha + k_i - j)^{-1} + q\sum_{j = 1}^{T - k_i} (q\alpha + T - k_i - j)^{-1} \nonumber \\
-    =& -(1 + q)\sint \frac{ \prod_{j = 1}^{T} (\alpha + q\alpha + T - j) \sum_{j = 1}^{T} (\alpha + q\alpha + T - j)^{-1} }{\prod_{j = 1}^{T} (\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)} \nonumber \\
-    &+ q|S_T^{in}| \frac{\prod_{j = 1}^{T} (q\alpha + T - j) \sum_{j = 1}^{T} (q\alpha + T - j)^{-1}  }{ \prod_{j = 1}^{T} (\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)} \nonumber \\
-    &+ \sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} (\alpha + k_i - j)^{-1} + q\sum_{j = 1}^{T - k_i} (q\alpha + T - k_i - j)^{-1} \nonumber \\
+\begin{align} \label{eq:8}
+    \hspace{-1cm}
+    \frac{\partial l(\alpha, \sout)}{\partial \alpha} =& -\sint(n^{-1}\sint + n^{-1}\sout) \frac{ A_p(\alpha, \sout) A_s(\alpha, \sout)}{A_p(\alpha, \sout) - B_p(\alpha, \sout)}\nonumber \\
+    &+ \sint (n^{-1}\sint + n^{-1}\sout - 1) \frac{B_p(\alpha, \sout) B_s(\alpha, \sout)}{A_p(\alpha, \sout) - B_p(\alpha, \sout)}\nonumber \\
+    &+ \sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} (\alpha + k_i - j)^{-1} + (\frac{\sint}{n} + \frac{\sout}{n} - 1) \sum_{j = 1}^{T - k_i} (\alpha \frac{\sint}{n} + \alpha \frac{\sout}{n} - \alpha + T - k_i - j)^{-1} \nonumber \\
+    =& -\sint(n^{-1}\sint + n^{-1}\sout) \frac{ \widetilde{A_p}(\alpha, \sout) A_s(\alpha, \sout)}{\widetilde{A_p}(\alpha, \sout) - \widetilde{B_p}(\alpha, \sout)}\nonumber \\
+    &+ \sint(n^{-1}\sint + n^{-1}\sout - 1) \frac{ \widetilde{B_p}(\alpha, \sout) B_s(\alpha, \sout)}{\widetilde{A_p}(\alpha, \sout) - \widetilde{B_p}(\alpha, \sout)}\nonumber \\
+    &+ \sum_{i \in S_T^{in}} \sum_{j = 1}^{k_i} (\alpha + k_i - j)^{-1} + (\frac{\sint}{n} + \frac{\sout}{n} - 1) \sum_{j = 1}^{T - k_i} (\alpha \frac{\sint}{n} + \alpha \frac{\sout}{n} - \alpha + T - k_i - j)^{-1} \nonumber \\
 \end{align}
-\begin{align} \label{eq:7}
-    \frac{\partial l(\alpha, q)}{\partial \alpha} =& -\sint \frac{\sum_{j = 1}^{T} \alpha \prod_{1 \leq m \neq j \leq T} (\alpha + q\alpha + T - m) - \sum_{j = 1}^{T} \alpha \prod_{1 \leq m \neq j \leq T} (q\alpha + T - m)}{\prod_{j = 1}^{T} (\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)}\nonumber \\
-    &+ \sum_{i \in S_T^{in}} \alpha \sum_{j = 1}^{T - k_i} (q\alpha + T - k_i - j)^{-1} \nonumber \\
-    =& -\alpha\sint \frac{ \prod_{j = 1}^{T} (\alpha + q\alpha + T - j) \sum_{j = 1}^{T} (\alpha + q\alpha + T - j)^{-1} }{\prod_{j = 1}^{T} (\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)} \nonumber \\
-    &+ \alpha|S_T^{in}| \frac{\prod_{j = 1}^{T} (q\alpha + T - j) \sum_{j = 1}^{T} (q\alpha + T - j)^{-1}  }{ \prod_{j = 1}^{T} (\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)} \nonumber \\
-    &+ \alpha \sum_{i \in S_T^{in}} \sum_{j = 1}^{T - k_i} (q\alpha + T - k_i - j)^{-1} \nonumber \\
+\begin{align} \label{eq:9}
+   \frac{\partial l(\alpha, \sout)}{\partial \sout} =& -n^{-1} \alpha \sint \frac{A_p(\alpha, \sout) A_s(\alpha, \sout) - B_p(\alpha, \sout) B_s(\alpha, \sout)}{A_p(\alpha, \sout) - B_p(\alpha, \sout)}\nonumber \\
+    &+ n^{-1}\alpha \sum_{i \in S_T^{in}} \sum_{j = 1}^{T - k_i} (\alpha \frac{\sint}{n} + \alpha \frac{\sout}{n} + T - k_i - j)^{-1} \nonumber \\
+    =& -n^{-1} \alpha \sint \frac{\widetilde{A_p}(\alpha, \sout) A_s(\alpha, \sout) - \widetilde{B_p}(\alpha, \sout) B_s(\alpha, \sout)}{\widetilde{A_p}(\alpha, \sout) - \widetilde{B_p}(\alpha, \sout)}\nonumber \\
+    &+ n^{-1}\alpha \sum_{i \in S_T^{in}} \sum_{j = 1}^{T - k_i} (\alpha \frac{\sint}{n} + \alpha \frac{\sout}{n} + T - k_i - j)^{-1} \nonumber \\
 \end{align}
+where
+\begin{align*}
+A_p(\alpha, \sout) &:= \prod_{j=1}^T(n^{-1}\alpha \sint + n^{-1} \alpha \sout + T - j) \\
+A_s(\alpha, \sout) &:= \sum_{j = 1}^{T} (n^{-1}\alpha \sint + n^{-1} \alpha \sout + T - j)^{-1} \\
+B_p(\alpha, \sout) &:= \prod_{j=1}^T (n^{-1} \alpha \sint + n^{-1} \alpha \sout - \alpha + T - j) \\
+B_s(\alpha, \sout) &:= \sum_{j = 1}^{T} (n^{-1} \alpha \sint + n^{-1} \alpha \sout - \alpha + T - j)^{-1} \\
+\end{align*}
+and
+\begin{align*}
+\widetilde{A_p}(\alpha, \sout) &:= \prod_{j=1}^T \left(1 - \frac{j}{n^{-1}\alpha \sint + n^{-1} \alpha \sout + T}\right) \\
+\widetilde{B_p}(\alpha, \sout) &:= \prod_{j=1}^T \left(1 - \frac{j + \alpha}{n^{-1} \alpha \sint + n^{-1} \alpha \sout + T}\right)\\
+\end{align*}
 \section{Simulation results}
 We simulate capture-recapture procedure to produce $d_{i(T)}$ as follows:
 \begin{enumerate}

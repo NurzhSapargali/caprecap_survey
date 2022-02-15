@@ -32,34 +32,32 @@ for alpha in PARAMS
         K = simulate_caprecap(N, n, T, p);
         println("Data simulated");
         function g!(G, x)
-            firstprod = 1.0;
-            secondprod = 1.0;
+            Ap = 1.0;
+            As = 0.0;
+            Bp = 1.0;
+            Bs = 0.0;
             firstsum = 0.0;
             secondsum = 0.0;
-            thirdsum = 0.0;
-            fourthsum = 0.0;
-            fifthsum = 0.0;
             for j in 1:T
-                firstprod *= (1.0 - (j - x[1]) / (x[1] * x[2] + T));
-                secondprod *= (1.0 - j / (x[1] * x[2] + T));
-                firstsum += (x[2] * j + T) * (1.0 - (j - x[1]) / (x[2] * x[1] + T))^(-1.0);
-                secondsum += j * (1.0 - j / (x[1] * x[2] + T))^(-1.0);
-                thirdsum += (j - x[1]) * (1.0 - (j - x[1]) / (x[1] * x[2]  + T))^(-1.0);
+                Ap *= (1.0 - (j - x[1]) / (x[1] * x[2] + T) );
+                As += 1.0 / (x[1] + x[1] * x[2] + T - j);
+                Bp *= (1.0 - j / (x[1] * x[2] + T) );
+                Bs += 1.0 / (x[1] * x[2] + T - j);
             end
             for k in values(K)
                 firstinnersum = 0.0;
                 secondinnersum = 0.0;
-                for j in 1:(T-k)
-                    firstinnersum += (k + j) / (x[2] * x[1] + T - k - j);
-                end
-                fourthsum += k - firstinnersum;
                 for j in 1:k
-                    secondinnersum += j / (x[1] + k - j);
+                    firstinnersum += 1.0 / (x[1] + k - j);
                 end
-                fifthsum += (x[1] + k)^(-1.0) * (k + secondinnersum);
+                for j in 1:(T - k)
+                    secondinnersum += 1.0 / (x[1] * x[2] + T - k - j);
+                end
+                firstsum += firstinnersum + x[2] * secondinnersum;
+                secondsum += secondinnersum;
             end
-            G[1] = length(K) / ((x[1] * x[2] + T)^2) * (firstprod * firstsum - x[2] * secondprod * secondsum) / (firstprod - secondprod) + x[2] / (x[2] * x[1] + T) * fourthsum + fifthsum;
-            G[2] = length(K) / ((x[1] * x[2] + T)^2) * x[1] * (firstprod * thirdsum - secondprod * secondsum) / (firstprod - secondprod) + x[2] / (x[2] * x[1] + T) * fourthsum;
+            G[1] = -(-(1.0 + x[2]) * length(K) * Ap * As / (Ap - Bp) + x[2] * length(K) * Bp * Bs / (Ap - Bp) + firstsum);
+            G[2] = -(x[1] * length(K) * (Ap * As - Bp * Bs) / (Ap - Bp) + x[1] * secondsum);
         end
         L(x) = -loglikelihood(x[1], x[2], K, T);
         lower = [0.01, 0.01]
@@ -76,11 +74,11 @@ for alpha in PARAMS
               xlabel="α_hat", label=false,
               size=(1200, 900), xtickfontsize=22,
               xguidefontsize=24, ytickfontsize=22);
-    vline!([i],
-           label="True α = $i",
+    vline!([alpha],
+           label="True α = $alpha",
            linewidth=12,
            legendfontsize=22);
-    savefig("$(FIGURES_FOLDER)hist_alpha_$i.pdf");
+    savefig("$(FIGURES_FOLDER)hist_alpha_$alpha.pdf");
     histogram([i[2] for i in estis],
               xlabel="q", label=false,
               size=(1200, 900), xtickfontsize=22,
@@ -91,6 +89,6 @@ for alpha in PARAMS
            linewidth=12,
            legendfontsize=22,
            color="gold");
-    savefig("$(FIGURES_FOLDER)hist_q_$i.pdf");
+    savefig("$(FIGURES_FOLDER)hist_q_$q.pdf");
 end
 

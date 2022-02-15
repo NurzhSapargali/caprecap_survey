@@ -78,17 +78,13 @@ end
 
 
 function likelihood_simple(alpha, q,
-                           freqs::Dict{Int, Int}, reps::Int,
-                           form::String="proportional")
-    if !(form in ("proportional", "full"))
-        error("Form of likelihood can be only full or proportional");
-    end
-    firstprod = 1.0;
-    secondprod = 1.0;
+                           freqs::Dict{Int, Int}, reps::Int)
+    Ap = 1.0;
+    Bp = 1.0;
     thirdprod = 1.0;
     for t in 1:reps
-        firstprod *= ( 1.0 - (t - alpha) / (q * alpha + reps) );
-        secondprod *= ( 1.0 - t / (q * alpha + reps) );
+        Ap *= ( 1.0 - (t - alpha) / (q * alpha + reps) );
+        Bp *= ( 1.0 - t / (q * alpha + reps) );
     end
     for k in values(freqs)
         multiplier = ( (alpha + k) / (q * alpha + reps) )^k;
@@ -101,54 +97,32 @@ function likelihood_simple(alpha, q,
             secondinnerprod *= ( 1.0 - (k + j) / (q * alpha + reps) );
         end
         thirdprod *= ( multiplier * firstinnerprod * secondinnerprod );
-        if form == "full"
-            thirdprod *= binomial(reps, k);
-        end
     end
-    return (firstprod - secondprod)^(-length(freqs)) * thirdprod;
+    return (Ap - Bp)^(-length(freqs)) * thirdprod;
 end
 
 
 function loglikelihood(alpha, q,
-                       freqs::Dict{Int, Int}, reps::Int,
-                       form::String="proportional")
-    if !(form in ("proportional", "full"))
-        error("Form of likelihood can be only full or proportional");
-    end
-    firstprod = 1.0;
-    secondprod = 1.0;
-    firstsum = 0.0;
+                       freqs::Dict{Int, Int}, reps::Int)
+    Ap = 1.0;
+    Bp = 1.0;
     secondsum = 0.0;
-    bin_num = 0.0;
     for t in 1:reps
-        firstprod *= ( 1.0 - (t - alpha) / (q * alpha + reps) );
-        secondprod *= ( 1.0 - t / (q * alpha + reps) );
-        if form == "full"
-            bin_num += log(t);
-        end
+        Ap *= ( 1.0 - (t - alpha) / (q * alpha + reps) );
+        Bp *= ( 1.0 - t / (q * alpha + reps) );
     end
     for k in values(freqs)
-        firstsum += k;
         firstinnersum = 0.0;
         secondinnersum = 0.0;
         for j in 1:k
-            firstinnersum += log( 1.0 - j / (alpha + k) );
-            if form == "full"
-                firstinnersum += -log(j);
-            end
+            firstinnersum += log( alpha + k - j );
         end
         for j in 1:(reps - k)
-            secondinnersum += log( 1.0 - (k + j) / (q * alpha + reps) );
-            if form == "full"
-                secondinnersum += -log(j);
-            end
+            secondinnersum += log( q * alpha + reps - k - j );
         end
-        secondsum += k * log(alpha + k) + firstinnersum + secondinnersum;
+        secondsum += firstinnersum + secondinnersum
     end
-    return ( -length(freqs) * log( firstprod - secondprod ) 
-            + length(freqs) * bin_num
-            - log(q * alpha + reps) * firstsum
-            + secondsum);
+    return ( -reps * length(freqs) * log(q * alpha + reps) - length(freqs) * log( Ap - Bp ) + secondsum);
 end
 
 end
