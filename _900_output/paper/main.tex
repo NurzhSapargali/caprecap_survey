@@ -9,6 +9,7 @@
 
 \newcommand{\sout}{|S^{out}_T|}
 \newcommand{\sint}{|S^{in}_T|}
+\newcommand{\pop}{|\mathcal{P}|}
 
 
 \begin{document}
@@ -16,6 +17,7 @@
 \section{Likelihood}
 \begin{itemize}
     \item $S_t$: the $t$-th sample.
+    \item $n_t := |S_t|$: sample size at each sample draw. Depending on the sampling scheme, it is possible for $n_t$ to be random. For simplicity, assume that $n_t = n$ is fixed.
     \item $S_T^{in} = \bigcup \limits_{t=1}^{T} S_t$: set of sampled individuals up to and including $T$-th sample.
     \item $S_T^{out}$: set of individuals that has not been sampled after $T$ sample draws. ($S_T^{out} \cap S_T^{in} = \emptyset$).
     \item $\mathcal{P} = S_T^{in} \cup S_T^{out}$: the entire population.
@@ -33,7 +35,58 @@ where $\pi_i$ denotes inclusion probability of $i$. This suggests estimating $\p
     \hat{\pi}_i = \frac{d_{i(T)}}{T} \quad \text{or} \quad \hat{\pi}_i = \frac{1 + d_{i(T)}}{1 + T}
 \end{equation}
 where the latter comes from enforcing the probabilities to be non-zero. Note that in this case $\hat{\pi_i} = \frac{1}{1 + T} \forall i \in S_T^{out}$.
-
+\subsection{Homogenous inclusion probabilities}
+Let $\pi_i = \frac{n}{\pop}$ $\forall i = 1, \dots, \pop$. Then the inclusion frequencies follow a binomial distribution.
+\begin{equation*}
+d_{i(T)} \overset{i.i.d.}{\sim} Bin(T, \frac{n}{\pop})
+\end{equation*}
+Note that we do not observe $d_{i(T)} = 0$, but only $d_{i(T)} > 0$. Truncating the distribution at 0 yields
+\begin{align*}
+\mathbb{P}(d_{i(T)} = k|d_{i(T)} > 0) &= \frac{\mathbb{P}(d_{i(T)} = k)}{1 - \mathbb{P}(d_{i(T)} = 0)} = \frac{\binom{T}{k} (\frac{n}{\pop})^k (\frac{\pop - n}{\pop})^{T - k}}{1 - (\frac{\pop - n}{\pop})^T}\\
+&= \binom{T}{k} \frac{n^k (\pop - n)^{T-k}}{\pop^{T} - (\pop - n)^T} = \binom{T}{k} \frac{n^k (\sint + \sout - n)^{T-k}}{(\sint + \sout)^{T} - (\sint + \sout - n)^T}
+\end{align*}
+This leads to the joint likelihood
+\begin{align*}
+L(\sout) &:= L(\sout; T, d_{i(T)} = k_i \forall i \in S_T^{in}) \\
+&= \prod_{i \in S_T^{in}} \binom{T}{k_i} \frac{n^{k_i} (\sint + \sout - n)^{T-k_i}}{(\sint + \sout)^{T} - (\sint + \sout - n)^T} \\
+&\propto \prod_{i \in S_T^{in}} \frac{(\sint + \sout - n)^{T-k_i}}{(\sint + \sout)^{T} - (\sint + \sout - n)^T} \\
+&= [(\sint + \sout)^{T} - (\sint + \sout - n)^T]^{-\sint} (\sint + \sout - n)^{\sint T - \sum_{i \in S_T^{in}} k_i}
+\end{align*}
+and the log-likelihood
+\begin{align}
+l(\sout) &:= \log L(\sout) \nonumber \\
+&= const - \sint \log[(\sint + \sout)^{T} - (\sint + \sout - n)^T]\nonumber \\ 
+&+ (\sint T - \sum_{i \in S_T^{in}} k_i) \log (\sint + \sout - n)
+\end{align}
+The derivative with respect to $\sout$ is
+\begin{align}
+\frac{d}{d\sout}l(\sout) =& -\sint T \frac{(\sint + \sout)^{T-1} - (\sint + \sout - n)^{T-1}}{(\sint + \sout)^{T} - (\sint + \sout - n)^T} \nonumber \\
+&+ \frac{\sint T - \sum_{i \in S_T^{in}} k_i}{\sout + \sint - n}
+\end{align}
+% Setting the derivative to zero, the first-order condition can be written as
+% \begin{equation*}
+% \left( \frac{\sout + \sint - n}{\sout + \sint} \right)^T - \frac{\sint T}{\sum_{i \in S_T^{in}} k_i} \left( \frac{\sout + \sint - n}{\sout + \sint} - 1 \right) - 1 \overset{!}{=} 0
+% \end{equation*}
+\subsubsection{Classical capture-recapture}
+Setting $T = 2$ results in the following log-likelihood:
+\begin{align*}
+l(\sout) &= const - \sint \log[(\sint + \sout)^{2} - (\sint + \sout - n)^2] \\ 
+&+ (2\sint - \sum_{i \in S_T^{in}} k_i) \log (\sint + \sout - n)
+\end{align*}
+The first-order condition is
+\begin{equation*}
+\frac{d}{d\sout}l(\sout) = -\frac{2\sint n}{(\sint + \sout)^{2} - (\sint + \sout - n)^2} + \frac{2\sint - \sum_{i \in S_T^{in}} k_i}{\sout + \sint - n} \overset{!}{=} 0
+\end{equation*}
+Then, the maximum likelihood estimator of $\sout$ can be expressed as
+\begin{equation}
+\widehat{\sout}_{ML} = \frac{2n\sint (\sint - n) - \sint^2 (2\sint - \sum_{i \in S_T^{in}} k_i) - (\sint - n)^2 (2\sint - \sum_{i \in S_T^{in}} k_i)}{2n(\sint - \sum_{i \in S_T^{in}} k_i)}
+\end{equation}
+\subsubsection{One draw}
+If $T = 1$, then $\sint = \sum_{i \in S_T^{in}} k_i = n$. The log-likelihood becomes
+\begin{equation*}
+l(\sout) = const - \sint \log(\sint) =: const
+\end{equation*}
+\subsection{Heterogenous inclusion probabilities}
 Consider the problem from the Bayesian perspective. Assume Beta prior for inclusion probabilities:
 \begin{equation*}
     \pi_i \sim Be(\alpha, \beta)
@@ -42,7 +95,6 @@ Then
 \begin{equation*}
     \mathbb{E}[\sum_{i \in \mathcal{P}} \pi_i] = \sum_{i \in \mathcal{P}} \frac{\alpha}{\alpha + \beta} = |\mathcal{P}| \frac{\alpha}{\alpha + \beta} = (|S_T^{out}| + |S_T^{in}|) \frac{\alpha}{\alpha + \beta}
 \end{equation*}
-Let $n_t := |S_t|$ be the sample size. While we assume independent replications of the same sampling scheme, depending on the chosen scheme, it is possible for $n_t$ to be random. However, for simplicity, assume here that $n_t = n$ is fixed.
 \begin{equation} \label{eq:2}
     \mathbb{E}[\sum_{i \in \mathcal{P}} \pi_i] = \mathbb{E}[n_t]
     \Leftrightarrow (|S_T^{out}| + |S_T^{in}|) \frac{\alpha}{\alpha + \beta} = n
@@ -55,7 +107,6 @@ The likelihood would be
 \begin{equation*}
     d_{i(T)} |\pi_i \sim Bin(T, \pi)
 \end{equation*}
-
 Then the posterior distribution is
 \begin{align*}
     f(\pi_i | d_{i(T)} = k) &= \frac{\mathbb{P}(d_{i(T)} = k | \pi_i) f(\pi_i)}{\mathbb{P}(d_{i(T)} = k)} \\
@@ -69,7 +120,7 @@ The marginal likelihood is:
     \mathbb{P}(d_{i(T)} = k) &= \int_0^1 f(\pi_i, d_{i(T)})d\pi_i = \int_0^1 \mathbb{P}(d_{i(T)} = k | \pi_i)f(\pi_i)d\pi_i\\
     &= \binom{T}{k} \frac{\mathrm{B}(\alpha + k, \beta + T - k)}{\mathrm{B}(\alpha, \beta)}
 \end{align*}
-Note that we never observe $d_{i(T)} = 0$. The observed frequences $d_{i(T)} > 0$ for $i \in S_{T}^{in}$ follow a truncated distribution:
+Since we never observe $d_{i(T)} = 0$, the observed frequences $d_{i(T)} > 0$ for $i \in S_{T}^{in}$ follow a truncated distribution:
 \begin{align*}
 \mathbb{P}(d_{i(T)} = k | d_{i(T)} > 0) &= 
 \begin{cases}
@@ -94,7 +145,13 @@ Using the recursive formula of gamma function $\Gamma(x) = (x - 1)\Gamma(x - 1)$
     &\times \frac{\prod_{j=1}^{k_i} (\alpha + k_i - j)\prod_{j=1}^{T - k_i} (\beta + T - k_i - j)}{\prod_{j=1}^T(\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j)} \\
     &= \prod_{i \in S_T^{in}} \frac{\prod_{j=1}^{k_i} (\alpha + k_i - j)\prod_{j=1}^{T - k_i} (\beta + T - k_i - j)}{\prod_{j=1}^T(\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j)} 
 \end{align*}
-The parameters $\alpha$ and $\beta$ must satisfy \eqref{eq:2}, so equation \eqref{eq:3} is to be maximised subject to the constraint. The optimisation problem can be simplified by solving the constraint for $\beta$ and plugging into the objective function:
+The parameters $\alpha$ and $\beta$ must satisfy \eqref{eq:2}, so equation \eqref{eq:3} is to be maximised subject to the constraint. Note that \eqref{eq:2} can be viewed as enforcing our prior to be centered at $\frac{n}{\pop}$, since 
+\begin{equation*}
+(|S_T^{out}| + |S_T^{in}|) \frac{\alpha}{\alpha + \beta} = n \Leftrightarrow \frac{\alpha}{\alpha + \beta} = \mathbb{E}[\pi_i] = \frac{n}{(|S_T^{out}| + |S_T^{in}|)}
+\end{equation*}
+Intuitively, this means that, under the constraint, the hyperparameters will determine only the variance of the prior.
+
+The optimisation problem can be simplified by solving the constraint for $\beta$ and plugging into the objective function:
 \begin{align*}
     \max_{\alpha, \beta} L(\alpha, \beta) &\quad \text{s.t.} \quad |\mathcal{P}|\frac{\alpha}{\alpha + \beta} = n \\
     &\Leftrightarrow \beta = \left(\frac{|\mathcal{P}|}{n} - 1 \right)\alpha := q\alpha\\
@@ -106,7 +163,7 @@ More explicitly,
     &\Leftrightarrow \beta = n^{-1}\alpha\sint + n^{-1}\alpha\sout - \alpha\\
     \Rightarrow \max_{\alpha, \sout} L(\alpha, \sout) &
 \end{align*}
-\subsection{Variant 1}
+\subsubsection{Variant 1}
 \begin{align*}
     L(\alpha, q) &\propto \prod_{i \in S_T^{in}} \frac{\prod_{j=1}^{k_i} (\alpha + k_i - j)\prod_{j=1}^{T - k_i} (q\alpha + T - k_i - j)}{\prod_{j=1}^T(\alpha + q\alpha + T - j) - \prod_{j=1}^T (q\alpha + T - j)} \\
 \end{align*}
@@ -163,7 +220,7 @@ where
 %     &\times \prod_{i \in S_T^{in}} \left[\left(\frac{\alpha + k_i}{q\alpha + T}\right)^{k_i} \prod_{j=1}^{k_i}  \left(1 - \frac{j}{\alpha + k_i}\right) \prod_{j=1}^{T - k_i} \left(1 - \frac{k_i + j}{q\alpha + T}\right) \right]
 % \end{align}
 
-\subsection{Variant 2}
+\subsubsection{Variant 2}
 \begin{align*}
     \hspace*{-1cm}
     L(\alpha, \sout) &\propto \prod_{i \in S_T^{in}} \frac{\prod_{j=1}^{k_i} (\alpha + k_i - j)\prod_{j=1}^{T - k_i} (n^{-1} \alpha \sint + n^{-1} \alpha \sout -\alpha + T - k_i - j)}{\prod_{j=1}^T(n^{-1}\alpha \sint + n^{-1} \alpha \sout + T - j) - \prod_{j=1}^T (n^{-1} \alpha \sint + n^{-1} \alpha \sout - \alpha + T - j)} \\
@@ -230,7 +287,7 @@ Once we acquire $d_{i(T)}$, it is possible to calculate the likelihood function 
         \centering
         \includegraphics[width=0.9\textwidth]{../figures/Likelihood_contplt_0.25.pdf} % second figure itself
     \end{minipage}
-    \caption{\small Likelihood function for data simulated by $\pi \sim Beta(0.25, 9 \cdot 0.25), |\mathcal{P}| = 100, n = 10, T = 5$}
+    \caption{\small Likelihood function for data simulated by $\pi \sim Be(0.25, 9 \cdot 0.25), |\mathcal{P}| = 100, n = 10, T = 5$}
 \end{figure}
 
 \begin{figure}
@@ -243,7 +300,7 @@ Once we acquire $d_{i(T)}$, it is possible to calculate the likelihood function 
         \centering
         \includegraphics[width=0.9\textwidth]{../figures/Likelihood_contplt_1.0.pdf} % second figure itself
     \end{minipage}
-    \caption{\small Likelihood function for data simulated by $\pi \sim Beta(1, 9 \cdot 1), |\mathcal{P}| = 100, n = 10, T = 5$}
+    \caption{\small Likelihood function for data simulated by $\pi \sim Be(1, 9 \cdot 1), |\mathcal{P}| = 100, n = 10, T = 5$}
 \end{figure}
 
 \begin{figure}
@@ -256,7 +313,7 @@ Once we acquire $d_{i(T)}$, it is possible to calculate the likelihood function 
         \centering
         \includegraphics[width=0.9\textwidth]{../figures/Likelihood_contplt_4.0.pdf} % second figure itself
     \end{minipage}
-    \caption{\small \small Likelihood function for data simulated by $\pi \sim Beta(4, 9 \cdot 4), |\mathcal{P}| = 100, n = 10, T = 5$}
+    \caption{\small \small Likelihood function for data simulated by $\pi \sim Be(4, 9 \cdot 4), |\mathcal{P}| = 100, n = 10, T = 5$}
 \end{figure}
 
 \end{document}
