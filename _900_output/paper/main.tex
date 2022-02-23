@@ -7,8 +7,8 @@
 \usepackage{dsfont}
 
 
-\newcommand{\sout}{|S^{out}_T|}
-\newcommand{\sint}{|S^{in}_T|}
+\newcommand{\sout}[1][T]{|S^{out}_{#1}|}
+\newcommand{\sint}[1][T]{|S^{in}_{#1}|}
 \newcommand{\pop}{|\mathcal{P}|}
 
 
@@ -50,18 +50,18 @@ This leads to the joint likelihood
 L(\sout) &:= L(\sout; T, d_{i(T)} = k_i \forall i \in S_T^{in}) \\
 &= \prod_{i \in S_T^{in}} \binom{T}{k_i} \frac{n^{k_i} (\sint + \sout - n)^{T-k_i}}{(\sint + \sout)^{T} - (\sint + \sout - n)^T} \\
 &\propto \prod_{i \in S_T^{in}} \frac{(\sint + \sout - n)^{T-k_i}}{(\sint + \sout)^{T} - (\sint + \sout - n)^T} \\
-&= [(\sint + \sout)^{T} - (\sint + \sout - n)^T]^{-\sint} (\sint + \sout - n)^{\sint T - \sum_{i \in S_T^{in}} k_i}
+&= [(\sint + \sout)^{T} - (\sint + \sout - n)^T]^{-\sint} (\sint + \sout - n)^{T(\sint  - n)}
 \end{align*}
-and the log-likelihood
+since $\sum_{i \in S_T^{in}} k_i = nT$ for fixed $n$. Taking logarithm of the likelihood leads to
 \begin{align}
 l(\sout) &:= \log L(\sout) \nonumber \\
 &= const - \sint \log[(\sint + \sout)^{T} - (\sint + \sout - n)^T]\nonumber \\ 
-&+ (\sint T - \sum_{i \in S_T^{in}} k_i) \log (\sint + \sout - n)
+&+ T(\sint  - n) \log (\sint + \sout - n)
 \end{align}
 The derivative with respect to $\sout$ is
 \begin{align}
 \frac{d}{d\sout}l(\sout) =& -\sint T \frac{(\sint + \sout)^{T-1} - (\sint + \sout - n)^{T-1}}{(\sint + \sout)^{T} - (\sint + \sout - n)^T} \nonumber \\
-&+ \frac{\sint T - \sum_{i \in S_T^{in}} k_i}{\sout + \sint - n}
+&+ \frac{T(\sint  - n)}{\sout + \sint - n}
 \end{align}
 % Setting the derivative to zero, the first-order condition can be written as
 % \begin{equation*}
@@ -71,15 +71,15 @@ The derivative with respect to $\sout$ is
 Setting $T = 2$ results in the following log-likelihood:
 \begin{align*}
 l(\sout) &= const - \sint \log[(\sint + \sout)^{2} - (\sint + \sout - n)^2] \\ 
-&+ (2\sint - \sum_{i \in S_T^{in}} k_i) \log (\sint + \sout - n)
+&+ 2(\sint  - n) \log (\sint + \sout - n)
 \end{align*}
 The first-order condition is
 \begin{equation*}
-\frac{d}{d\sout}l(\sout) = -\frac{2\sint n}{(\sint + \sout)^{2} - (\sint + \sout - n)^2} + \frac{2\sint - \sum_{i \in S_T^{in}} k_i}{\sout + \sint - n} \overset{!}{=} 0
+\frac{d}{d\sout}l(\sout) = -\frac{2\sint n}{(\sint + \sout)^{2} - (\sint + \sout - n)^2} + \frac{2(\sint  - n)}{\sout + \sint - n} \overset{!}{=} 0
 \end{equation*}
 Then, the maximum likelihood estimator of $\sout$ can be expressed as
 \begin{equation}
-\widehat{\sout}_{ML} = \frac{2n\sint (\sint - n) - \sint^2 (2\sint - \sum_{i \in S_T^{in}} k_i) - (\sint - n)^2 (2\sint - \sum_{i \in S_T^{in}} k_i)}{2n(\sint - \sum_{i \in S_T^{in}} k_i)}
+\widehat{\sout}_{ML} = \frac{(n - \sint[2])(\sint[2] - n)}{\sint[2] - 2n}
 \end{equation}
 \subsubsection{One draw}
 If $T = 1$, then $\sint = \sum_{i \in S_T^{in}} k_i = n$. The log-likelihood becomes
@@ -101,9 +101,9 @@ Then
 \end{equation}
 (in case of random $n_t$, we can estimate $\mathbb{E}[n_t]$ by $T^{-1} \sum_{t=1}^T n_t$).
 
-Condition \eqref{eq:2} will be the constraint for our model.
+\noindent Condition \eqref{eq:2} will be the constraint for our model.
 
-The likelihood would be
+\noindent The likelihood would be
 \begin{equation*}
     d_{i(T)} |\pi_i \sim Bin(T, \pi)
 \end{equation*}
@@ -220,7 +220,7 @@ where
 %     &\times \prod_{i \in S_T^{in}} \left[\left(\frac{\alpha + k_i}{q\alpha + T}\right)^{k_i} \prod_{j=1}^{k_i}  \left(1 - \frac{j}{\alpha + k_i}\right) \prod_{j=1}^{T - k_i} \left(1 - \frac{k_i + j}{q\alpha + T}\right) \right]
 % \end{align}
 
-\subsubsection{Variant 2}
+\subsubsection{Variant 2} \label{s:v2}
 \begin{align*}
     \hspace*{-1cm}
     L(\alpha, \sout) &\propto \prod_{i \in S_T^{in}} \frac{\prod_{j=1}^{k_i} (\alpha + k_i - j)\prod_{j=1}^{T - k_i} (n^{-1} \alpha \sint + n^{-1} \alpha \sout -\alpha + T - k_i - j)}{\prod_{j=1}^T(n^{-1}\alpha \sint + n^{-1} \alpha \sout + T - j) - \prod_{j=1}^T (n^{-1} \alpha \sint + n^{-1} \alpha \sout - \alpha + T - j)} \\
@@ -260,6 +260,32 @@ and
 \begin{align*}
 \widetilde{A_p}(\alpha, \sout) &:= \prod_{j=1}^T \left(1 - \frac{j}{n^{-1}\alpha \sint + n^{-1} \alpha \sout + T}\right) \\
 \widetilde{B_p}(\alpha, \sout) &:= \prod_{j=1}^T \left(1 - \frac{j + \alpha}{n^{-1} \alpha \sint + n^{-1} \alpha \sout + T}\right)\\
+\end{align*}
+\subsection{Capture-recapture with $T=2$ and $\alpha \to \infty$}
+Consider the likelihood function from \ref{s:v2} with $T = 2$.
+\begin{align*}
+    \hspace*{-1cm}
+    L(\alpha, \sint[2]) &\propto \prod_{i \in S_2^{in}} \frac{\prod_{j=1}^{k_i} (\alpha + k_i - j)\prod_{j=1}^{2 - k_i} (n^{-1} \alpha \sint[2] + n^{-1} \alpha \sout[2] -\alpha + 2 - k_i - j)}{\prod_{j=1}^2(n^{-1}\alpha \sint[2] + n^{-1} \alpha \sout[2] + 2 - j) - \prod_{j=1}^2 (n^{-1} \alpha \sint[2] + n^{-1} \alpha \sout[2] - \alpha + 2 - j)} \\
+\end{align*}
+Since at $T = 2$ observed frequencies are $k_i \in \{1, 2\}$ for all $i \in S^{in}_2$, let us partition $S^{in}_2$ into two disjoint sets $R := \{i \in S^{in}_2: k_i = 2\}$ (recaptured) and $C := \{i \in S^{in}_2: k_i = 1\}$ (captured). Then, the likelihood can be re-written as
+\begin{align*}
+    &L(\alpha, \sout[2]) \propto\\
+    &\prod_{i \in C} \frac{\alpha (n^{-1} \sint[2] + n^{-1} \sout[2] - 1)}{ (\frac{\alpha}{n}\sint[2] + \frac{\alpha}{n}\sout[2] + 1)(\frac{1}{n}\sint[2] + \frac{1}{n} \sout[2]) - (\frac{\alpha}{n}\sint[2] + \frac{\alpha}{n}\sout[2] - \alpha + 1)(\frac{1}{n}\sint[2] + \frac{1}{n} \sout[2] - 1)} \\
+    &\prod_{i \in R} \frac{\alpha + 1}{ (\frac{\alpha}{n}\sint[2] + \frac{\alpha}{n}\sout[2] + 1)(\frac{1}{n}\sint[2] + \frac{1}{n} \sout[2]) - (\frac{\alpha}{n}\sint[2] + \frac{\alpha}{n}\sout[2] - \alpha + 1)(\frac{1}{n}\sint[2] + \frac{1}{n} \sout[2] - 1)}
+\end{align*}
+In both terms, the denominator can be simplified to
+\begin{align*}
+    &(\frac{\alpha}{n}\sint[2] + \frac{\alpha}{n}\sout[2] + 1)(\frac{1}{n}\sint[2] + \frac{1}{n} \sout[2]) - (\frac{\alpha}{n}\sint[2] + \frac{\alpha}{n}\sout[2] - \alpha + 1)(\frac{1}{n}\sint[2] + \frac{1}{n} \sout[2] - 1) \\
+    &= \frac{2\alpha}{n}\sint[2] + \frac{2\alpha}{n}\sout[2] - \alpha + 1 = \alpha (\frac{2}{n}\sint[2] + \frac{2}{n}\sout[2] - 1 + \frac{1}{\alpha})
+\end{align*}
+So the likelihood can expressed as
+\begin{align*}
+    L(\alpha, \sout[2]) &\propto \frac{\alpha^{|C|}(n^{-1} \sint[2] + n^{-1} \sout[2] - 1)^{|C|}(\alpha + 1)^{|R|}}{\alpha^{\sint[2]} (\frac{2}{n}\sint[2] + \frac{2}{n}\sout[2] - 1 + \frac{1}{\alpha})^{\sint[2]}}\\
+    &= \frac{P^{|C|}(\alpha + 1)^{|R|}}{\alpha^{|R|} (2P + 1 + \frac{1}{\alpha})^{\sint[2]}}
+\end{align*}
+where $P = n^{-1} \sint[2] + n^{-1} \sout[2] - 1$. Take the limit for $\alpha \to \infty$:
+\begin{align*}
+\lim_{\alpha \to \infty} \frac{P^{|C|}(\alpha + 1)^{|R|}}{\alpha^{|R|} (2P + 1 + \frac{1}{\alpha})^{\sint[2]}} \overset{\text{L'Hôpital}}{=} \lim_{\alpha \to \infty} \frac{P^{|C|}|R|(\alpha + 1)^{|R| - 1}}{|R|\alpha^{|R|-1} (2P + 1 + \frac{1}{\alpha})^{\sint[2]} - \alpha^{|R|-2} \sint[2] (2P + 1 + \frac{1}{\alpha})^{\sint[2] - 1}}
 \end{align*}
 \section{Simulation results}
 We simulate capture-recapture procedure to produce $d_{i(T)}$ as follows:
