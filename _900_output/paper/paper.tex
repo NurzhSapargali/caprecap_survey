@@ -1,0 +1,108 @@
+\RequirePackage[thmmarks]{ntheorem}
+\makeatletter
+\renewtheoremstyle{plain} 
+  {\item[\hskip\labelsep \theorem@headerfont ##1\ \textup{##2}\theorem@separator]} 
+  {\item[\hskip\labelsep \theorem@headerfont ##1\ \textup{##2}\ (##3)\theorem@separator]}
+\makeatother
+
+%%% save \document and \arabic to be reinstated after loading the class
+\let\latexdocument\document
+\let\latexarabic\arabic
+
+\documentclass[manuscript]{biometrika}
+%\documentclass[supplementary,lineno]{biometrika}
+
+%%% reinstate the original \document and \arabic
+\let\document\latexdocument
+\let\arabic\latexarabic
+
+%%% make \rm into a no-op
+\def\rm{}
+
+\usepackage{amsmath}
+%\usepackage{graphics}
+
+%% Please use the following statements for
+%% managing the text and math fonts for your papers:
+\usepackage{times}
+%\usepackage[cmbold]{mathtime}
+\usepackage{bm}
+\usepackage{natbib}
+\usepackage{dsfont}
+
+\graphicspath{{./art/}}
+
+\usepackage[plain,noend]{algorithm2e}
+
+\makeatletter
+\renewcommand{\algocf@captiontext}[2]{#1\algocf@typo. \AlCapFnt{}#2} % text of caption
+\renewcommand{\AlTitleFnt}[1]{#1\unskip}% default definition
+\def\@algocf@capt@plain{top}
+\renewcommand{\algocf@makecaption}[2]{%
+  \addtolength{\hsize}{\algomargin}%
+  \sbox\@tempboxa{\algocf@captiontext{#1}{#2}}%
+  \ifdim\wd\@tempboxa >\hsize%     % if caption is longer than a line
+    \hskip .5\algomargin%
+    \parbox[t]{\hsize}{\algocf@captiontext{#1}{#2}}% then caption is not centered
+  \else%
+    \global\@minipagefalse%
+    \hbox to\hsize{\box\@tempboxa}% else caption is centered
+  \fi%
+  \addtolength{\hsize}{-\algomargin}%
+}
+\makeatother
+
+%%% User-defined macros should be placed here, but keep them to a minimum.
+\def\Bka{{\it Biometrika}}
+\def\AIC{\textsc{aic}}
+\def\T{{ \mathrm{\scriptscriptstyle T} }}
+\def\v{{\varepsilon}}
+
+\addtolength\topmargin{35pt}
+\DeclareMathOperator{\Thetabb}{\mathcal{C}}
+
+\begin{document}
+
+% \jname{Biometrika}
+% %% The year, volume, and number are determined on publication
+% \jyear{2021}
+% \jvol{103}
+% \jnum{1}
+% %% The \doi{...} and \accessdate commands are used by the production team
+% %\doi{10.1093/biomet/asm023}
+% \accessdate{Advance Access publication on 31 July 2018}
+
+% These dates are usually set by the production team
+% \received{2 January 2017}
+% \revised{8 June 2021}
+
+%% The left and right page headers are defined here:
+% \markboth{P. Fearnhead et~al.}{Biometrika style}
+
+%% Here are the title, author names and addresses
+\title{Estimating the size of a population through repeated sampling: a new view on capture-recapture procedures}
+
+\author{G. KAUERMANN, N. SAPARGALI}
+\affil{Department of Statistics, Ludwig-Maximilians-Universität München, 80539 Munich, Germany
+\email{nurzhan.sapargali@stat.uni-muenchen.de} \email{goeran.kauermann@stat.uni-muenchen.de}}
+
+\maketitle
+
+\begin{abstract}
+There should be a single paragraph summary which should not contain formulae or symbols, followed by some key words in alphabetical order.  Typically there are 3--8 key words, which should contain nouns and be singular rather than plural.  The summary contains bibliographic references only if they are essential.  It should indicate results rather than describe the contents of the paper: for example, `A simulation study is performed' should be replaced by a more informative phrase such as `In a simulation our estimator had smaller mean square error than its main competitors.'
+\end{abstract}
+
+\begin{keywords}
+Capture-recapture estimator; Inclusion probability; Population size.
+\end{keywords}
+
+\section{Introduction}
+
+\section{Model}
+Consider a closed population of $N$ individuals $(i = 1,\ldots, N)$ from which we draw $T$ samples $(t = 1,\ldots, T)$ using some sampling scheme. Define $S_t$ to be the set of individuals included into sample $t$ and $n_t$ to be the size of $S_t$. Furthermore, let $\pi_i$ and $X_{i(T)}$ denote respectively the inclusion probability of $i$ and the count of $i$ being included into a sample after $T$ draws
+\begin{equation*}
+\pi_i = \text{pr}(i \in S_t), \quad X_{i(T)} = \sum_{t=1}^T \mathds{1}\{i \in S_t\};
+\end{equation*}
+If $n_t = n$ for all $t$ and $\pi_i = n / N$ for all $i$, then $X_{i(T)}$ iid 
+
+\end{document}
