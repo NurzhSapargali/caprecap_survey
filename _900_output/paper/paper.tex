@@ -99,13 +99,61 @@ Capture-recapture estimator; Inclusion probability; Population size.
 \section{Introduction}
 
 \section{Model and likelihood}
-Our starting point is a basic capture-recapture model with equal capture probabilities. Consider a closed population $\mathcal{P} = \{1,\ldots,N\}$ from which we draw $T > 1$ independent samples of size $n$ using some sampling scheme. Define $S_t$ to be the set of individuals included into sample $t$ and $\pi_i = \text{pr}(i \in S_t)$ to be the inclusion probability of $i$. Let $X_{i(T)}$ denote the frequency count of $i$ being included into $T$ samples
+Our starting point is a basic capture-recapture model with equal capture probabilities. Consider a closed population $\mathcal{P} = \{1,\ldots,N\}$ from which we independently draw $T > 1$ samples of size $n$ using some sampling scheme. Define $S_t$ to be the set of individuals included into sample $t$ and $\pi_i = \text{pr}(i \in S_t)$ to be the inclusion probability of $i$. Let $X_{i(T)}$ denote the frequency count of $i$ being included into $T$ samples
 \begin{equation*}
 X_{i(T)} = \sum_{t=1}^T \mathds{1}\{i \in S_t\};
 \end{equation*}
 If $\pi_i = n / N$ for all $i$, then $X_{1(T)}, \ldots, X_{N(T)}$ are modeled as identically and independently distributed binomial variables
 \begin{equation*}
-\text{pr}(X_{i(T)} = x_i) = \binom{T}{x_i} \left(\frac{n}{N}\right)^{x_i} \left(1 - \frac{n}{N}\right)^{T - x_i}
+\text{pr}(X_{i(T)} = x_i; T, N, n) = \binom{T}{x_i} \left(\frac{n}{N}\right)^{x_i} \left(1 - \frac{n}{N}\right)^{T - x_i}
 \end{equation*}
-However, since we only observe $X_{i(T)} > 0$, the above distribution must be truncated at zero. For convenience purposes, it is useful to decompose $\mathcal{P}$ into $S^{in}_T = \{i \in \mathcal{P}: X_{i(T)} > 0\}$ and $S^{out}_T = \{i \in \mathcal{P}: X_{i(T)} = 0\}$. The likelihood function is then
+However, since we only observe $X_{i(T)} > 0$, the above distribution must be truncated at zero. For convenience purposes, it is also useful to partition $\mathcal{P}$ into $D = \cup_{t=1}^T S_t = \{i \in \mathcal{P}: X_{i(T)} > 0\}$ and $U = \mathcal{P} \setminus D = \{i \in \mathcal{P}: X_{i(T)} = 0\}$. Accordingly, population size can be expressed as a sum of cardinalities of $D$ and $U$, i.e. $N = N_D + N_U$, where the first term is known and the latter term is to be estimated.  The resulting likelihood of the data is
+\begin{equation*}
+\mathcal{L}(N_U) = \prod_{i \in D} \frac{\text{pr}(X_{i(T)} = x_i; T, N, n)}{1 - \text{pr}(X_{i(T)} = 0; T, N, n)} = \prod_{i \in D} \binom{T}{x_i} \frac{n^{x_i} (N_D + N_U - n)^{T-x_i}}{(N_D + N_U)^{T} - (N_D + N_U - n)^T} \\
+\end{equation*}
+Setting $T = 2$ and recognizing that $\sum_{i \in D} x_i = nT$ yields the following maximum likelihood estimator of $N_U$
+\begin{equation*}
+\widehat{N}_U = \frac{(n - N_D)^2}{2n - N_D}
+\end{equation*}
+Thus, the population size is estimated by
+\begin{equation} \label{eq:1}
+\widehat{N} = N_D + \widehat{N}_U = \frac{n^2}{2n - N_D}
+\end{equation}
+Equation \eqref{eq:1} is the special case of the Lincoln-Peterson estimator with fixed $n$ for each sample draw \citep{Pollock:1990}.
+
+Assume now that $\pi_i$ varies across population units meaning that \eqref{eq:1} is no longer applicable. Let us consider the problem from the Bayesian perspective and assume a beta prior for inclusion probabilities with hyperparameters $\alpha$ and $\beta$
+\begin{equation*}
+f_{\pi_i}(\upsilon; \alpha, \beta) = \frac{\upsilon^{\alpha - 1}(1 - \upsilon)^{\beta - 1}}{\mathrm{B}(\alpha, \beta)}, \quad \mathrm{B}(\alpha, \beta) = \frac{\Gamma(\alpha)\Gamma(\beta)}{\Gamma(\alpha + \beta)};
+\end{equation*}
+where $\Gamma(x)$ is the gamma function. From Bayes' theorem, we have
+\begin{equation*}
+f_{\pi_i \mid X_{i(T)}} (\upsilon \mid x_i) = \frac{\text{pr}(X_{i(T)} = x_i \mid \upsilon; T) f_{\pi_i}(\upsilon; \alpha, \beta)}{\text{pr}(X_{i(T)} = x_i)}
+\end{equation*}
+The marginal likelihood can be found in a straightforward manner
+\begin{equation*}
+\text{pr}(X_{i(T)} = x_i) = \int_0^1 \text{pr}(X_{i(T)} = x_i | \upsilon)f_{\pi_i}(\upsilon)d\upsilon = \binom{T}{x_i} \frac{\mathrm{B}(\alpha + x_i, \beta + T - x_i)}{\mathrm{B}(\alpha, \beta)}
+\end{equation*}
+Conditioning on $X_{i(T)} > 0$ results in the following truncated distribution
+\begin{equation*}
+\text{pr}(X_{i(T)} = x_i \mid X_{i(T)} > 0; \alpha, \beta, T) = \frac{\text{pr}(X_{i(T)} = x_i)}{1 - \text{pr}(X_{i(T)} = 0)} = \binom{T}{x_i} \frac{\mathrm{B}(\alpha + x_i, \beta + T - x_i)}{\mathrm{B}(\alpha, \beta) - \mathrm{B}(\alpha, \beta + T)}
+\end{equation*}
+Following the empirical Bayes approach, we estimate hyperparameters $\alpha$ and $\beta$ by maximizing the marginal likelihood.
+\begin{align*}
+    \mathcal{L}(\alpha, \beta) &= \prod_{i \in D} \binom{T}{x_i} \frac{\mathrm{B}(\alpha + x_i, \beta + T - x_i)}{\mathrm{B}(\alpha, \beta) - \mathrm{B}(\alpha, \beta + T)} \\
+    &= \prod_{i \in D} \binom{T}{x_i} \frac{\Gamma(\alpha + x_i)\Gamma(\beta + T - x_i)\Gamma(\alpha + \beta)}{\Gamma(\alpha)\Gamma(\beta)\Gamma(\alpha + \beta + T) - \Gamma(\alpha)\Gamma(\beta + T)\Gamma(\alpha + \beta)} \\
+\end{align*}
+Using the recursive relation of the gamma function $\Gamma(x) = (x - 1)\Gamma(x - 1)$ and the fact that $T$ and $x_i$ are natural numbers, we can re-write the marginal likelihood as
+\begin{align} \label{eq:2}
+    \mathcal{L}(\alpha, \beta) &= \prod_{i \in D} \binom{T}{x_i} \frac{\Gamma(\alpha)\Gamma(\beta)\Gamma(\alpha + \beta) \prod_{j=1}^{x_i} (\alpha + x_i - j)\prod_{j=1}^{T - x_i} (\beta + T - x_i - j)}{\Gamma(\alpha)\Gamma(\beta)\Gamma(\alpha + \beta)\{\prod_{j=1}^T(\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j)\}} \nonumber \\
+    &= \prod_{i \in D} \binom{T}{x_i} \frac{\prod_{j=1}^{x_i} (\alpha + x_i - j)\prod_{j=1}^{T - x_i} (\beta + T - x_i - j)}{\prod_{j=1}^T(\alpha + \beta + T - j) - \prod_{j=1}^T (\beta + T - j)}
+\end{align}
+\begin{thebibliography}{1}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+
+\bibitem[{Pollock et~al.(1990)Nichols, Brownie \& Hines}]{Pollock:1990}
+\textsc{Pollock, K. H., Nichols, J. D., Brownie, C. \& Hines, J. E} (1990).
+\newblock \textit{{Statistical inference for capture-recapture experiments}}.
+\newblock \textit{Wildlife Monographs} \textbf{107}, 3--97.
+
+\end{thebibliography}
 \end{document}
