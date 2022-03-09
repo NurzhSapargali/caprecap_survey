@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020/Debian) (preloaded format=pdflatex 2021.11.3)  8 MAR 2022 17:58
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020/Debian) (preloaded format=pdflatex 2021.9.22)  9 MAR 2022 17:26
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -388,6 +388,9 @@ Overfull \vbox (1.06778pt too high) has occurred while \output is active []
 
 
 [2]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
 Overfull \vbox (62.0pt too high) has occurred while \output is active []
 
 
@@ -395,22 +398,39 @@ Overfull \vbox (1.10187pt too high) has occurred while \output is active []
 
 
 [3]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
 Overfull \vbox (62.0pt too high) has occurred while \output is active []
 
 
 Overfull \vbox (1.06778pt too high) has occurred while \output is active []
 
 
-[4] (./paper.aux
+[4]
+Overfull \vbox (62.0pt too high) has occurred while \output is active []
+
+
+Overfull \vbox (1.10187pt too high) has occurred while \output is active []
+
+
+[5]
+Overfull \vbox (62.0pt too high) has occurred while \output is active []
+
+
+Overfull \vbox (1.06778pt too high) has occurred while \output is active []
+
+
+[6] (./paper.aux
 
 Package natbib Warning: Citation `Pollock:1990' multiply defined.
 
 ) ) 
 Here is how much of TeX's memory you used:
- 4270 strings out of 479304
- 59683 string characters out of 5869779
- 366087 words of memory out of 5000000
- 21413 multiletter control sequences out of 15000+600000
+ 4274 strings out of 479304
+ 59707 string characters out of 5869779
+ 366118 words of memory out of 5000000
+ 21417 multiletter control sequences out of 15000+600000
  436448 words of font info for 89 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  68i,13n,74p,593b,251s stack positions out of 5000i,500n,10000p,200000b,80000s
@@ -428,10 +448,10 @@ hare/texlive/texmf-dist/fonts/type1/public/doublestroke/dsrom10.pfb></usr/share
 /texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texlive/texmf-
 dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type
 1/urw/times/utmri8a.pfb>
-Output written on paper.pdf (4 pages, 138689 bytes).
+Output written on paper.pdf (6 pages, 149854 bytes).
 PDF statistics:
- 74 PDF objects out of 1000 (max. 8388607)
- 53 compressed objects within 1 object stream
+ 80 PDF objects out of 1000 (max. 8388607)
+ 57 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 
