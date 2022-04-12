@@ -7,10 +7,9 @@ export simulate_caprecap
 
 function numerator_integrand(p, alpha, N_u, N_o, S, unit)
     x_T = [unit in s_t for s_t in S];
-    statistic = sum(x_T);
-    y = ( p^(alpha + statistic - 1.0)
+    y = ( p^(alpha + length(S) - 1.0)
           * (1.0 - p)^(alpha * (N_o + N_u - 1.0) - 1.0)
-          * prod([1.0 / length(s_t) - p for s_t in S] .^ (1 .- x_T)) );
+          * prod([1.0 / (length(s_t) * p) - 1 for s_t in S] .^ (1 .- x_T)) );
     return y;
 end
 
@@ -47,12 +46,12 @@ function loglikelihood(alpha, N_u, S)
     for i in O
         f(x) = numerator_integrand(x, alpha, N_u, N_o, S, i);
         I = trapezoid(f, 0, 1, 0.02:0.01:0.99);
-        if I < 0
-            I = 5e-220;
+        if I <= 0
+            I = 5.0e-324;
         end
         I = log(I);
         sum_term += I; 
     end
     g(x) = denominator_integrand(x, alpha, N_u, N_o, S);
-    return -N_o * ( logbeta(alpha, alpha * (N_u + N_o - 1)) - trapezoid(g, 0, 1, 0.02:0.01:0.99) ) + sum_term;
+    return -N_o * logbeta(alpha, alpha * (N_u + N_o - 1)) + sum_term;
 end
