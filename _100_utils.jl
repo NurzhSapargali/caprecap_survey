@@ -1,6 +1,6 @@
 module Utils
 
-import SpecialFunctions: logbeta
+import SpecialFunctions: beta
 
 export simulate_caprecap
 
@@ -20,49 +20,33 @@ function denominator_integrand(p, alpha, N_u, N_o, S)
     return y;
 end
 
-function trapezoid(f, grid)
-    integral = 0.0;
-    for k in 2:length(grid)
-         integral += ( f(grid[k]) - f(grid[k-1]) ) * (grid[k] - grid[k-1]);
-    end
-    return integral * 0.5;
-end
-
 function monte_carlo(alpha, N_u, N_o, S, sample_size, unit)
     n = [length(i) for i in S];
-    d = Beta(alpha, alpha * (N_o + N_u - 1));
+    d = Beta(alpha + length(n), alpha * (N_o + N_u - 1));
     p_star = rand(d, sample_size);
     x = [unit in i for i in S];
-    dense = [prod( (k * n).^x .* (1 .- n .* k).^(1 .- x) ) for k in p_star];
+    dense = [prod( (1 ./ (n .* k) .- 1).^(1 .- x) ) for k in p_star];
     return sum(dense) / length(dense)
 end
 
-function likelihood(alpha, N_u, S)
+function loglikelihood(alpha, N_u, S, sample_size, truncated=false)
     O = Set([i for j in S for i in j]);
     N_o = length(O);
-    product_term = 1.0;
-    for i in O
-        f(x) = numerator_integrand(x, alpha, N_u, N_o, S, i);
-        product_term *= trapezoid(f, 0.02:0.01:0.99);
-    end
-    return beta(alpha, alpha * (N_u + N_o - 1))^(-N_o) * product_term;
-end
-
-function loglikelihood(alpha, N_u, S)
-    O = Set([i for j in S for i in j]);
-    N_o = length(O);
+    T = length(S);
+    n = [length(i) for i in S];
     sum_term = 0.0;
     for i in O
-        f(x) = numerator_integrand(x, alpha, N_u, N_o, S, i);
-        I = trapezoid(f, 0.02:0.01:0.99);
-        if I <= 0
-            I = 4.9406564584124654e-324;
-        end
-        I = log(I);
-        sum_term += I; 
+        I = monte_carlo(alpha, N_u, N_o, S, sample_size, i);
+        sum_term += log(I);
     end
-    g(x) = denominator_integrand(x, alpha, N_u, N_o, S);
-    return -N_o * logbeta(alpha, alpha * (N_u + N_o - 1)) + sum_term;
+    if truncated
+        product_term = prod([n[t] * (alpha * (N_o + N_u) + T - t) / (alpha + T - t) for t in 1:T]);
+        return ( -N_o * (log(product_term - monte_carlo(alpha, N_u, N_o, S, sample_size, -1)))
+                 + sum_term );
+    else
+        return ( N_o * sum([log(alpha + T - t) - log(alpha * (N_o + N_u) + T - t) for t in 1:T])
+                + sum_term );
+    end
 end
 
 function loglikelihood_truncated(alpha, N_u, S)
