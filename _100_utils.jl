@@ -6,10 +6,6 @@ import SpecialFunctions: beta
 export loglh, loglh_truncated
 
 
-function f(alpha_parameter, beta_parameter, 
-integrand = ( prod(g) * p^(alpha_parameter - 1.0)
-                      * (1.0 - p)^(beta_parameter - 1.0)
-                      / beta(alpha_parameter, beta_parameter) );
 function monte_carlo(alpha_parameter, beta_parameter, x_i, n, mcdraws)
     sum_term = 0.0;
     points = rand(Beta(alpha_parameter, beta_parameter), mcdraws);
