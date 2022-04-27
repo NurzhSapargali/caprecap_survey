@@ -10,7 +10,7 @@ function pareto_sampling(p, n)
     Q = [[i[1], i[2] / sum(lambs)[2]] for i in lambs];
     for i in 1:N
        u = rand();
-       Q[i][2] = (u / (1 - u)) / (Q[i][2] / (1 - Q[i][2]));
+       Q[i][2] = (u / (1.0 - u)) / (Q[i][2] / (1.0 - Q[i][2]));
     end
     return [Int(i[1]) for i in sort(Q, by=x -> x[2])[1:n]];
 end
@@ -37,7 +37,29 @@ function schnabel(S)
     end
     n = [length(s) for s in S];
     T = length(S);
-    return sum(n[2:T] .* cumsum(n)[2:T]) / sum(values(K) .- 1);
+    return sum(n[2:T] .* cumsum(n)[2:T]) / sum(values(K) .- 1.0);
+end
+
+function chao(S)
+    K = Dict{Float64, Int}();
+    for s in S
+        addcounts!(K, s);
+    end
+    f = countmap(values(K));
+    O = Set([i for j in S for i in j]);
+    return length(O) + f[1]^2.0 / (2.0 * f[2]);
+end
+
+function chao_corrected(S)
+    K = Dict{Float64, Int}();
+    for s in S
+        addcounts!(K, s);
+    end
+    f = countmap(values(K));
+    O = Set([i for j in S for i in j]);
+    m1 = 2.0 * f[2] / f[1];
+    m2 = 6.0 * f[3] / f[1];
+    return length(O) + f[1]^2.0 / (2.0 * f[2]) * (1.0 - m1 / length(S)) / (1.0 - m2 / (length(S) * m1));
 end
 
 function loglh(alpha, N_u, S, draws)
