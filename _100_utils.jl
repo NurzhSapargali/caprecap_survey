@@ -5,6 +5,15 @@ import StatsBase: addcounts!
 
 export loglh, loglh_truncated
 
+function pareto_sampling(p, n)
+    lambs = [[i, p[i] * n] for i in 1:length(p)];
+    Q = [[i[1], i[2] / sum(lambs)[2]] for i in lambs];
+    for i in 1:N
+       u = rand();
+       Q[i][2] = (u / (1 - u)) / (Q[i][2] / (1 - Q[i][2]));
+    end
+    return [Int(i[1]) for i in sort(Q, by=x -> x[2])[1:n]];
+end
 
 function monte_carlo(alpha, beta, x_i, n, mcdraws)
     sum_term = 0.0;
@@ -22,7 +31,7 @@ function lincoln(S)
 end
 
 function schnabel(S)
-    K = Dict{Int, Int}();
+    K = Dict{Float64, Int}();
     for s in S
         addcounts!(K, s);
     end
