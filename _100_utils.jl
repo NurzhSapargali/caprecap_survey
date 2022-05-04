@@ -30,8 +30,22 @@ function lincoln(S, n)
     return prod(n) / length(r);
 end
 
-function schnabel(n, T, K)
-    return sum(n[2:T] .* cumsum(n)[2:T]) / sum(values(K) .- 1.0);
+function schnabel(S, n)
+    m = 0;
+    N = 0;
+    pool = Set();
+    denom = [];
+    num = [];
+    R = Set();
+    for t in 2:length(S)
+        pool = union(pool, S[t-1]);
+        u = n[t-1] - length(R);
+        R = intersect(S[t], pool);
+        m += u;
+        push!(num, n[t] * m);
+        push!(denom, length(R));
+    end
+    return sum(num) / sum(denom);
 end
 
 function chao(N_o, f)

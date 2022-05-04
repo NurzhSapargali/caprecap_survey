@@ -10,7 +10,6 @@ import Random: seed!
 ALPHAS = [0.1, 0.5, 1.0, 5.0, 20.0];
 N = 1000;
 T = [2, 4, 10];
-AVG_SAMPLE_SIZE = 75.0;
 
 
 function write_row(filename, row)
@@ -37,18 +36,19 @@ for alpha in ALPHAS
     p = rand(d, N);
     n_max = floor(1 / maximum(p));
     n_q75 = round(quantile(1:n_max, 0.75));
-    for t in T
-        n = Int.(rand(n_q75:n_max, t));
-        for trial in 1:100
+    n = Int.(rand(n_q75:n_max, maximum(T)));
+    for trial in 1:100
+        samples = [pareto_sampling(p, i) for i in n[1:t]];
+        for t in T
+            S = samples[1:t]
             println("***TRIAL NO $trial, $alpha, $t***")
-            S = [pareto_sampling(p, i) for i in n];
             O = Set([i for j in S for i in j]);
             K = Dict{Int, Int}();
             for s in S
                 addcounts!(K, s);
             end
             f = countmap(values(K));
-            LL(x, grad) = -loglh_truncated(x[1], x[2], S, O, t, n, 1000);
+            LL(x, grad) = -loglh_truncated(x[1], x[2], S, O, t, n[1:t], 1000);
             opt = Opt(:LN_SBPLX, 2);
             lower = [0.01, 0];
             opt.lower_bounds = lower;
@@ -64,12 +64,12 @@ for alpha in ALPHAS
             push!(jks, vcat([round(jackknife(length(O), t, f, k)) for k in 1:5], [alpha, t]));
             write_row("jks.csv", vcat([round(jackknife(length(O), t, f, k)) for k in 1:5], [alpha, t]));
             if t == 2
-                push!(links, [round(lincoln(S, n)), alpha, t]);
-                write_row("links.csv", [round(lincoln(S, n)), alpha, t]);
+                push!(links, [round(lincoln(S, n[1:t])), alpha, t]);
+                write_row("links.csv", [round(lincoln(S, n[1:t])), alpha, t]);
             end
             if t > 2
-                push!(schnab, [round(schnabel(n, t, K)), alpha, t]);
-                write_row("schnab.csv", [round(schnabel(n, t, K)), alpha, t]);
+                push!(schnab, [round(schnabel(S, n[1:t])), alpha, t]);
+                write_row("schnab.csv", [round(schnabel(S, n[1:t])), alpha, t]);
             end
         end
     end
