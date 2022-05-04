@@ -7,10 +7,10 @@ export loglh, loglh_truncated
 
 function pareto_sampling(p, n)
     lambs = [[i, p[i] * n] for i in 1:length(p)];
-    Q = [[i[1], i[2] / sum(lambs)[2]] for i in lambs];
-    for i in 1:N
+    Q = [];
+    for l in lambs
        u = rand();
-       Q[i][2] = (u / (1.0 - u)) / (Q[i][2] / (1.0 - Q[i][2]));
+       push!(Q, [l[1], (u / (1.0 - u)) / (l[2] / (1.0 - l[2]))]);
     end
     return [Int(i[1]) for i in sort(Q, by=x -> x[2])[1:n]];
 end

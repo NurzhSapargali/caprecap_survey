@@ -5,7 +5,6 @@ using SpecialFunctions
 using StatsBase
 using NLopt
 
-import StatsBase: efraimidis_a_wsample_norep!
 import Random: seed!
 
 ALPHAS = [0.1, 0.5, 1.0, 5.0, 20.0];
@@ -36,13 +35,15 @@ seed!(777);
 for alpha in ALPHAS
     d = Beta(alpha, alpha * (N - 1));
     p = rand(d, N);
+    n_max = floor(1 / maximum(p));
+    n_q75 = round(quantile(1:n_max, 0.75));
     for t in T
-        n = rand(Poisson(AVG_SAMPLE_SIZE), t);
-        for trial in 1:75
+        n = Int.(rand(n_q75:n_max, t));
+        for trial in 1:100
             println("***TRIAL NO $trial, $alpha, $t***")
-            S = [efraimidis_a_wsample_norep!(1:N, Weights(p), zeros(i)) for i in n];
+            S = [pareto_sampling(p, i) for i in n];
             O = Set([i for j in S for i in j]);
-            K = Dict{Float64, Int}();
+            K = Dict{Int, Int}();
             for s in S
                 addcounts!(K, s);
             end
