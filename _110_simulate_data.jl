@@ -7,9 +7,11 @@ using NLopt
 
 import Random: seed!
 
-ALPHAS = [0.1, 0.5, 1.0, 5.0, 20.0];
+ALPHAS = [0.1];
+#ALPHAS = [0.1, 0.5, 1.0, 5.0, 20.0];
 N = 1000;
 T = [2, 4, 10];
+AVG_SAMPLE_SIZE = 30;
 
 
 function write_row(filename, row)
@@ -32,13 +34,11 @@ chaos_corr = [];
 jks = [];
 seed!(777);
 for alpha in ALPHAS
-    d = Beta(alpha, alpha * (N - 1));
-    p = rand(d, N);
-    n_max = floor(1 / maximum(p));
-    n_q75 = round(quantile(1:n_max, 0.75));
-    n = Int.(rand(n_q75:n_max, maximum(T)));
+    p = ones(N) / N;
+    n = ones(maximum(T)) * AVG_SAMPLE_SIZE;
     for trial in 1:100
-        samples = [pareto_sampling(p, i) for i in n[1:t]];
+        samples = [sample(1:N, i) for i in Int.(n)];
+        #samples = [pareto_sampling(p, i) for i in Int.(n)];
         for t in T
             S = samples[1:t]
             println("***TRIAL NO $trial, $alpha, $t***")
