@@ -1,3 +1,4 @@
+include("_100_utils.jl")
 using .Utils
 
 using Distributions
@@ -35,9 +36,9 @@ jks = [];
 seed!(777);
 for alpha in ALPHAS
     p = ones(N) / N;
-    n = ones(maximum(T)) * AVG_SAMPLE_SIZE;
+    n = rand(Poisson(AVG_SAMPLE_SIZE), maximum(T));
     for trial in 1:100
-        samples = [sample(1:N, i) for i in Int.(n)];
+        samples = [sample(1:N, i, replace=false) for i in Int.(n)];
         #samples = [pareto_sampling(p, i) for i in Int.(n)];
         for t in T
             S = samples[1:t]

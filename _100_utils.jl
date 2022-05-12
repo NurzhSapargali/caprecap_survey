@@ -3,7 +3,9 @@ module Utils
 import Distributions: Beta
 import StatsBase: addcounts!
 
-export loglh, loglh_truncated
+export pareto_sampling, lincoln, schnabel,
+       chao, chao_corrected, jackknife,
+       loglh_truncated
 
 function pareto_sampling(p, n)
     lambs = [[i, p[i] * n] for i in 1:length(p)];
@@ -114,3 +116,6 @@ function loglh_truncated(alpha, N_u, S, O, T, n, draws)
     println("alpha = $alpha, N_u = $N_u, lh = $lh");
     return lh;
 end
+
+end
+
