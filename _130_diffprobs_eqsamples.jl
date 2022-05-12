@@ -1,3 +1,4 @@
+
 include("_100_utils.jl")
 using .Utils
 
@@ -9,7 +10,6 @@ using NLopt
 import Random: seed!
 
 ALPHAS = [0.1];
-#ALPHAS = [0.1, 0.5, 1.0, 5.0, 20.0];
 N = 1000;
 T = [2, 4, 10];
 AVG_SAMPLE_SIZE = 30;
@@ -35,11 +35,11 @@ chaos_corr = [];
 jks = [];
 seed!(777);
 for alpha in ALPHAS
-    p = ones(N) / N;
-    n = rand(Poisson(AVG_SAMPLE_SIZE), maximum(T));
+    p = rand(Beta(alpha, alpha * (N - 1)), N);
+    nmax = Int(floor(1.0 / maximum(p)));
+    n = ones(maximum(T)) .* nmax;
     for trial in 1:100
-        samples = [sample(1:N, i, replace=false) for i in Int.(n)];
-        #samples = [pareto_sampling(p, i) for i in Int.(n)];
+        samples = [pareto_sampling(p, i) for i in Int.(n)];
         for t in T
             S = samples[1:t]
             println("***TRIAL NO $trial, $alpha, $t***")
@@ -57,20 +57,20 @@ for alpha in ALPHAS
             opt.xtol_abs = 0.1;
             (minf, minx, ret) = NLopt.optimize(opt, [5.0, 10.0]);
             push!(estis, [minx[1] ,round(minx[2]) + length(O), alpha, t]);
-            write_row("_900_output/data/estis_eqp_diffn.csv", [minx[1] ,round(minx[2]) + length(O), alpha, t]);
+            write_row("_900_output/data/estis_diffp_eqn_$(alpha)_$(nmax).csv", [minx[1] ,round(minx[2]) + length(O), alpha, t]);
             push!(chaos, [round(chao(length(O), f)), alpha, t]);
-            write_row("_900_output/data/chaos_eqp_diffn.csv", [round(chao(length(O), f)), alpha, t]);
+            write_row("_900_output/data/chaos_diffp_eqn_$(alpha)_$(nmax).csv", [round(chao(length(O), f)), alpha, t]);
             push!(chaos_corr, [round(chao_corrected(length(O), t, f)), alpha, t]);
-            write_row("_900_output/data/chaos_corr_eqp_diffn.csv", [round(chao_corrected(length(O), t, f)), alpha, t]);
+            write_row("_900_output/data/chaos_corr_diffp_eqn_$(alpha)_$(nmax).csv", [round(chao_corrected(length(O), t, f)), alpha, t]);
             push!(jks, vcat([round(jackknife(length(O), t, f, k)) for k in 1:5], [alpha, t]));
-            write_row("_900_output/data/jks_eqp_diffn.csv", vcat([round(jackknife(length(O), t, f, k)) for k in 1:5], [alpha, t]));
+            write_row("_900_output/data/jks_diffp_eqn_$(alpha)_$(nmax).csv", vcat([round(jackknife(length(O), t, f, k)) for k in 1:5], [alpha, t]));
             if t == 2
                 push!(links, [round(lincoln(S, n[1:t])), alpha, t]);
-                write_row("_900_output/data/links_eqp_diffn.csv", [round(lincoln(S, n[1:t])), alpha, t]);
+                write_row("_900_output/data/links_diffp_eqn_$(alpha)_$(nmax).csv", [round(lincoln(S, n[1:t])), alpha, t]);
             end
             if t > 2
                 push!(schnab, [round(schnabel(S, n[1:t])), alpha, t]);
-                write_row("_900_output/data/schnab_eqp_diffn.csv", [round(schnabel(S, n[1:t])), alpha, t]);
+                write_row("_900_output/data/schnab_diffp_eqn_$(alpha)_$(nmax).csv", [round(schnabel(S, n[1:t])), alpha, t]);
             end
         end
     end
