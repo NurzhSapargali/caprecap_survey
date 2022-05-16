@@ -5,7 +5,19 @@ import StatsBase: addcounts!
 
 export pareto_sampling, lincoln, schnabel,
        chao, chao_corrected, jackknife,
-       loglh_truncated
+       loglh_truncated, write_row
+       
+function write_row(filename, row)
+    open(filename, "a") do io
+        for (i,j) in enumerate(row)
+            if i != length(row)
+                print(io, j, ",");
+            else
+                print(io, j, "\n");
+            end
+        end
+    end
+end
 
 function pareto_sampling(p, n)
     lambs = [[i, p[i] * n] for i in 1:length(p)];
