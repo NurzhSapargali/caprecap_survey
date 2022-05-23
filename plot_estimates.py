@@ -10,48 +10,65 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
+def nan_trials(df):
+    cut = df[df["N_hat"].isnull()][["T", "trial"]].to_numpy()
+    return set(tuple(i) for i in cut)
+
+def remove_indices(df, multindex, blacklist):
+    df = df.set_index(multindex)
+    return df.loc[set(df.index) - blacklist]    
+
 chaos = pd.read_csv("chaos.csv", header=None)
-chaos.columns = ["N_hat", "alpha", "T"]
+chaos.columns = ["N_hat", "T", "trial"]
 chaos["estimator"] = "Chao"
+chaos.replace(np.inf, value=np.nan, inplace=True)
+fails = nan_trials(chaos)
 chaos_corr = pd.read_csv("chaos_corr.csv", header=None)
-chaos_corr.columns = ["N_hat", "alpha", "T"]
+chaos_corr.columns = ["N_hat", "T", "trial"]
 chaos_corr["estimator"] = "Chao (corrected)"
+fails.update(nan_trials(chaos_corr))
 links = pd.read_csv("links.csv", header=None)
-links.columns = ["N_hat", "alpha", "T"]
+links.columns = ["N_hat", "T", "trial"]
 links["estimator"] = "Lincoln & Schnabel"
+links.replace(np.inf, value=np.nan, inplace=True)
+fails.update(nan_trials(links))
 schnab = pd.read_csv("schnab.csv", header=None)
-schnab.columns = ["N_hat", "alpha", "T"]
+schnab.columns = ["N_hat", "T", "trial"]
 schnab["estimator"] = "Lincoln & Schnabel"
+schnab.replace(np.inf, value=np.nan, inplace=True)
+fails.update(nan_trials(schnab))
 estis = pd.read_csv("estis.csv", header=None)
-estis.columns = ["alpha_hat", "N_hat", "alpha", "T"]
+estis.columns = ["alpha_hat", "N_hat", "T", "trial"]
 estis["estimator"] = "Pseudo-likelihood"
-out = pd.concat([links, schnab, chaos, chaos_corr, estis.iloc[:,1:]])
+dfs = [links, schnab, chaos, chaos_corr, estis]
+out = pd.concat([remove_indices(i, ["T", "trial"], fails) for i in dfs])
 out["1 / N_hat"] = 1 / out["N_hat"]
-for alpha in out["alpha"].unique():
-    fig, ax = plt.subplots(figsize=(18,12))
-    sns.boxplot(x="1 / N_hat", y="T", hue="estimator", orient="h",
-                data=out[out["alpha"] == alpha], whis=[5, 95], meanline=True,
+out = out.reset_index()
+fig, ax = plt.subplots(figsize=(18,12))
+sns.boxplot(x="1 / N_hat", y="T", hue="estimator", orient="h",
+                data=out, whis=[5, 95], meanline=True,
                 ax=ax)
-    ax.axvline(x=1 / 1000)
-    plt.savefig("alpha_{}.pdf".format(alpha), bbox_inches="tight")
+ax.axvline(x=1 / 1000)
+fig.savefig("estimates_boxplots.pdf", bbox_inches="tight")
 jacks = pd.read_csv("jks.csv", header=None)
-jacks.columns = ["k = {}".format(i) for i in range(1,6)] + ["alpha", "T"]
+jacks.columns = ["k = {}".format(i) for i in range(1,6)] + ["T", "trial"]
 dfs = []
 for i in range(1, 6):
-    cut = jacks[["k = {}".format(i), "alpha", "T"]]
-    cut.columns = ["N_hat", "alpha", "T"]
+    cut = jacks[["k = {}".format(i), "T", "trial"]]
+    cut.columns = ["N_hat", "T", "trial"]
     cut["estimator"] = "k = {}".format(i)
     dfs.append(cut)
-dfs.append(estis.iloc[:,1:])
-out = pd.concat(dfs)
+dfs.append(estis)
+out = pd.concat([remove_indices(i, ["T", "trial"], fails) for i in dfs])
 out["1 / N_hat"] = 1 / out["N_hat"]
-for alpha in out["alpha"].unique():
-    fig, ax = plt.subplots(figsize=(18,12))
-    sns.boxplot(x="1 / N_hat", y="T", hue="estimator", orient="h",
-                data=out[out["alpha"] == alpha], whis=[5, 95], meanline=True,
+out = out.reset_index()
+fig, ax = plt.subplots(figsize=(18,12))
+sns.boxplot(x="1 / N_hat", y="T", hue="estimator", orient="h",
+                data=out, whis=[5, 95], meanline=True,
                 ax=ax)
-    ax.axvline(x=1 / 1000)
-    plt.savefig("jk_alpha_{}.pdf".format(alpha), bbox_inches="tight")
+ax.axvline(x=1 / 1000)
+fig.savefig("jks_boxplots.pdf", bbox_inches="tight")
 estis["log alpha_hat"] = np.log(estis["alpha_hat"])
 for alpha in estis["alpha"].unique():
     fig, ax = plt.subplots(figsize=(18,12))
