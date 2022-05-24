@@ -44,12 +44,20 @@ for trial in 1:TRIALS
         push!(estis, [minx[1] ,round(minx[2]) + length(O), t]);
         write_row("_900_output/data/eqp_eqn/estis.csv",
                   [minx[1] ,round(minx[2]) + length(O), t, trial]);
-        alpha_trace = [loglh_truncated(i, round(minx[2]), S, O, t, n[1:t], 1000) for i in 0.1:1:200.1];
+        #alpha_grid = 1:78.5:31400;
+        #if t == 4
+        alpha_grid = 1:93:37200;
+        #end
+        #if t == 10
+        #    alpha_grid = 1:1.85:740;
+        #end
+        alpha_trace = [loglh_truncated(i, round(minx[2]), S, O, t, n[1:t], 1000) for i in alpha_grid];
         write_row("_900_output/data/eqp_eqn/alpha_trace.csv",
-                  vcat(alpha_trace, [minx[1], round(minx[2]), length(O), trial]));
-        Nu_trace = [loglh_truncated(minx[1], i, S, O, t, n[1:t], 1000) for i in 0:100:5000];
+                  vcat(alpha_trace, [-minf, minx[1], round(minx[2]), length(O), trial]));
+        Nu_grid = 1:274:109600
+        Nu_trace = [loglh_truncated(minx[1], i, S, O, t, n[1:t], 1000) for i in Nu_grid];
         write_row("_900_output/data/eqp_eqn/Nu_trace.csv",
-                  vcat(Nu_trace, [minx[1], round(minx[2]), length(O), trial]));
+                  vcat(Nu_trace, [minf, minx[1], round(minx[2]), length(O), trial]));
         push!(chaos, [round(chao(length(O), f)), t, trial]);
         write_row("_900_output/data/eqp_eqn/chaos.csv",
                   [round(chao(length(O), f)), t, trial]);
