@@ -10,8 +10,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-DIR = "./_900_output/data/eqp_eqn/{}"
-FIGS = "./_900_output/figures/eqp_eqn/{}"
+DIR = "./_900_output/data/eqp_diffn/{}"
+FIGS = "./_900_output/figures/eqp_diffn/{}"
 
 
 def nan_trials(df):

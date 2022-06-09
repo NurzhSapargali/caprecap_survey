@@ -21,7 +21,6 @@ chaos = [];
 chaos_corr = [];
 jks = [];
 seed!(777);
-p = ones(N) / N;
 n = ones(maximum(T)) * AVG_SAMPLE_SIZE;
 for trial in 1:TRIALS
     samples = [sample(1:N, i, replace=false) for i in Int.(n)];
@@ -42,28 +41,28 @@ for trial in 1:TRIALS
         opt.xtol_abs = 0.1;
         (minf, minx, ret) = NLopt.optimize(opt, [5.0, 10.0]);
         push!(estis, [minx[1] ,round(minx[2]) + length(O), t]);
-        write_row("_900_output/data/test/estis.csv",
+        write_row("_900_output/data/eqp_eqn/estis.csv",
                   [minx[1] ,round(minx[2]) + length(O), t, trial]);
         alpha_trace = [loglh_truncated(i, round(minx[2]), S, O, t, n[1:t], 1000) for i in 0.1:1:200.1];
-        write_row("_900_output/data/test/alpha_trace.csv",
+        write_row("_900_output/data/eqp_eqn/alpha_trace.csv",
                   vcat(alpha_trace, [minx[1], round(minx[2]), length(O), trial]));
         Nu_trace = [loglh_truncated(minx[1], i, S, O, t, n[1:t], 1000) for i in 0:100:5000];
-        write_row("_900_output/data/test/Nu_trace.csv",
+        write_row("_900_output/data/eqp_eqn/Nu_trace.csv",
                   vcat(Nu_trace, [minx[1], round(minx[2]), length(O), trial]));
         push!(chaos, [round(chao(length(O), f)), t, trial]);
-        write_row("_900_output/data/test/chaos.csv",
+        write_row("_900_output/data/eqp_eqn/chaos.csv",
                   [round(chao(length(O), f)), t, trial]);
         push!(chaos_corr, [round(chao_corrected(length(O), t, f)), t, trial]);
-        write_row("_900_output/data/test/chaos_corr.csv", [round(chao_corrected(length(O), t, f)), t, trial]);
+        write_row("_900_output/data/eqp_eqn/chaos_corr.csv", [round(chao_corrected(length(O), t, f)), t, trial]);
         push!(jks, vcat([round(jackknife(length(O), t, f, k)) for k in 1:5], [t, trial]));
-        write_row("_900_output/data/test/jks.csv", vcat([round(jackknife(length(O), t, f, k)) for k in 1:5], [t, trial]));
+        write_row("_900_output/data/eqp_eqn/jks.csv", vcat([round(jackknife(length(O), t, f, k)) for k in 1:5], [t, trial]));
         if t == 2
             push!(links, [round(lincoln(S, n[1:t])), t]);
-            write_row("_900_output/data/test/links.csv", [round(lincoln(S, n[1:t])), t, trial]);
+            write_row("_900_output/data/eqp_eqn/links.csv", [round(lincoln(S, n[1:t])), t, trial]);
         end
         if t > 2
             push!(schnab, [round(schnabel(S, n[1:t])), t]);
-            write_row("_900_output/data/test/schnab.csv", [round(schnabel(S, n[1:t])), t, trial]);
+            write_row("_900_output/data/eqp_eqn/schnab.csv", [round(schnabel(S, n[1:t])), t, trial]);
         end
     end
 end
