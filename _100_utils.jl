@@ -32,6 +32,7 @@ function sampford_sample(p, n)
         s = Set(sample(collect(keys(pr)), Weights(new_pr), n));
         pr[key] = val;
     end
+    println("Generated")
     return collect(s);
 end
     
