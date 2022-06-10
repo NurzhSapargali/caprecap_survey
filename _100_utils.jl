@@ -1,9 +1,9 @@
 module Utils
 
 import Distributions: Beta
-import StatsBase: addcounts!
+using StatsBase
 
-export pareto_sampling, lincoln, schnabel,
+export sampford_sample, lincoln, schnabel,
        chao, chao_corrected, jackknife,
        loglh_truncated, write_row
        
@@ -19,16 +19,22 @@ function write_row(filename, row)
     end
 end
 
-function pareto_sampling(p, n)
-    lambs = [[i, p[i] * n] for i in 1:length(p)];
-    Q = [];
-    for l in lambs
-       u = rand();
-       push!(Q, [l[1], (u / (1.0 - u)) / (l[2] / (1.0 - l[2]))]);
+function sampford_sample(p, n)
+    pr = n * p;
+    pr = Dict(enumerate(pr));
+    s = Set();
+    while length(s) != n
+        key = sample(1:length(p), Weights(p));
+        val = pop!(pr, key);
+        new_pr = collect(values(pr));
+        new_pr = new_pr ./ (1.0 .- new_pr);
+        new_pr = new_pr ./ sum(new_pr);
+        s = Set(sample(collect(keys(pr)), Weights(new_pr), n));
+        pr[key] = val;
     end
-    return [Int(i[1]) for i in sort(Q, by=x -> x[2])[1:n]];
+    return collect(s);
 end
-
+    
 function monte_carlo(alpha, beta, x_i, n, mcdraws)
     sum_term = 0.0;
     points = rand(Beta(alpha, beta), mcdraws);
