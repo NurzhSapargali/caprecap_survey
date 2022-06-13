@@ -5,6 +5,7 @@ using Distributions
 using SpecialFunctions
 using StatsBase
 using NLopt
+#using Evolutionary
 
 import Random: seed!
 
@@ -25,7 +26,8 @@ seed!(777);
 for alpha in ALPHAS
     d = Beta(alpha, (N - 1.0) * alpha);
     p = rand(d, N);
-    n = ones(maximum(T)) * AVG_SAMPLE_SIZE;
+    max_n = AVG_SAMPLE_SIZE > floor(1.0 / maximum(p)) ? floor(1.0 / maximum(p)) : AVG_SAMPLE_SIZE
+    n = ones(maximum(T)) * max_n;
     for trial in 1:TRIALS
         println("Generating samples for $n")
         samples = repeat([[]], maximum(T));
@@ -41,13 +43,25 @@ for alpha in ALPHAS
                 addcounts!(K, s);
             end
             f = countmap(values(K));
-            LL(x, grad) = -loglh_truncated(x[1], x[2], S, O, t, n[1:t], 1000);
+            LL(x, grad) = -loglh_truncated(x[1], x[2], S, O, t, n[1:t], 3000);
             opt = Opt(:LN_SBPLX, 2);
             lower = [0.01, 0];
             opt.lower_bounds = lower;
             opt.min_objective = LL;
             opt.xtol_abs = 0.1;
-            (minf, minx, ret) = NLopt.optimize(opt, [5.0, 10.0]);
+            (minf, minx, ret) = NLopt.optimize(opt, [5.0, length(O)]);
+#             LL(x) = -loglh_truncated(x[1], x[2], S, O, t, n[1:t], 3000);
+#             x0 = [1.0, length(O)];
+#             lower = [0.01, 0];
+#             upper = [Inf, Inf];
+#             ga = GA(populationSize=100,selection=uniformranking(3),
+#                     mutation=gaussian(),crossover=uniformbin())
+#             results = Evolutionary.optimize(LL,
+#                                             BoxConstraints(lower, upper),
+#                                             x0,
+#                                             ga,
+#                                             Evolutionary.Options(abstol=1.0, iterations=1000));
+#             minx = Evolutionary.minimizer(results);
             push!(estis, [minx[1] ,round(minx[2]) + length(O), t]);
             write_row("_900_output/data/diffp_eqn/estis_$(alpha).csv",
                     [minx[1] ,round(minx[2]) + length(O), t, trial]);
@@ -63,7 +77,7 @@ for alpha in ALPHAS
             push!(chaos_corr, [round(chao_corrected(length(O), t, f)), t, trial]);
             write_row("_900_output/data/diffp_eqn/chaos_corr_$(alpha).csv", [round(chao_corrected(length(O), t, f)), t, trial]);
             push!(jks, vcat([round(jackknife(length(O), t, f, k)) for k in 1:5], [t, trial]));
-            write_row("_900_output/data/diffp_eqn/jks_$(jks).csv", vcat([round(jackknife(length(O), t, f, k)) for k in 1:5], [t, trial]));
+            write_row("_900_output/data/diffp_eqn/jks_$(alpha).csv", vcat([round(jackknife(length(O), t, f, k)) for k in 1:5], [t, trial]));
             if t == 2
                 push!(links, [round(lincoln(S, n[1:t])), t]);
                 write_row("_900_output/data/diffp_eqn/links_$(alpha).csv", [round(lincoln(S, n[1:t])), t, trial]);

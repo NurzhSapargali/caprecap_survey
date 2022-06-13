@@ -1,6 +1,7 @@
 module Utils
 
 import Distributions: Beta
+import SpecialFunctions: beta
 using StatsBase
 
 export sampford_sample, lincoln, schnabel,
@@ -17,6 +18,21 @@ function write_row(filename, row)
             end
         end
     end
+end
+
+function integrand(p, alpha, beta_param, x_i, n)
+    prior = p^(alpha + sum(x_i) - 1.0) * (1.0 - p)^(beta_param - 1.0);
+    evd = prod((1.0 .- n .* p).^(1.0 .- x_i));
+    return prior * evd;
+end
+
+function trapezoid(alpha, beta_param, x_i, n, grid)
+    delta = grid[2] - grid[1];
+    K = length(grid);
+    bound_sum = (integrand(grid[1], alpha, beta_param, x_i, n)
+                + integrand(grid[K], alpha, beta_param, x_i, n));
+    internal_sum = sum([2.0 * integrand(p, alpha, beta_param, x_i, n) for p in grid[2:K - 1]])
+    return delta / 2.0 * (bound_sum + internal_sum);
 end
 
 function sampford_sample(p, n)
@@ -36,9 +52,9 @@ function sampford_sample(p, n)
     return collect(s);
 end
     
-function monte_carlo(alpha, beta, x_i, n, mcdraws)
+function monte_carlo(alpha, beta_param, x_i, n, mcdraws)
     sum_term = 0.0;
-    points = rand(Beta(alpha, beta), mcdraws);
+    points = rand(Beta(alpha, beta_param), mcdraws);
     for p in points
         g = (n .* p).^x_i .* (1.0 .- n .* p).^(1.0 .- x_i);
         sum_term += prod(g);
@@ -135,6 +151,35 @@ function loglh_truncated(alpha, N_u, S, O, T, n, draws)
     println("alpha = $alpha, N_u = $N_u, lh = $lh");
     return lh;
 end
-
+ 
 end
 
+# function loglh(alpha, N_u, S, O, T, n, grid)
+#     N_o = length(O);
+#     sum_term = 0.0;
+#     for i in O
+#         x_i = [i in s for s in S]; 
+#         I = (trapezoid(alpha, alpha * (N_o + N_u - 1), x_i, n, grid) 
+#             / beta(alpha, alpha * (N_o + N_u - 1)));
+#         if I < 0
+#             I = 5e-200;
+#         end
+#         sum_term += log(I);
+#     end
+#     return sum_term;
+# end
+# 
+# function loglh_truncated(alpha, N_u, S, O, T, n, grid)
+#     N_o = length(O);
+#     denom = (trapezoid(alpha, alpha * (N_u + N_o - 1), zeros(T), n, grid)
+#             / beta(alpha, alpha * (N_u + N_o - 1)));
+#     denom = 1 - denom;
+#     if denom < 0
+#         denom = 5e-200
+#     end
+#     lh = -N_o * log(denom) + loglh(alpha, N_u, S, O, T, n, grid)
+#     println("alpha = $alpha, N_u = $N_u, lh = $lh");
+#     return lh;
+# end
+
+# end
