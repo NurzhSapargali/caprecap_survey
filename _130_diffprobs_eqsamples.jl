@@ -22,7 +22,7 @@ schnab = [];
 chaos = [];
 chaos_corr = [];
 jks = [];
-seed!(777);
+seed!(111);
 for alpha in ALPHAS
     d = Beta(alpha, (N - 1.0) * alpha);
     p = rand(d, N);
@@ -42,7 +42,7 @@ for alpha in ALPHAS
                 addcounts!(K, s);
             end
             f = countmap(values(K));
-            LL(x, grad) = -loglh_truncated(x[1], x[2], S, O, t, n[1:t], 3000);
+            LL(x, grad) = -loglh_truncated(x[1], x[2], S, O, t, n[1:t], 1000);
             opt = Opt(:LN_SBPLX, 2);
             lower = [0.01, 0];
             opt.lower_bounds = lower;

@@ -10,9 +10,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-DIR = "./_900_output/data/eqp_diffn/{}"
-FIGS = "./_900_output/figures/eqp_diffn/{}"
-
+DIR = "./_900_output/data/diffp_eqn/{}"
+FIGS = "./_900_output/figures/diffp_eqn/{}"
+N = 3000
+T = [2, 5, 10, 15, 20]
+ALPHAS = [0.1, 3.0, 10.0]
+ALPHA_RANGE = np.arange(0.1, 26.1)
+NU_RANGE = np.arange(0, 5100, 100)
+K = range(1, 6)
+REPLICATIONS = 100
 
 def nan_trials(df):
     cut = df[df["N_hat"].isnull()][["T", "trial"]].to_numpy()
@@ -22,94 +28,117 @@ def remove_indices(df, multindex, blacklist):
     df = df.set_index(multindex)
     return df.loc[set(df.index) - blacklist]    
 
+
 sns.set()
-chaos = pd.read_csv(DIR.format("chaos.csv"), header=None)
-chaos.columns = ["N_hat", "T", "trial"]
-chaos["estimator"] = "Chao"
-chaos.replace(np.inf, value=np.nan, inplace=True)
-fails = nan_trials(chaos)
-chaos_corr = pd.read_csv(DIR.format("chaos_corr.csv"), header=None)
-chaos_corr.columns = ["N_hat", "T", "trial"]
-chaos_corr["estimator"] = "Chao (corrected)"
-fails.update(nan_trials(chaos_corr))
-links = pd.read_csv(DIR.format("links.csv"), header=None)
-links.columns = ["N_hat", "T", "trial"]
-links["estimator"] = "Lincoln & Schnabel"
-links.replace(np.inf, value=np.nan, inplace=True)
-fails.update(nan_trials(links))
-schnab = pd.read_csv(DIR.format("schnab.csv"), header=None)
-schnab.columns = ["N_hat", "T", "trial"]
-schnab["estimator"] = "Lincoln & Schnabel"
-schnab.replace(np.inf, value=np.nan, inplace=True)
-fails.update(nan_trials(schnab))
-estis = pd.read_csv(DIR.format("estis.csv"), header=None)
-estis.columns = ["alpha_hat", "N_hat", "T", "trial"]
-estis["estimator"] = "Pseudo-likelihood"
-dfs = [links, schnab, chaos, chaos_corr, estis]
-out = pd.concat([remove_indices(i, ["T", "trial"], fails) for i in dfs])
-out["1 / N_hat"] = 1 / out["N_hat"]
-out = out.reset_index()
-fig, ax = plt.subplots(figsize=(18,12))
-sns.boxplot(x="1 / N_hat", y="T", hue="estimator", orient="h",
+for alpha in ALPHAS:
+    chaos = pd.read_csv(DIR.format("chaos_{}.csv".format(alpha)),
+                        header=None)
+    chaos.columns = ["N_hat", "T", "trial"]
+    chaos["estimator"] = "Chao"
+    chaos.replace(np.inf, value=np.nan, inplace=True)
+    fails = nan_trials(chaos)
+    chaos_corr = pd.read_csv(DIR.format("chaos_corr_{}.csv".format(alpha)),
+                             header=None)
+    chaos_corr.columns = ["N_hat", "T", "trial"]
+    chaos_corr["estimator"] = "Chao (corrected)"
+    fails.update(nan_trials(chaos_corr))
+    links = pd.read_csv(DIR.format("links_{}.csv".format(alpha)),
+                        header=None)
+    links.columns = ["N_hat", "T", "trial"]
+    links["estimator"] = "Lincoln & Schnabel"
+    links.replace(np.inf, value=np.nan, inplace=True)
+    fails.update(nan_trials(links))
+    schnab = pd.read_csv(DIR.format("schnab_{}.csv".format(alpha)),
+                         header=None)
+    schnab.columns = ["N_hat", "T", "trial"]
+    schnab["estimator"] = "Lincoln & Schnabel"
+    schnab.replace(np.inf, value=np.nan, inplace=True)
+    fails.update(nan_trials(schnab))
+    estis = pd.read_csv(DIR.format("estis_{}.csv".format(alpha)),
+                        header=None)
+    estis.columns = ["alpha_hat", "N_hat", "T", "trial"]
+    estis["estimator"] = "Pseudo-likelihood"
+    dfs = [links, schnab, chaos, chaos_corr, estis]
+    out = pd.concat([remove_indices(i, ["T", "trial"], fails) for i in dfs])
+    out["1 / N_hat"] = 1.0 / out["N_hat"]
+    out = out.reset_index()
+    fig, ax = plt.subplots(figsize=(18,12))
+    sns.boxplot(x="1 / N_hat", y="T", hue="estimator", orient="h",
                 data=out, whis=[5, 95], meanline=True,
                 ax=ax)
-ax.axvline(x=1 / 1000)
-fig.savefig(FIGS.format("estimates_boxplots.pdf"), bbox_inches="tight")
-plt.close(fig)
-jacks = pd.read_csv(DIR.format("jks.csv"), header=None)
-jacks.columns = ["k = {}".format(i) for i in range(1,6)] + ["T", "trial"]
-dfs = []
-for i in range(1, 6):
-    cut = jacks[["k = {}".format(i), "T", "trial"]]
-    cut.columns = ["N_hat", "T", "trial"]
-    cut["estimator"] = "k = {}".format(i)
-    dfs.append(cut)
-dfs.append(estis)
-out = pd.concat([remove_indices(i, ["T", "trial"], fails) for i in dfs])
-out["1 / N_hat"] = 1 / out["N_hat"]
-out = out.reset_index()
-fig, ax = plt.subplots(figsize=(18,12))
-sns.boxplot(x="1 / N_hat", y="T", hue="estimator", orient="h",
+    ax.axvline(x=1.0 / N)
+    fig.savefig(FIGS.format("estimates_boxplots_{}.pdf".format(alpha)),
+                bbox_inches="tight")
+    plt.close(fig)
+    jacks = pd.read_csv(DIR.format("jks_{}.csv".format(alpha)),
+                        header=None)
+    jacks.columns = ["k = {}".format(i) for i in K] + ["T", "trial"]
+    dfs = []
+    for k in K:
+        cut = jacks[["k = {}".format(k), "T", "trial"]]
+        cut.columns = ["N_hat", "T", "trial"]
+        cut["estimator"] = "k = {}".format(k)
+        dfs.append(cut)
+    dfs.append(estis)
+    out = pd.concat([remove_indices(i, ["T", "trial"], fails) for i in dfs])
+    out["1 / N_hat"] = 1.0 / out["N_hat"]
+    out = out.reset_index()
+    fig, ax = plt.subplots(figsize=(18,12))
+    sns.boxplot(x="1 / N_hat", y="T", hue="estimator", orient="h",
                 data=out, whis=[5, 95], meanline=True,
                 ax=ax)
-ax.axvline(x=1 / 1000)
-fig.savefig(FIGS.format("jks_boxplots.pdf"), bbox_inches="tight")
-plt.close(fig)
-estis["log alpha_hat"] = np.log(estis["alpha_hat"])
-fig, ax = plt.subplots(figsize=(18,12))
-sns.boxplot(x="log alpha_hat", y="T", orient="h",
-            data=estis, whis=[5, 95], meanline=True,
-            ax=ax)
-ax.axvline(x=np.log(10.0))
-fig.savefig(FIGS.format("alpha_hat.pdf"), bbox_inches="tight")
-plt.close(fig)
-nu_trace = data = pd.read_csv(DIR.format("Nu_trace.csv"), header=None)
-nu_trace.columns = ([str(i) for i in list(range(0, 5100, 100))]
-                    + ["alpha", "Nu", "O", "trial"])
-nu_trace["T"] = [2, 4, 10] * 100
-nu_trace["true_Nu"] = 1000 - nu_trace["O"]
-for T in [2, 4, 10]:
-    fig, ax = plt.subplots(figsize=(18,12))
-    cut = nu_trace[nu_trace["T"] == T]
-    for row in range(cut.shape[0]):
-        ax.plot(range(0, 5100, 100), cut.iloc[row, :51])
-        ax.axvline(x=cut["true_Nu"].iloc[i], color="gold", alpha=0.1)
-        ax.set_ylabel("Loglikelihood")
-        ax.set_xlabel(r"$N_U$")
-        ax.set_title(r"Loglikelihood for different values of $N_U$ at $\alpha = \hat{\alpha}_{ML}$ for each trial. Vertical line shows true $N_U$")
-    fig.savefig(FIGS.format("Nu_trace_{}.pdf".format(T)), bbox_inches="tight")
+    ax.axvline(x=1.0 / N)
+    fig.savefig(FIGS.format("jks_boxplots_{}.pdf".format(alpha)),
+                bbox_inches="tight")
     plt.close(fig)
-alpha_trace = pd.read_csv(DIR.format("alpha_trace.csv"), header=None)
-alpha_trace.columns = ([str(i) for i in list(np.arange(0.1, 201.1, 1))] 
-                       + ["alpha", "Nu", "O", "trial"])
-alpha_trace["T"] = [2, 4, 10] * 100
-for T in [2, 4, 10]:
+    estis["log alpha_hat"] = np.log(estis["alpha_hat"])
     fig, ax = plt.subplots(figsize=(18,12))
-    cut = alpha_trace[alpha_trace["T"] == T]
-    for row in range(cut.shape[0]):
-        ax.plot(np.arange(1.1, 201.1, 1), cut.iloc[row, 1:201])
-        ax.set_ylabel("Loglikelihood")
-        ax.set_xlabel(r"$\alpha$")
-        ax.set_title(r"Loglikelihood for different values of $\alpha$ at $N_U = \hat{N}_{U(ML)}$ for each trial.")
-    fig.savefig(FIGS.format("alpha_trace_{}.pdf".format(T)), bbox_inches="tight")
+    sns.boxplot(x="log alpha_hat", y="T", orient="h",
+                data=estis, whis=[5, 95], meanline=True,
+                ax=ax)
+    ax.axvline(x=np.log(alpha))
+    fig.savefig(FIGS.format("alpha_hat_{}.pdf".format(alpha)),
+                bbox_inches="tight")
     plt.close(fig)
+    nu_trace = pd.read_csv(DIR.format("Nu_trace_{}.csv".format(alpha)),
+                           header=None)
+    nu_trace.columns = ([str(i) for i in list(NU_RANGE)]
+                        + ["alpha", "Nu", "O", "trial"])
+    if alpha == 10.0:
+        nu_trace = nu_trace[nu_trace["trial"] <= 90.0]
+        nu_trace["T"] = T * (REPLICATIONS - 10)
+    else:
+        nu_trace["T"] = T * REPLICATIONS
+    nu_trace["true_Nu"] = N - nu_trace["O"]
+    for t in T:
+        fig, ax = plt.subplots(figsize=(18,12))
+        cut = nu_trace[nu_trace["T"] == t]
+        for row in range(cut.shape[0]):
+            ax.plot(np.log(NU_RANGE[1:]), cut.iloc[row, 1:len(NU_RANGE)]) # Discard first values to take logs
+            ax.axvline(x=cut["true_Nu"].iloc[t], color="gold", alpha=0.1)
+            ax.set_ylabel("Loglikelihood")
+            ax.set_xlabel(r"$N_U$")
+            ax.set_title(r"Loglikelihood for different values of $N_U$ at $\alpha = \hat{\alpha}_{ML}$ for each trial. Vertical line shows true $N_U$")
+        fig.savefig(FIGS.format("Nu_trace_{}_{}.pdf".format(t, alpha)),
+                    bbox_inches="tight")
+        plt.close(fig)
+    alpha_trace = pd.read_csv(DIR.format("alpha_trace_{}.csv".format(alpha)),
+                              header=None)
+    alpha_trace.columns = ([str(i) for i in list(ALPHA_RANGE)] 
+                           + ["alpha", "Nu", "O", "trial"])
+    if alpha == 10.0:
+        alpha_trace = alpha_trace[alpha_trace["trial"] <= 90.0]
+        alpha_trace["T"] = T * (REPLICATIONS - 10)
+    else:
+        alpha_trace["T"] = T * REPLICATIONS
+    for t in T:
+        fig, ax = plt.subplots(figsize=(18,12))
+        cut = alpha_trace[alpha_trace["T"] == t]
+        for row in range(cut.shape[0]):
+            ax.plot(np.log(ALPHA_RANGE), cut.iloc[row, 1:len(ALPHA_RANGE) + 1])
+            ax.set_ylabel("Loglikelihood")
+            ax.set_xlabel(r"$\alpha$")
+            ax.set_title(r"Loglikelihood for different values of $\alpha$ at $N_U = \hat{N}_{U(ML)}$ for each trial.")
+        fig.savefig(FIGS.format("alpha_trace_{}_{}.pdf".format(t, alpha)),
+                    bbox_inches="tight")
+        plt.close(fig)  
