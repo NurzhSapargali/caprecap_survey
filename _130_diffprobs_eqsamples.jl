@@ -12,7 +12,7 @@ import Random: seed!
 N = 3000;
 T = [2, 5, 10, 15, 20];
 TRIALS = 100;
-ALPHAS = [0.1, 3, 10];
+ALPHAS = [0.1];
 AVG_SAMPLE_SIZE = 30;
 
 
@@ -42,12 +42,13 @@ for alpha in ALPHAS
                 addcounts!(K, s);
             end
             f = countmap(values(K));
-            LL(x, grad) = -loglh_truncated(x[1], x[2], S, O, t, n[1:t], 1000);
+            LL(x, grad) = -mean([loglh_truncated(x[1], x[2], S, O, t, n[1:t], 100) for i in 1:100]);
             opt = Opt(:LN_SBPLX, 2);
             lower = [0.01, 0];
             opt.lower_bounds = lower;
             opt.min_objective = LL;
-            opt.xtol_abs = 0.1;
+            opt.xtol_abs = 0.5;
+            opt.maxeval = 100;
             (minf, minx, ret) = NLopt.optimize(opt, [5.0, length(O)]);
 #             LL(x) = -loglh_truncated(x[1], x[2], S, O, t, n[1:t], 3000);
 #             x0 = [1.0, length(O)];

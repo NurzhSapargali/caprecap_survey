@@ -114,11 +114,11 @@ for alpha in ALPHAS:
         fig, ax = plt.subplots(figsize=(18,12))
         cut = nu_trace[nu_trace["T"] == t]
         for row in range(cut.shape[0]):
-            ax.plot(np.log(NU_RANGE[1:]), cut.iloc[row, 1:len(NU_RANGE)]) # Discard first values to take logs
+            ax.plot(NU_RANGE[1:], cut.iloc[row, 1:len(NU_RANGE)]) # Discard first values to take logs
             ax.axvline(x=cut["true_Nu"].iloc[t], color="gold", alpha=0.1)
             ax.set_ylabel("Loglikelihood")
             ax.set_xlabel(r"$N_U$")
-            ax.set_title(r"Loglikelihood for different values of $N_U$ at $\alpha = \hat{\alpha}_{ML}$ for each trial. Vertical line shows true $N_U$")
+            ax.set_title(r"Loglikelihood for different values of $N_U$ at $\hat{\alpha} = \alpha$ for each trial. Vertical line shows true $N_U$," + " T = {}.".format(t))
         fig.savefig(FIGS.format("Nu_trace_{}_{}.pdf".format(t, alpha)),
                     bbox_inches="tight")
         plt.close(fig)
@@ -134,11 +134,12 @@ for alpha in ALPHAS:
     for t in T:
         fig, ax = plt.subplots(figsize=(18,12))
         cut = alpha_trace[alpha_trace["T"] == t]
+        ax.axvline(x=alpha, color="gold")
         for row in range(cut.shape[0]):
-            ax.plot(np.log(ALPHA_RANGE), cut.iloc[row, 1:len(ALPHA_RANGE) + 1])
+            ax.plot(ALPHA_RANGE, cut.iloc[row, 1:len(ALPHA_RANGE) + 1])
             ax.set_ylabel("Loglikelihood")
             ax.set_xlabel(r"$\alpha$")
-            ax.set_title(r"Loglikelihood for different values of $\alpha$ at $N_U = \hat{N}_{U(ML)}$ for each trial.")
+            ax.set_title(r"Loglikelihood for different values of $\alpha$ at $\hat{N}_U = N_{U}$ for each trial. Vertical line shows true $\alpha$," + " T = {}.".format(t))
         fig.savefig(FIGS.format("alpha_trace_{}_{}.pdf".format(t, alpha)),
                     bbox_inches="tight")
         plt.close(fig)  
