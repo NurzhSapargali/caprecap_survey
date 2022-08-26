@@ -1,12 +1,12 @@
 module Utils
 
-import Distributions: Beta
-import SpecialFunctions: beta
+import Distributions: Beta, Normal, Bernoulli
 using StatsBase
+using DataFrames
 
 export sampford_sample, lincoln, schnabel,
        chao, chao_corrected, jackknife,
-       loglh_truncated, write_row
+       loglh, simulated_annealing, write_row
        
 function write_row(filename, row)
     open(filename, "a") do io
@@ -18,21 +18,6 @@ function write_row(filename, row)
             end
         end
     end
-end
-
-function integrand(p, alpha, beta_param, x_i, n)
-    prior = p^(alpha + sum(x_i) - 1.0) * (1.0 - p)^(beta_param - 1.0);
-    evd = prod((1.0 .- n .* p).^(1.0 .- x_i));
-    return prior * evd;
-end
-
-function trapezoid(alpha, beta_param, x_i, n, grid)
-    delta = grid[2] - grid[1];
-    K = length(grid);
-    bound_sum = (integrand(grid[1], alpha, beta_param, x_i, n)
-                + integrand(grid[K], alpha, beta_param, x_i, n));
-    internal_sum = sum([2.0 * integrand(p, alpha, beta_param, x_i, n) for p in grid[2:K - 1]])
-    return delta / 2.0 * (bound_sum + internal_sum);
 end
 
 function sampford_sample(p, n)
@@ -52,9 +37,9 @@ function sampford_sample(p, n)
     return collect(s);
 end
     
-function monte_carlo(alpha, beta_param, x_i, n, mcdraws)
+function monte_carlo(alpha, beta, x_i, n, mcdraws)
     sum_term = 0.0;
-    points = rand(Beta(alpha, beta_param), mcdraws);
+    points = rand(Beta(alpha, beta), mcdraws);
     for p in points
         g = (n .* p).^x_i .* (1.0 .- n .* p).^(1.0 .- x_i);
         sum_term += prod(g);
@@ -77,9 +62,9 @@ function schnabel(S, n)
     for t in 2:length(S)
         pool = union(pool, S[t-1]);
         u = n[t-1] - length(R);
-        R = intersect(S[t], pool);
+        R = intersect(S[t-1], pool);
         m += u;
-        push!(num, n[t] * m);
+        push!(num, n[t-1] * m);
         push!(denom, length(R));
     end
     return sum(num) / sum(denom);
@@ -127,59 +112,63 @@ function jackknife(N_o, T, f, k)
     end
 end
 
-function loglh(alpha, N_u, S, O, T, n, draws)
+function loglh(alpha, N_u, S, O, n, draws)
     N_o = length(O);
+    T = length(S);
+    beta = alpha * (N_u + N_o - 1.0);
     sum_term = 0.0;
     for i in O
         x_i = [i in s for s in S]; 
-        I = monte_carlo(alpha, alpha * (N_o + N_u - 1), x_i, n, draws);
+        I = monte_carlo(alpha, beta, x_i, n, draws);
         if I < 0
             I = 5e-200;
         end
         sum_term += log(I);
     end
-    return sum_term;
-end
-
-function loglh_truncated(alpha, N_u, S, O, T, n, draws)
-    N_o = length(O);
-    denom = 1 - monte_carlo(alpha, alpha * (N_u + N_o - 1), zeros(T), n, draws);
-    if denom < 0
-        denom = 5e-200
+    truncation = 1.0 - monte_carlo(alpha, beta, zeros(T), n, draws);
+    if truncation < 0
+        truncation = 5e-200;
     end
-    lh = -N_o * log(denom) + loglh(alpha, N_u, S, O, T, n, draws)
+    lh = -N_o * log(truncation) + sum_term;
     println("alpha = $alpha, N_u = $N_u, lh = $lh");
     return lh;
 end
- 
+
+function simulated_annealing(runs, sigma_alpha, sigma_Nu,
+                             alpha_0, N_u_0, S, O, n, mc_draws)
+    alphas = Vector{Float64}();
+    N_us = Vector{Float64}();
+    evals = Vector{Float64}();
+    run = 0;
+    alpha_old = alpha_0;
+    N_u_old = N_u_0;
+    while run < runs
+        T = 1.0/ (10.0 * run);
+        lh_old = loglh(alpha_old, N_u_old, S, O, n, mc_draws);
+        alpha_new = alpha_old + rand(Normal(0.0, sigma_alpha));
+        N_u_new = N_u_old + rand(Normal(0.0, sigma_Nu));
+        if (N_u_new < 0)
+            N_u_new = 0.0
+        end
+        if (alpha_new <= 0.0)
+            alpha_new = 1e-3
+        end
+        lh_new = loglh(alpha_new, N_u_new, S, O, n, mc_draws);
+        del_lh = lh_new - lh_old;
+        rho = minimum([exp(del_lh / T), 1.0]);
+        accept = rand(Bernoulli(rho));
+        if accept
+            alpha_old = alpha_new;
+            N_u_old = N_u_new;
+            lh_new = loglh(alpha_new, N_u_new, S, O, n, mc_draws);
+            push!(alphas, alpha_old);
+            push!(N_us, N_u_old);
+            push!(evals, lh_new);
+        end
+        run += 1;
+    end
+    df = DataFrame(alpha = alphas, N_u = N_us, lh = evals);
+    return df;
 end
 
-# function loglh(alpha, N_u, S, O, T, n, grid)
-#     N_o = length(O);
-#     sum_term = 0.0;
-#     for i in O
-#         x_i = [i in s for s in S]; 
-#         I = (trapezoid(alpha, alpha * (N_o + N_u - 1), x_i, n, grid) 
-#             / beta(alpha, alpha * (N_o + N_u - 1)));
-#         if I < 0
-#             I = 5e-200;
-#         end
-#         sum_term += log(I);
-#     end
-#     return sum_term;
-# end
-# 
-# function loglh_truncated(alpha, N_u, S, O, T, n, grid)
-#     N_o = length(O);
-#     denom = (trapezoid(alpha, alpha * (N_u + N_o - 1), zeros(T), n, grid)
-#             / beta(alpha, alpha * (N_u + N_o - 1)));
-#     denom = 1 - denom;
-#     if denom < 0
-#         denom = 5e-200
-#     end
-#     lh = -N_o * log(denom) + loglh(alpha, N_u, S, O, T, n, grid)
-#     println("alpha = $alpha, N_u = $N_u, lh = $lh");
-#     return lh;
-# end
-
-# end
+end
