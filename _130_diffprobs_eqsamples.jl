@@ -3,6 +3,7 @@ using .Utils
 using RCall
 using StatsBase
 using Distributions
+using DataFrames
 
 import Random: seed!
 
@@ -38,8 +39,8 @@ for alpha in ALPHAS
             end
             f = countmap(values(K));
             N_o = length(O);
-            noise_points = simulated_annealing(1000, 1.0, N_o,
-                                               10.0, N_o, S,
+            noise_points = simulated_annealing(1000, 2.0, N_o,
+                                               5.0, N_o, S,
                                                O, n[1:t], 250);
             R"""
             df <- as.data.frame($noise_points)
@@ -51,23 +52,25 @@ for alpha in ALPHAS
             res <- optim(c(5.0, $N_o), f, lower=c(1e-8, 0), method="L-BFGS-B")$par
             """
             @rget res
-            write_row("_900_output/data/diffp_eqn/estis.csv",
-                      [mean(noise_points.alpha), mean(noise_points.N_u), res[1], res[2], t]);
-            alpha_trace = [loglh(i, mean(noise_points.N_u), S, O, n[1:t], 1000) for i in 0.1:1:30.1];
-            write_row("_900_output/data/diffp_eqn/alpha_trace.csv",
-                    vcat(alpha_trace, [mean(noise_points.alpha), mean(noise_points.N_u), N_o, trial]));
-            Nu_trace = [loglh(mean(noise_points.alpha), i, S, O, n[1:t], 1000) for i in 0:200:5000];
-            write_row("_900_output/data/diffp_eqn/Nu_trace.csv",
-                    vcat(Nu_trace, [mean(noise_points.alpha), mean(noise_points.N_u), N_o, trial]));
-            write_row("_900_output/data/diffp_eqn/chaos.csv",
+            means = [mean(noise_points[500:nrow(noise_points),:].alpha),
+                     mean(noise_points[500:nrow(noise_points),:].N_u)];
+            write_row("_900_output/data/diffp_eqn/estis_$(alpha).csv",
+                      [means[1], means[2], res[1], res[2], N_o, t, trial]);
+            alpha_trace = [loglh(i, means[2], S, O, n[1:t], 1000) for i in 0.1:1:30.1];
+            write_row("_900_output/data/diffp_eqn/alpha_trace_$(alpha).csv",
+                    vcat(alpha_trace, [means[1], means[2], N_o, t, trial]));
+            Nu_trace = [loglh(means[1], i, S, O, n[1:t], 1000) for i in 0:200:5000];
+            write_row("_900_output/data/diffp_eqn/Nu_trace_$(alpha).csv",
+                    vcat(Nu_trace, [means[1], means[2], N_o, t, trial]));
+            write_row("_900_output/data/diffp_eqn/chaos_$(alpha).csv",
                     [round(chao(N_o, f)), t, trial]);
-            write_row("_900_output/data/diffp_eqn/chaos_corr.csv", [round(chao_corrected(N_o, t, f)), t, trial]);
-            write_row("_900_output/data/diffp_eqn/jks.csv", vcat([round(jackknife(N_o, t, f, k)) for k in 1:5], [t, trial]));
+            write_row("_900_output/data/diffp_eqn/chaos_corr_$(alpha).csv", [round(chao_corrected(N_o, t, f)), N_o, t, trial]);
+            write_row("_900_output/data/diffp_eqn/jks_$(alpha).csv", vcat([round(jackknife(N_o, t, f, k)) for k in 1:5], [N_o, t, trial]));
             if t == 2
-                write_row("_900_output/data/diffp_eqn/links.csv", [round(lincoln(S, n[1:t])), t, trial]);
+                write_row("_900_output/data/diffp_eqn/links_$(alpha).csv", [round(lincoln(S, n[1:t])), N_o, t, trial]);
             end
             if t > 2
-                write_row("_900_output/data/diffp_eqn/schnab.csv", [round(schnabel(S, n[1:t])), t, trial]);
+                write_row("_900_output/data/diffp_eqn/schnab_$(alpha).csv", [round(schnabel(S, n[1:t])), N_o, t, trial]);
             end
         end
     end
