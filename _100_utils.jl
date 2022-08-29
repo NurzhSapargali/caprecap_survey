@@ -130,6 +130,7 @@ function loglh(alpha, N_u, S, O, n, draws)
         truncation = 5e-200;
     end
     lh = -N_o * log(truncation) + sum_term;
+    println("alpha = $alpha, N_u = $N_u, lh = $lh");
     return lh;
 end
 
