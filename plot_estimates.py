@@ -13,10 +13,10 @@ import seaborn as sns
 DIR = "./_900_output/data/diffp_eqn/{}"
 FIGS = "./_900_output/figures/diffp_eqn/{}"
 N = 3000
-T = [2, 5, 10, 15, 20]
+T = [5, 10, 15, 20]
 ALPHAS = [0.1, 3.0, 10.0]
-ALPHA_RANGE = np.arange(0.1, 26.1)
-NU_RANGE = np.arange(0, 5100, 100)
+ALPHA_RANGE = np.arange(0.1, 29.1)
+NU_RANGE = np.arange(0, 5200, 200)
 K = range(1, 6)
 REPLICATIONS = 100
 
@@ -39,24 +39,25 @@ for alpha in ALPHAS:
     fails = nan_trials(chaos)
     chaos_corr = pd.read_csv(DIR.format("chaos_corr_{}.csv".format(alpha)),
                              header=None)
-    chaos_corr.columns = ["N_hat", "T", "trial"]
+    chaos_corr.columns = ["N_hat", "No", "T", "trial"]
     chaos_corr["estimator"] = "Chao (corrected)"
     fails.update(nan_trials(chaos_corr))
     links = pd.read_csv(DIR.format("links_{}.csv".format(alpha)),
                         header=None)
-    links.columns = ["N_hat", "T", "trial"]
+    links.columns = ["N_hat", "No", "No", "T", "trial"]
     links["estimator"] = "Lincoln & Schnabel"
     links.replace(np.inf, value=np.nan, inplace=True)
     fails.update(nan_trials(links))
     schnab = pd.read_csv(DIR.format("schnab_{}.csv".format(alpha)),
                          header=None)
-    schnab.columns = ["N_hat", "T", "trial"]
+    schnab.columns = ["N_hat", "No", "T", "trial"]
     schnab["estimator"] = "Lincoln & Schnabel"
     schnab.replace(np.inf, value=np.nan, inplace=True)
     fails.update(nan_trials(schnab))
     estis = pd.read_csv(DIR.format("estis_{}.csv".format(alpha)),
                         header=None)
-    estis.columns = ["alpha_hat", "N_hat", "T", "trial"]
+    estis.columns = ["alpha_hat", "Nu_hat", "No", "T", "trial"]
+    estis["N_hat"] = estis["Nu_hat"] + estis["No"]
     estis["estimator"] = "Pseudo-likelihood"
     dfs = [links, schnab, chaos, chaos_corr, estis]
     out = pd.concat([remove_indices(i, ["T", "trial"], fails) for i in dfs])
@@ -72,7 +73,7 @@ for alpha in ALPHAS:
     plt.close(fig)
     jacks = pd.read_csv(DIR.format("jks_{}.csv".format(alpha)),
                         header=None)
-    jacks.columns = ["k = {}".format(i) for i in K] + ["T", "trial"]
+    jacks.columns = ["k = {}".format(i) for i in K] + ["No", "T", "trial"]
     dfs = []
     for k in K:
         cut = jacks[["k = {}".format(k), "T", "trial"]]
@@ -103,13 +104,8 @@ for alpha in ALPHAS:
     nu_trace = pd.read_csv(DIR.format("Nu_trace_{}.csv".format(alpha)),
                            header=None)
     nu_trace.columns = ([str(i) for i in list(NU_RANGE)]
-                        + ["alpha", "Nu", "O", "trial"])
-    if alpha == 10.0:
-        nu_trace = nu_trace[nu_trace["trial"] <= 90.0]
-        nu_trace["T"] = T * (REPLICATIONS - 10)
-    else:
-        nu_trace["T"] = T * REPLICATIONS
-    nu_trace["true_Nu"] = N - nu_trace["O"]
+                        + ["alpha", "Nu", "No", "trial"])
+    nu_trace["true_Nu"] = N - nu_trace["No"]
     for t in T:
         fig, ax = plt.subplots(figsize=(18,12))
         cut = nu_trace[nu_trace["T"] == t]
@@ -125,12 +121,7 @@ for alpha in ALPHAS:
     alpha_trace = pd.read_csv(DIR.format("alpha_trace_{}.csv".format(alpha)),
                               header=None)
     alpha_trace.columns = ([str(i) for i in list(ALPHA_RANGE)] 
-                           + ["alpha", "Nu", "O", "trial"])
-    if alpha == 10.0:
-        alpha_trace = alpha_trace[alpha_trace["trial"] <= 90.0]
-        alpha_trace["T"] = T * (REPLICATIONS - 10)
-    else:
-        alpha_trace["T"] = T * REPLICATIONS
+                           + ["alpha", "Nu", "No", "trial"])
     for t in T:
         fig, ax = plt.subplots(figsize=(18,12))
         cut = alpha_trace[alpha_trace["T"] == t]

@@ -11,7 +11,7 @@ import Random: seed!
 N = 3000;
 T = [5, 10, 15, 20];
 TRIALS = 100;
-ALPHAS = [1.0];
+ALPHAS = [20.0];
 AVG_SAMPLE_SIZE = 30;
 
 
