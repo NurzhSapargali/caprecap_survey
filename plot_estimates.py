@@ -14,8 +14,8 @@ DIR = "./_900_output/data/diffp_eqn/{}"
 FIGS = "./_900_output/figures/diffp_eqn/{}"
 N = 3000
 T = [5, 10, 15, 20]
-ALPHAS = [0.1, 3.0, 10.0]
-ALPHA_RANGE = np.arange(0.1, 29.1)
+ALPHAS = [1.0, 10.0, 20.0]
+ALPHA_RANGE = np.arange(0.1, 31.1)
 NU_RANGE = np.arange(0, 5200, 200)
 K = range(1, 6)
 REPLICATIONS = 100
@@ -42,12 +42,12 @@ for alpha in ALPHAS:
     chaos_corr.columns = ["N_hat", "No", "T", "trial"]
     chaos_corr["estimator"] = "Chao (corrected)"
     fails.update(nan_trials(chaos_corr))
-    links = pd.read_csv(DIR.format("links_{}.csv".format(alpha)),
-                        header=None)
-    links.columns = ["N_hat", "No", "No", "T", "trial"]
-    links["estimator"] = "Lincoln & Schnabel"
-    links.replace(np.inf, value=np.nan, inplace=True)
-    fails.update(nan_trials(links))
+    #links = pd.read_csv(DIR.format("links_{}.csv".format(alpha)),
+    #                    header=None)
+    #links.columns = ["N_hat", "No", "No", "T", "trial"]
+    #links["estimator"] = "Lincoln & Schnabel"
+    #links.replace(np.inf, value=np.nan, inplace=True)
+    #fails.update(nan_trials(links))
     schnab = pd.read_csv(DIR.format("schnab_{}.csv".format(alpha)),
                          header=None)
     schnab.columns = ["N_hat", "No", "T", "trial"]
@@ -59,7 +59,8 @@ for alpha in ALPHAS:
     estis.columns = ["alpha_hat", "Nu_hat", "No", "T", "trial"]
     estis["N_hat"] = estis["Nu_hat"] + estis["No"]
     estis["estimator"] = "Pseudo-likelihood"
-    dfs = [links, schnab, chaos, chaos_corr, estis]
+    dfs = [#links,
+           schnab, chaos, chaos_corr, estis]
     out = pd.concat([remove_indices(i, ["T", "trial"], fails) for i in dfs])
     out["1 / N_hat"] = 1.0 / out["N_hat"]
     out = out.reset_index()
@@ -104,7 +105,7 @@ for alpha in ALPHAS:
     nu_trace = pd.read_csv(DIR.format("Nu_trace_{}.csv".format(alpha)),
                            header=None)
     nu_trace.columns = ([str(i) for i in list(NU_RANGE)]
-                        + ["alpha", "Nu", "No", "trial"])
+                        + ["alpha", "Nu", "No", "T", "trial"])
     nu_trace["true_Nu"] = N - nu_trace["No"]
     for t in T:
         fig, ax = plt.subplots(figsize=(18,12))
@@ -121,7 +122,7 @@ for alpha in ALPHAS:
     alpha_trace = pd.read_csv(DIR.format("alpha_trace_{}.csv".format(alpha)),
                               header=None)
     alpha_trace.columns = ([str(i) for i in list(ALPHA_RANGE)] 
-                           + ["alpha", "Nu", "No", "trial"])
+                           + ["alpha", "Nu", "No", "T", "trial"])
     for t in T:
         fig, ax = plt.subplots(figsize=(18,12))
         cut = alpha_trace[alpha_trace["T"] == t]
