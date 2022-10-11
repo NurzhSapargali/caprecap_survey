@@ -7,7 +7,7 @@ using NLopt
 
 export lincoln, schnabel, chao,
        chao_corrected, zelterman, jackknife,
-       huggins, turing
+       huggins, turing, conway_maxwell
 
 
 function lincoln(S::Vector{Vector{Int64}},
@@ -80,11 +80,19 @@ end
 
 function conway_maxwell(N_o::Int64, f::Dict{Int64, Int64})
     y = [log(i * get(f, i, 0) / get(f, i - 1, 0)) for i in 2:length(f)];
+    if ((Inf in y) || (-Inf in y))
+        return "Nonsequential frequencies";
+    end
     x = [log(i) for i in 2:length(f)];
-    x = hcat(ones(length(x), x);
+    x = hcat(ones(length(x)), x);
     w = diagm([1.0 / get(f, i - 1, 0) + 1.0 / get(f, i, 0) for i in 2:length(f)]);
+    w = inv(w);
+    if det(transpose(x) * w * x) == 0
+        return "Noninvertible X'WX";
+    end
     b = inv(transpose(x) * w * x) * transpose(x) * w * y;
-    return N_o + get(f, 1, 0) * exp(-b[1]);
+    N = N_o + get(f, 1, 0) * exp(-b[1]);
+    return N;
 end
 
 function moments_huggins(theta::Vector{Float64},
@@ -111,8 +119,8 @@ function huggins(T::Int64,
     return sum(1.0 ./ (1.0 .- (1.0 .- mu).^T));
 end
 
-function turing(N_o, f)
-    return N_o / (1.0 - sqrt(get(f, 1, 0) / sum(values(f))));
+function turing(N_o::Int64, f::Dict{Int64, Int64}, T::Int64)
+    return N_o / (1.0 - (get(f, 1, 0) / sum(values(f))) ^ (T / (T - 1)) );
 end
 
 end
