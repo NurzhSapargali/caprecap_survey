@@ -120,7 +120,8 @@ function huggins(T::Int64,
 end
 
 function turing(N_o::Int64, f::Dict{Int64, Int64}, T::Int64)
-    return N_o / (1.0 - (get(f, 1, 0) / sum(values(f))) ^ (T / (T - 1)) );
+    denom = sum([i * get(f, i, 0) for i in 1:maximum(keys(f))]);
+    return N_o / (1.0 - sqrt(get(f, 1, 0) / denom));
 end
 
 end

@@ -48,7 +48,7 @@ for alpha in ALPHAS
             bench_filename = "benchmarks_$(alpha).csv"
             schnab = schnabel(S, n);
             write_row(OUTPUT_FOLDER * bench_filename,
-                      [schnab, length(O), t, alpha, "Schabel"]);
+                      [schnab, length(O), t, alpha, "Schnabel"]);
             chao_cor = chao_corrected(length(O), f);
             write_row(OUTPUT_FOLDER * bench_filename,
                       [chao_cor, length(O), t, alpha, "Chao bias-corrected"]);
