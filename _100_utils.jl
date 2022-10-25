@@ -42,7 +42,7 @@ function sampford_sample(p::Vector{Float64}, n::Int64)
         s = Set(sample(collect(keys(pr)), Weights(new_pr), n));
         pr[key] = val;
     end
-    println("Generated")
+    #println("Generated")
     return collect(s);
 end
 

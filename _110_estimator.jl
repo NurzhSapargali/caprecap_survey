@@ -54,6 +54,8 @@ function fit_model(S::Vector{Vector{Int64}},
     LL(x, grad) = -loglh(x[1], x[2], S, O, n, draws);
     opt = Opt(:LN_SBPLX, 2);
     lower = [0.01, 0];
+    upper = [10000, Inf];
+    opt.upper_bounds = upper
     opt.lower_bounds = lower;
     opt.min_objective = LL;
     (minf, minx, ret) = NLopt.optimize(opt, [5.0, length(O)]);
