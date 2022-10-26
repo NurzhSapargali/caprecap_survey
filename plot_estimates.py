@@ -28,7 +28,7 @@ def remove_indices(df, multindex, blacklist):
 
 
 sns.set_theme(context="talk", style="whitegrid")
-for folder in glob(ESTIMATES + "*/"):
+for folder in [ESTIMATES + "diffp/"]:
     print(folder)
     bench_colnames = ['N_hat', 'N_o', 'T', 'alpha', 'estimator']
     bench = pd.concat([pd.read_csv(i, header=None, names=bench_colnames)
