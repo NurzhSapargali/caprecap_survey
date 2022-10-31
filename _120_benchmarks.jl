@@ -6,8 +6,8 @@ using LinearAlgebra
 using NLopt
 
 export lincoln, schnabel, chao,
-       chao_corrected, zelterman, jackknife,
-       huggins, turing, conway_maxwell
+       zelterman, jackknife, huggins,
+       turing, conway_maxwell, turing_geometric
 
 
 function lincoln(S::Vector{Vector{Int64}},
@@ -37,11 +37,6 @@ end
 
 function chao(N_o::Int64, f::Dict{Int64, Int64})
     return N_o + get(f, 1, 0)^2.0 / (2.0 * get(f, 2, 0));
-end
-
-function chao_corrected(N_o::Int64, f::Dict{Int64, Int64})
-    return (N_o
-            + get(f, 1, 0) * (get(f, 1, 0) - 1.0) / (2.0 * get(f, 2, 0) + 2.0));
 end
 
 function zelterman(N_o::Int64, f::Dict{Int64, Int64})
@@ -119,9 +114,14 @@ function huggins(T::Int64,
     return sum(1.0 ./ (1.0 .- (1.0 .- mu).^T));
 end
 
-function turing(N_o::Int64, f::Dict{Int64, Int64}, T::Int64)
+function turing_geometric(N_o::Int64, f::Dict{Int64, Int64}, T::Int64)
     denom = sum([i * get(f, i, 0) for i in 1:maximum(keys(f))]);
     return N_o / (1.0 - sqrt(get(f, 1, 0) / denom));
+end
+
+function turing(N_o::Int64, f::Dict{Int64, Int64}, T::Int64)
+    denom = sum([i * get(f, i, 0) for i in 1:maximum(keys(f))]);
+    return N_o / (1.0 - (get(f, 1, 0) / denom) ^ (T / (T - 1)));
 end
 
 end

@@ -36,22 +36,22 @@ for alpha in ALPHAS
             println("***TRIAL NO $file, $t***");
             O = Set([i for j in S for i in j]);
             n = [length(s) for s in S];
-            (minf, minx, ret) = fit_model(S, O, n, MC_DRAWS);
-            write_row(OUTPUT_FOLDER * "estimates_$(alpha).csv",
-                      [minx[1], minx[2], length(O), t, alpha]);
-            alpha_trace = [loglh(i, minx[2], S, O, n, 1000) for i in ALPHA_TRACE_RANGE];
-            write_row(OUTPUT_FOLDER * "alpha_trace_$(alpha).csv",
-                      vcat(alpha_trace, [minx[1], minx[2], length(O), t, alpha]));
-            Nu_trace = [loglh(minx[1], i, S, O, n, 1000) for i in NU_TRACE_RANGE];
-            write_row(OUTPUT_FOLDER * "Nu_trace_$(alpha).csv",
-                      vcat(Nu_trace, [minx[1], minx[2], length(O), t, alpha]));
+#             (minf, minx, ret) = fit_model(S, O, n, MC_DRAWS);
+#             write_row(OUTPUT_FOLDER * "estimates_$(alpha).csv",
+#                       [minx[1], minx[2], length(O), t, alpha]);
+#             alpha_trace = [loglh(i, minx[2], S, O, n, 1000) for i in ALPHA_TRACE_RANGE];
+#             write_row(OUTPUT_FOLDER * "alpha_trace_$(alpha).csv",
+#                       vcat(alpha_trace, [minx[1], minx[2], length(O), t, alpha]));
+#             Nu_trace = [loglh(minx[1], i, S, O, n, 1000) for i in NU_TRACE_RANGE];
+#             write_row(OUTPUT_FOLDER * "Nu_trace_$(alpha).csv",
+#                       vcat(Nu_trace, [minx[1], minx[2], length(O), t, alpha]));
             bench_filename = "benchmarks_$(alpha).csv"
             schnab = schnabel(S, n);
             write_row(OUTPUT_FOLDER * bench_filename,
                       [schnab, length(O), t, alpha, "Schnabel"]);
-            chao_cor = chao_corrected(length(O), f);
+            chao_est = chao(length(O), f);
             write_row(OUTPUT_FOLDER * bench_filename,
-                      [chao_cor, length(O), t, alpha, "Chao bias-corrected"]);
+                      [chao_est, length(O), t, alpha, "Chao"]);
             zelt = zelterman(length(O), f);
             write_row(OUTPUT_FOLDER * bench_filename,
                       [zelt, length(O), t, alpha, "Zelterman"]);
@@ -61,9 +61,12 @@ for alpha in ALPHAS
             hug = huggins(t, K);
             write_row(OUTPUT_FOLDER * bench_filename,
                       [hug, length(O), t, alpha, "Huggins"]);
+            alan_geo = turing_geometric(length(O), f, t);
+            write_row(OUTPUT_FOLDER * bench_filename,
+                      [alan_geo, length(O), t, alpha, "Turing Geometric"]);
             alan = turing(length(O), f, t);
             write_row(OUTPUT_FOLDER * bench_filename,
-                      [alan, length(O), t, alpha, "Turing"]);
+                    [alan, length(O), t, alpha, "Turing"]);
             for k in 1:5
                 jk = jackknife(length(O), t, f, k);
                 write_row(OUTPUT_FOLDER * bench_filename,
