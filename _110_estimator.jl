@@ -19,8 +19,8 @@ end
 
 function loglh(alpha::Float64,
                N_u::Float64,
-               S::Vector{Vector{Int64}},
-               O::Set{Int64},
+               S::Vector,
+               O::Set,
                n::Vector{Int64},
                draws::Int64)
     N_o = length(O);
@@ -47,8 +47,8 @@ function loglh(alpha::Float64,
     return lh;
 end
 
-function fit_model(S::Vector{Vector{Int64}},
-                   O::Set{Int64},
+function fit_model(S::Vector,
+                   O::Set,
                    n::Vector{Int64},
                    draws::Int64)
     LL(x, grad) = -loglh(x[1], x[2], S, O, n, draws);
