@@ -29,7 +29,7 @@ end
 
 seed!(SEED);
 folder = DATA_FOLDER * "alpha_$(ALPHA)/";
-files = [file for file in readdir(folder) if occursin("sample", file)][1:TRIALS]
+files = [file for file in readdir(folder) if occursin("sample", file)][10:TRIALS + 10]
 res = []
 for file in files
     samples = read_captures(folder * file)[1:T]
@@ -42,3 +42,8 @@ for file in files
     push!(res, sterr)
 end
 println(res)
+open("jackknife_devs2.csv", "w") do f
+    for i in res
+        println(f, i)
+    end
+end
