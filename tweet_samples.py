@@ -6,9 +6,12 @@ import pandas as pd
 
 from time import sleep
 
-client = tweepy.Client("")
+client = tweepy.Client(consumer_key="EiimzdAEB01qCazsJNooTBet5",
+                       consumer_secret="WqWad3CvrTiRfzE2RLskdZrgof20yHPuy3fWQDluCGRbelmKMT",
+                       access_token="1516379784229568514-xcOgHDbFJNBWKKqXZDhj58ve3NcGtA",
+                       access_token_secret="FtmDjJwG9Qkq2FKn3u16GoeE2CLTGswY1hTbQVXkL1r96")
 dfs = []
-raw = pd.read_csv("./_200_input/tweets/corona_tweets_982.csv", header=None)
+raw = pd.read_csv("./_200_input/tweets/corona_tweets_985.csv", header=None)
 indices = list(range(0, raw.shape[0], 100))
 for i in indices:
     if i != indices[-1]:
@@ -20,14 +23,14 @@ for i in indices:
         try:
             response = client.get_tweets(cut,
                                          tweet_fields=["author_id", "in_reply_to_user_id", "referenced_tweets"],
-                                         expansions=["entities.mentions.username"])
+                                         expansions=["entities.mentions.username"],
+                                         user_auth=True)
             timeout = False
+        except tweepy.errors.TooManyRequests:
+            sleep(15 * 64)
         except Exception as e:
             print(e)
-            if e == tweepy.TooManyRequests:
-                sleep(15 * 64)
-            else:
-                sleep(30)
+            sleep(30)
     out = []
     for tweet in response.data:
         row = {}
@@ -46,7 +49,7 @@ for i in indices:
     dfs.append(pd.DataFrame(out))
     print(len(dfs))
 overall = pd.concat(dfs)
-overall.to_csv("./_900_output/data/hydrated/hydrated_tweets_982.csv",
+overall.to_csv("./_900_output/data/hydrated/hydrated_tweets_985.csv",
                sep="\t",
                index=False)
     
