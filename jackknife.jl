@@ -14,7 +14,7 @@ T::Int64 = 10
 OUTPUT_FOLDER::String = "./_900_output/data/diffp/"
 MC_DRAWS::Int64 = 2500
 SEED::Int64 = 111
-TRIALS::Int64 = 10
+TRIALS::Int64 = 100
 
 function leave_one_out(S, index, draws)
     reduced = copy(S)
@@ -29,8 +29,7 @@ end
 
 seed!(SEED);
 folder = DATA_FOLDER * "alpha_$(ALPHA)/";
-files = [file for file in readdir(folder) if occursin("sample", file)][10:TRIALS + 10]
-res = []
+files = [file for file in readdir(folder) if occursin("sample", file)][1:TRIALS]
 for file in files
     samples = read_captures(folder * file)[1:T]
     jack_estimates = [[0.0, 0.0, 0.0] for i in 1:T]
@@ -39,11 +38,7 @@ for file in files
     end
     Njacks = [i[2] + i[3] for i in jack_estimates]
     sterr = sqrt((T - 1) / T * sum((Njacks .- mean(Njacks)).^2))
-    push!(res, sterr)
-end
-println(res)
-open("jackknife_devs2.csv", "w") do f
-    for i in res
-        println(f, i)
+    open("jackknife_devs3.csv", "a") do f
+        println(f, sterr)
     end
 end
