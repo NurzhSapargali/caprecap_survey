@@ -6,18 +6,12 @@ import pandas as pd
 
 from time import sleep
 
-<<<<<<< HEAD
 client = tweepy.Client(consumer_key="",
                        consumer_secret="",
                        access_token="",
                        access_token_secret="")
 dfs = []
 raw = pd.read_csv("./_200_input/tweets/corona_tweets_986.csv", header=None)
-=======
-client = tweepy.Client("")
-dfs = []
-raw = pd.read_csv("./_200_input/tweets/corona_tweets_982.csv", header=None)
->>>>>>> parent of 1362116 (3 batches down)
 indices = list(range(0, raw.shape[0], 100))
 for i in indices:
     if i != indices[-1]:
@@ -55,11 +49,7 @@ for i in indices:
     dfs.append(pd.DataFrame(out))
     print(len(dfs))
 overall = pd.concat(dfs)
-<<<<<<< HEAD
 overall.to_csv("./_900_output/data/hydrated/hydrated_tweets_986.csv",
-=======
-overall.to_csv("./_900_output/data/hydrated/hydrated_tweets_982.csv",
->>>>>>> parent of 1362116 (3 batches down)
                sep="\t",
                index=False)
     
