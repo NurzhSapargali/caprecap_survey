@@ -10,8 +10,8 @@ client = tweepy.Client(consumer_key="",
                        consumer_secret="",
                        access_token="",
                        access_token_secret="")
-dfs = []
-for c in [0, 1]:
+for c in [1]:
+    dfs = []
     raw = pd.read_csv("./_200_input/tweets/corona_tweets_98{}.csv".format(c), header=None)
     indices = list(range(0, raw.shape[0], 100))
     for i in indices:
