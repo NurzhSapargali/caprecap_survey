@@ -6,13 +6,13 @@ import pandas as pd
 
 from time import sleep
 
-client = tweepy.Client(consumer_key="",
-                       consumer_secret="",
-                       access_token="",
-                       access_token_secret="")
-for c in [1]:
+client = tweepy.Client(consumer_key="VNBRqIINT5kffbJVasun2eS7J",
+                       consumer_secret="IQFibad56Wy37BlNiDddt954kPmuIqvSxPjGBxjGTzqTpiPyPK",
+                       access_token="1516379784229568514-Ufc5IwtrhXDvPkYgfPcApwbtxwYZYO",
+                       access_token_secret="kVoutSNGLigRq2Q67RsrFWXBywlrrTr10kBW6UjWbi8br")
+for c in [251, 252, 253, 254, 255]:
     dfs = []
-    raw = pd.read_csv("./_200_input/tweets/corona_tweets_98{}.csv".format(c), header=None)
+    raw = pd.read_csv("./_200_input/tweets/corona_tweets_{}.csv".format(c), header=None)
     indices = list(range(0, raw.shape[0], 100))
     for i in indices:
         if i != indices[-1]:
@@ -27,12 +27,10 @@ for c in [1]:
                                              expansions=["entities.mentions.username"],
                                              user_auth=True)
                 timeout = False
-            except Exception as e:
-                print(e)
-                if e == tweepy.TooManyRequests:
-                    sleep(15 * 64)
-                else:
-                    sleep(30)
+            except tweepy.TooManyRequests:
+                sleep(15 * 64)
+            except Exception:
+                sleep(30)
         out = []
         for tweet in response.data:
             row = {}
@@ -51,7 +49,7 @@ for c in [1]:
         dfs.append(pd.DataFrame(out))
         print(len(dfs))
     overall = pd.concat(dfs)
-    overall.to_csv("./_900_output/data/hydrated/hydrated_tweets_98{}.csv".format(c),
+    overall.to_csv("./_900_output/data/hydrated/hydrated_tweets_{}.csv".format(c),
                    sep="\t",
                    index=False)
     
