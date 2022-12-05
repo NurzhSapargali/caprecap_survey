@@ -10,13 +10,13 @@ export lincoln, schnabel, chao,
        turing, conway_maxwell, turing_geometric
 
 
-function lincoln(S::Vector{Vector{Int64}},
+function lincoln(S::Vector,
                  n::Vector{Int64})
     r = intersect(Set(S[1]), Set(S[2]));
     return prod(n) / length(r);
 end
 
-function schnabel(S::Vector{Vector{Int64}},
+function schnabel(S::Vector,
                   n::Vector{Int64})
     m = 0;
     N = 0;

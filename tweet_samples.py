@@ -6,10 +6,10 @@ import pandas as pd
 
 from time import sleep
 
-client = tweepy.Client(consumer_key="VNBRqIINT5kffbJVasun2eS7J",
-                       consumer_secret="IQFibad56Wy37BlNiDddt954kPmuIqvSxPjGBxjGTzqTpiPyPK",
-                       access_token="1516379784229568514-Ufc5IwtrhXDvPkYgfPcApwbtxwYZYO",
-                       access_token_secret="kVoutSNGLigRq2Q67RsrFWXBywlrrTr10kBW6UjWbi8br")
+client = tweepy.Client(consumer_key="",
+                       consumer_secret="",
+                       access_token="",
+                       access_token_secret="")
 for c in [251, 252, 253, 254, 255]:
     dfs = []
     raw = pd.read_csv("./_200_input/tweets/corona_tweets_{}.csv".format(c), header=None)
@@ -29,7 +29,8 @@ for c in [251, 252, 253, 254, 255]:
                 timeout = False
             except tweepy.TooManyRequests:
                 sleep(15 * 64)
-            except Exception:
+            except Exception as e:
+                print(e)
                 sleep(30)
         out = []
         for tweet in response.data:
