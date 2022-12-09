@@ -79,6 +79,7 @@ meanprops = dict(marker="X", markerfacecolor="#4c4c4c", markeredgecolor="#4c4c4c
 sns.set(context="paper", style="ticks", font_scale=2.25)
 rc('font',**{'family':'STIXGeneral'})
 rc('mathtext',**{'fontset':'stix'})
+summary_tables = {}
 for model in MODELS:
     folder = ESTIMATES + model + "/"
     bench_colnames = ["N_hat", "N_o", "T"]
@@ -109,6 +110,11 @@ for model in MODELS:
         plt.savefig(folder.replace("data", "figures") + "alpha_boxplots_{}.pdf".format(alpha),
                     bbox_inches="tight")
         plt.close()
+        cut["sq.error"] = (N - cut["N_hat"])**2
+        mean_table = cut.groupby("estimator").mean()[["N_hat", "sq.error"]]
+        mean_table["rmse"] = mean_table["sq.error"] ** 0.5
+        mean_table["rel.bias"] = mean_table["N_hat"] / N
+        summary_tables[alpha] = mean_table
         jks = cut[(cut["estimator"].str.contains("Jackknife"))|(cut["estimator"] == "Pseudolikelihood")]
         cut = cut[~cut["estimator"].str.contains("Jackknife")]
         meanprops["markersize"] = 6
