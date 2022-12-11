@@ -101,6 +101,7 @@ for model in MODELS:
     df["label"] = df["estimator"].map(LATEX_MAP)
     if model == "eqp":
         df["alpha"] = np.inf
+    df = df.iloc[::-1, :]
     for alpha in df["alpha"].unique():
         cut = df[df["alpha"] == alpha]
         print(alpha, cut[(cut["N_hat"].isna()) & (cut["T"] == 20)].groupby("estimator").count())
@@ -110,10 +111,13 @@ for model in MODELS:
         plt.savefig(folder.replace("data", "figures") + "alpha_boxplots_{}.pdf".format(alpha),
                     bbox_inches="tight")
         plt.close()
-        cut["sq.error"] = (N - cut["N_hat"])**2
-        mean_table = cut.groupby("estimator").mean()[["N_hat", "sq.error"]]
-        mean_table["rmse"] = mean_table["sq.error"] ** 0.5
-        mean_table["rel.bias"] = mean_table["N_hat"] / N
+        cut["sq.error.N_hat"] = (N - cut["N_hat"])**2
+        cut["sq.error.alpha_hat"] = (alpha - cut["alpha_hat"])**2
+        mean_table = cut.groupby(["label", "T"]).mean()[["N_hat", "alpha_hat", "sq.error.N_hat", "sq.error.alpha_hat"]]
+        mean_table["rmse.N_hat"] = mean_table["sq.error.N_hat"] ** 0.5
+        mean_table["rel.bias.N_hat"] = (mean_table["N_hat"] - N) / N
+        mean_table["rmse.alpha_hat"] = mean_table["sq.error.alpha_hat"] ** 0.5
+        mean_table["rel.bias.alpha_hat"] = (mean_table["alpha_hat"] - alpha) / alpha
         summary_tables[alpha] = mean_table
         jks = cut[(cut["estimator"].str.contains("Jackknife"))|(cut["estimator"] == "Pseudolikelihood")]
         cut = cut[~cut["estimator"].str.contains("Jackknife")]

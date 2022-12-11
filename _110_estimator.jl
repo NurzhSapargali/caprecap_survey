@@ -35,7 +35,7 @@ function loglh(alpha::Float64,
     if truncation < 0
         truncation = 5e-200;
     end
-    lh = -N_o * log(truncation) + log.(sum(I));
+    lh = -N_o * log(truncation) + sum(log.(I));
     println("....alpha = $alpha, N_u = $N_u, lh = $lh");
     return lh;
 end
