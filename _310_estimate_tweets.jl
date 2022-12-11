@@ -14,7 +14,9 @@ import Random: seed!
 
 MC_DRAWS::Int64 = 1000
 DATA_FOLDER::String = "./_900_output/data/hydrated/"
+SEED::Int = 123
 
+seed!(SEED)
 post = [file for file in readdir(DATA_FOLDER) if occursin("_9", file)]
 pre = [file for file in readdir(DATA_FOLDER) if occursin("_2", file)]
 samples = []
