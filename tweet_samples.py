@@ -56,18 +56,22 @@ for c in [251, 252, 253, 254, 255]:
     
 
 # NETWORK CONSTRUCTION
-# tot = pd.concat([pd.read_csv(i, sep="\t", lineterminator="\n") for i in glob("./_200_input/tweets/tweet_batch*.csv")])
-# test = tot[~tot["mentions"].isna()]
-# test["mentions"] = test["mentions"].apply(eval)
-# decoup = pd.DataFrame(test["mentions"].values.tolist()).add_prefix("mention_")
-# decoup.reset_index(drop=True, inplace=True)
-# test.reset_index(drop=True, inplace=True)
-# decoup["author_id"] = test["author_id"].astype(str)
-# adj_lists = []
-# for c in decoup.columns:
-#     if "mention" in c:
-#         cut = decoup[[c, "author_id"]]
-#         cut = cut.dropna()
-#         cut = cut[cut[c].isin(cut["author_id"])]
-#         cut.columns = ["mention", "author"]
-#         adj_lists.append(cut[["author", "mention"]])
+tot = [pd.read_csv(i, sep="\t", lineterminator="\n") for i in glob("./_900_output/data/hydrated/hydrated_tweets_9*.csv")]
+clean = []
+for n in tot:
+  test = n[~n["mentions"].isna()]
+  test["mentions"] = test["mentions"].apply(eval)
+  decoup = pd.DataFrame(test["mentions"].values.tolist()).add_prefix("mention_")
+  decoup.reset_index(drop=True, inplace=True)
+  test.reset_index(drop=True, inplace=True)
+  decoup["author_id"] = test["author_id"].astype(str)
+  adj_lists = []
+  for c in decoup.columns:
+      if "mention" in c:
+          cut = decoup[[c, "author_id"]]
+          ser = cut.dropna()
+          ser = ser[ser[c].isin(cut["author_id"])]
+          ser.columns = ["mention", "author"]
+          adj_lists.append(ser[["author", "mention"]])
+  clean.append(pd.concat(adj_lists))
+
