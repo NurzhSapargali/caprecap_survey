@@ -113,7 +113,7 @@ for model in MODELS:
         plt.close()
         cut["sq.error.N_hat"] = (N - cut["N_hat"])**2
         cut["sq.error.alpha_hat"] = (alpha - cut["alpha_hat"])**2
-        mean_table = cut.groupby(["label", "T"]).mean()[["N_hat", "alpha_hat", "sq.error.N_hat", "sq.error.alpha_hat"]]
+        mean_table = cut.groupby(["estimator", "T"]).mean()[["N_hat", "alpha_hat", "sq.error.N_hat", "sq.error.alpha_hat"]]
         mean_table["rmse.N_hat"] = mean_table["sq.error.N_hat"] ** 0.5
         mean_table["rel.bias.N_hat"] = (mean_table["N_hat"] - N) / N
         mean_table["rmse.alpha_hat"] = mean_table["sq.error.alpha_hat"] ** 0.5
@@ -130,6 +130,24 @@ for model in MODELS:
         plt.savefig(folder.replace("data", "figures") + "jackknife_boxplots_{}.pdf".format(alpha),
                     bbox_inches="tight")
         plt.close()
+for alpha in summary_tables:
+    cut = summary_tables[alpha].reset_index()
+    for T in cut["T"].unique():
+        base = cut.loc[(cut["estimator"] == "Pseudolikelihood")&(cut["T"] == T), "rmse.N_hat"].iloc[0]
+        cut.loc[cut["T"] == T, "log.rel.rmse"] = np.log(cut.loc[cut["T"] == T, "rmse.N_hat"] / base)
+    fig, ax = plt.subplots(figsize=FIGSIZE)
+    sns.lineplot(y="log.rel.rmse",
+                 x="T",
+                 hue="estimator",
+                 data=cut[cut["estimator"] != "Pseudolikelihood"],
+                 marker="o",
+                 style="estimator")
+    ax.set_xticks(cut["T"].unique())
+    ax.axhline(y=0, color="black")
+    ax.set_ylim(-2.5, 2.5)
+    plt.savefig(folder.replace("data", "figures") + "estimate_rmse_{}.pdf".format(alpha),
+                    bbox_inches="tight")
+    plt.close()
         # if model == "eqp":
         #     nu_name = "Nu_trace.csv"
         #     alpha_name = "alpha_trace.csv"
