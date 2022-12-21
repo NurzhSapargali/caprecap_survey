@@ -17,14 +17,26 @@ DATA_FOLDER::String = "./_900_output/data/hydrated/"
 SEED::Int = 123
 
 seed!(SEED)
-post = [file for file in readdir(DATA_FOLDER) if occursin("_9", file)]
-pre = [file for file in readdir(DATA_FOLDER) if occursin("_2", file)]
+post = [file for file in readdir(DATA_FOLDER) if (occursin("_9", file)&occursin(".csv", file))]
+pre = [file for file in readdir(DATA_FOLDER) if (occursin("_2", file)&occursin(".csv", file))]
 samples = []
 for file in post
     df = DataFrame(CSV.File(DATA_FOLDER * file, delim="\t"))
     net = dropmissing(df, :mentions)
-    push!(samples, unique(net[:,:author_id]))
+    self_loop = string.(net[:, :author_id]) .== [i[3:lastindex(i) - 2] for i in net[:, :mentions]]
+    net = net[.!(self_loop), :]
+    adj_list = []
+    for i in 1:size(net)[1]
+        cut = net[i, :mentions]
+        cut = cut[3:lastindex(cut) - 2]
+        adjacents = split(cut, "', '")
+        for u in adjacents
+            push!(adj_list, (net[i, :author_id],  parse(Int, u)))
+        end
+    end
+    push!(samples, unique([i for j in adj_list for i in j]))
 end
+
 K = Dict{Int, Int}()
 for s in samples
     addcounts!(K, s)

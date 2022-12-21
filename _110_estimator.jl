@@ -27,16 +27,16 @@ function loglh(alpha::Float64,
     T = length(n);
     beta = alpha * (N_u + N_o - 1.0);
     points = rand(Beta(alpha, beta), draws);
-    P = n * transpose(points);
-    comp_P = 1.0 .- P;
+    P = n * transpose(points)
+    comp_P = 1.0 .- P
     I = keys(X) .|> (g -> monte_carlo(P, comp_P, X[g]))
     I[I .< 0] .= 5e-200
     truncation = 1.0 - monte_carlo(P, comp_P, zeros(Bool, T));
     if truncation < 0
-        truncation = 5e-200;
+        truncation = 5e-200
     end
-    lh = -N_o * log(truncation) + sum(log.(I));
-    println("....alpha = $alpha, N_u = $N_u, lh = $lh");
+    lh = -N_o * log(truncation) + sum(log.(I))
+    println("....alpha = $alpha, N_u = $N_u, lh = $lh")
     return lh;
 end
 
@@ -44,8 +44,12 @@ function fit_model(S::Vector,
                    O::Set,
                    n::Vector{Int64},
                    draws::Int64)
-    println("Setting up the design matrix")
-    X = Dict(i => [i in s for s in S] for i in O)
+    println("Setting up the design matrix....")
+    X = Dict{Int, Vector{Bool}}()
+    for i in O
+        X[i] = [i in s for s in S]
+        println("....$(length(O) - length(X)) left")
+    end
     LL(x, grad) = -loglh(x[1], x[2], X, O, n, draws);
     opt = Opt(:LN_SBPLX, 2);
     lower = [0.01, 0];
