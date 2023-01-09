@@ -45,7 +45,7 @@ function fit_model(S::Vector,
                    n::Vector{Int64},
                    draws::Int64)
     println("Setting up the design matrix....")
-    X = Dict{Int, Vector{Bool}}()
+    X = Dict{Any, Vector{Bool}}()
     for i in O
         X[i] = [i in s for s in S]
         println("....$(length(O) - length(X)) left")
