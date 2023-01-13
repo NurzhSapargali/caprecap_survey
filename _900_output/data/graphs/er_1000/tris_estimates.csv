@@ -1,0 +1,52 @@
+8.7425,1.25,0.25,1,9,2,1.0,1,Pseudolikelihood
+-999,1.0,0.25,1,9,2,1.0,1,Schnabel
+-999,1.0,0.25,1,9,2,1.0,1,Chao
+-999,1.0,0.25,1,9,2,1.0,1,Zelterman
+-999,Noninvertible X'WX,0.25,1,9,2,1.0,1,Conway-Maxwell-Poisson
+-999,1.0,0.25,1,9,2,1.0,1,Huggins
+-999,1.0,0.25,1,9,2,1.0,1,Turing Geometric
+-999,1.0,0.25,1,9,2,1.0,1,Turing
+-999,1.0,0.25,1,9,2,1.0,1,Jackknife k = 1
+-999,1.0,0.25,1,9,2,1.0,1,Jackknife k = 2
+-999,NaN,0.25,1,9,2,1.0,1,Jackknife k = 3
+-999,NaN,0.25,1,9,2,1.0,1,Jackknife k = 4
+-999,NaN,0.25,1,9,2,1.0,1,Jackknife k = 5
+8.7425,1.25,0.25,1,27,2,1.0,2,Pseudolikelihood
+-999,1.0,0.25,1,27,2,1.0,2,Schnabel
+-999,1.0,0.25,1,27,2,1.0,2,Chao
+-999,1.0,0.25,1,27,2,1.0,2,Zelterman
+-999,Noninvertible X'WX,0.25,1,27,2,1.0,2,Conway-Maxwell-Poisson
+-999,1.0,0.25,1,27,2,1.0,2,Huggins
+-999,1.0,0.25,1,27,2,1.0,2,Turing Geometric
+-999,1.0,0.25,1,27,2,1.0,2,Turing
+-999,1.0,0.25,1,27,2,1.0,2,Jackknife k = 1
+-999,1.0,0.25,1,27,2,1.0,2,Jackknife k = 2
+-999,NaN,0.25,1,27,2,1.0,2,Jackknife k = 3
+-999,NaN,0.25,1,27,2,1.0,2,Jackknife k = 4
+-999,NaN,0.25,1,27,2,1.0,2,Jackknife k = 5
+8.7425,1.25,0.25,1,37,2,1.0,2,Pseudolikelihood
+-999,1.0,0.25,1,37,2,1.0,2,Schnabel
+-999,1.0,0.25,1,37,2,1.0,2,Chao
+-999,1.0,0.25,1,37,2,1.0,2,Zelterman
+-999,Noninvertible X'WX,0.25,1,37,2,1.0,2,Conway-Maxwell-Poisson
+-999,1.0,0.25,1,37,2,1.0,2,Huggins
+-999,1.0,0.25,1,37,2,1.0,2,Turing Geometric
+-999,1.0,0.25,1,37,2,1.0,2,Turing
+-999,1.0,0.25,1,37,2,1.0,2,Jackknife k = 1
+-999,1.0,0.25,1,37,2,1.0,2,Jackknife k = 2
+-999,NaN,0.25,1,37,2,1.0,2,Jackknife k = 3
+-999,NaN,0.25,1,37,2,1.0,2,Jackknife k = 4
+-999,NaN,0.25,1,37,2,1.0,2,Jackknife k = 5
+8.7425,1.25,0.25,1,66,2,1.0,3,Pseudolikelihood
+-999,1.0,0.25,1,66,2,1.0,3,Schnabel
+-999,1.0,0.25,1,66,2,1.0,3,Chao
+-999,1.0,0.25,1,66,2,1.0,3,Zelterman
+-999,Noninvertible X'WX,0.25,1,66,2,1.0,3,Conway-Maxwell-Poisson
+-999,1.0,0.25,1,66,2,1.0,3,Huggins
+-999,1.0,0.25,1,66,2,1.0,3,Turing Geometric
+-999,1.0,0.25,1,66,2,1.0,3,Turing
+-999,1.0,0.25,1,66,2,1.0,3,Jackknife k = 1
+-999,1.0,0.25,1,66,2,1.0,3,Jackknife k = 2
+-999,NaN,0.25,1,66,2,1.0,3,Jackknife k = 3
+-999,NaN,0.25,1,66,2,1.0,3,Jackknife k = 4
+-999,NaN,0.25,1,66,2,1.0,3,Jackknife k = 5

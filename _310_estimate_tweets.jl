@@ -20,6 +20,7 @@ seed!(SEED)
 post = [file for file in readdir(DATA_FOLDER) if (occursin("_9", file)&occursin(".csv", file))]
 pre = [file for file in readdir(DATA_FOLDER) if (occursin("_2", file)&occursin(".csv", file))]
 samples = []
+networks = []
 for file in post
     df = DataFrame(CSV.File(DATA_FOLDER * file, delim="\t"))
     net = dropmissing(df, :mentions)
@@ -35,6 +36,7 @@ for file in post
         end
     end
     push!(samples, unique([i for j in adj_list for i in j]))
+    push!(networks, adj_list)
 end
 
 K = Dict{Int, Int}()

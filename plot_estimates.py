@@ -140,8 +140,7 @@ for alpha in summary_tables:
                  x="T",
                  hue="estimator",
                  data=cut[cut["estimator"] != "Pseudolikelihood"],
-                 marker="o",
-                 style="estimator")
+                 marker="o")
     ax.set_xticks(cut["T"].unique())
     ax.axhline(y=0, color="black")
     ax.set_ylim(-2.5, 2.5)

@@ -151,7 +151,7 @@ function estimate_all(samples, draws, output_dir, trial, truth)
 end
 
 seed!(SEED)
-for unit in STRUCTURES
+for unit in STRUCTURES[4:4]
     for trial in 1:TRIALS
         for edges in ER_EDGES
             for gtype in SBM_TYPES
