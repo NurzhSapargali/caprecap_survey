@@ -13,12 +13,16 @@ import Random: seed!
 
 BA_EDGES_PER_NODE::Vector{Int64} = [1, 2, 3]
 ER_EDGES::Vector{Int64} = [1000, 2000, 3000]
-SBM_TYPES::Vector{String} = ["assortative", "disassortative", "core_periphery"]
-STRUCTURES::Vector{String} = ["4cliques", "tris", "edges", "nodes"]
-TRIALS::Int64 = 100
+# SBM_TYPES::Vector{String} = ["assortative", "disassortative", "core_periphery"]
+STRUCTURES::Vector{String} = ["nodes"
+                              #"4cliques",
+                              #"tris",
+                              #"edges"
+                              ]
+TRIALS::Int64 = 1000
 DATA_FOLDER::String = "./_200_input/graphs/"
 OUTPUT_FOLDER::String = "./_900_output/data/graphs/"
-MC_DRAWS::Int64 = 2000
+MC_DRAWS::Int64 = 1500
 SEED::Int64 = 111
 
 function read_indices(filename::String)
@@ -151,32 +155,32 @@ function estimate_all(samples, draws, output_dir, trial, truth)
 end
 
 seed!(SEED)
-for unit in STRUCTURES[4:4]
+for unit in STRUCTURES
     for trial in 1:TRIALS
-        for edges in ER_EDGES
-            for gtype in SBM_TYPES
-                output = OUTPUT_FOLDER * "sbm_$(edges)/$gtype/$(unit)_estimates.csv"
-                filename = DATA_FOLDER * "sbm_$(edges)/$gtype/$(unit)_$(trial).csv"
-                S = read_data(filename, unit)
-                if (length(S) == 0)
-                    continue
-                end
-                metafile = DATA_FOLDER * "sbm_$(edges)/$gtype/metadata.csv"
-                ground_truth = get_truth(metafile, unit, trial)
-                println(filename)
-                estimate_all(S, MC_DRAWS, output, trial, ground_truth)
-            end
-            output = OUTPUT_FOLDER * "er_$(edges)/$(unit)_estimates.csv"
-            filename = DATA_FOLDER * "er_$(edges)/$(unit)_$(trial).csv"
-            S = read_data(filename, unit)
-            if (length(S) == 0)
-                continue
-            end
-            metafile = DATA_FOLDER * "er_$(edges)/metadata.csv"
-            ground_truth = get_truth(metafile, unit, trial)
-            println(filename)
-            estimate_all(S, MC_DRAWS, output, trial, ground_truth)
-        end
+#         for edges in ER_EDGES
+#             for gtype in SBM_TYPES
+#                 output = OUTPUT_FOLDER * "sbm_$(edges)/$gtype/$(unit)_estimates.csv"
+#                 filename = DATA_FOLDER * "sbm_$(edges)/$gtype/$(unit)_$(trial).csv"
+#                 S = read_data(filename, unit)
+#                 if (length(S) == 0)
+#                     continue
+#                 end
+#                 metafile = DATA_FOLDER * "sbm_$(edges)/$gtype/metadata.csv"
+#                 ground_truth = get_truth(metafile, unit, trial)
+#                 println(filename)
+#                 estimate_all(S, MC_DRAWS, output, trial, ground_truth)
+#             end
+#             output = OUTPUT_FOLDER * "er_$(edges)/$(unit)_estimates.csv"
+#             filename = DATA_FOLDER * "er_$(edges)/$(unit)_$(trial).csv"
+#             S = read_data(filename, unit)
+#             if (length(S) == 0)
+#                 continue
+#             end
+#             metafile = DATA_FOLDER * "er_$(edges)/metadata.csv"
+#             ground_truth = get_truth(metafile, unit, trial)
+#             println(filename)
+#             estimate_all(S, MC_DRAWS, output, trial, ground_truth)
+#         end
         for epn in BA_EDGES_PER_NODE
             output = OUTPUT_FOLDER * "ba_$(epn)/$(unit)_estimates.csv"
             filename = DATA_FOLDER * "ba_$(epn)/$(unit)_$(trial).csv"

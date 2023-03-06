@@ -57,6 +57,7 @@ function fit_model(S::Vector,
     opt.upper_bounds = upper
     opt.lower_bounds = lower;
     opt.min_objective = LL;
+    opt.xtol_abs = 1e-1
     println("Optimizing....")
     (minf, minx, ret) = NLopt.optimize(opt, [5.0, length(O)]);
     return (minf, minx, ret);
