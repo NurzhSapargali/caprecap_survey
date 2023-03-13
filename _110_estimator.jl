@@ -1,12 +1,24 @@
 module Estimator
 
-import Distributions: Beta
+import Distributions: Beta, pdf
 
 using NLopt
 using StatsBase
 
 export loglh, fit_model
 
+function log_prior(p::Real, a::Real, b::Real)
+    d = Beta(a, b)
+    return logpdf(d, p)
+end
+
+function log_datalh(p::Real, x_i::Vector{Bool}, n::Vector{Int})
+    T = length(n)
+    comp_prob = 1.0 .- n * p
+    fails = length([i for i in comp_prob if i > 0])
+    comp_prob[comp_prob .<= 0] = 5e-200
+    return ( sum(x_i .* (log.(n) .+ log(p)) .+  (1 .- x_i) .* log.(comp_prob)), fails )
+end    
 
 function monte_carlo(prob_matrix::Matrix{Float64},
                      complement_prob_matrix::Matrix{Float64},
@@ -33,7 +45,7 @@ function loglh(alpha::Float64,
     I[I .< 0] .= 5e-200
     truncation = 1.0 - monte_carlo(P, comp_P, zeros(Bool, T));
     if truncation < 0
-        truncation = 5e-200
+        truncation = 1.0
     end
     lh = -N_o * log(truncation) + sum(log.(I))
     println("....alpha = $alpha, N_u = $N_u, lh = $lh")

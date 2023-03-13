@@ -19,4 +19,4 @@ agg = cut %>%
 agg$rmse = sqrt(agg$mse)
 agg$bias = agg$hat_mean - 1000
 agg$rel_bias = abs(agg$bias) / 1000
-ggplot(agg[agg$type != "Conway-Maxwell-Poisson",], mapping = aes(y = reorder(type, -rmse), x = rmse)) + geom_bar(stat = "identity")
+ggplot(agg[agg$type != "Conway-Maxwell-Poisson",], mapping = aes(y = reorder(type, -rel_bias), x = rel_bias)) + geom_bar(stat = "identity")
