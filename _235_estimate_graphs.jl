@@ -11,7 +11,7 @@ using DelimitedFiles
 
 import Random: seed!
 
-BA_EDGES_PER_NODE::Vector{Int64} = [1, 2, 3]
+BA_EDGES_PER_NODE::Vector{Int64} = [2]
 ER_EDGES::Vector{Int64} = [1000, 2000, 3000]
 # SBM_TYPES::Vector{String} = ["assortative", "disassortative", "core_periphery"]
 STRUCTURES::Vector{String} = ["nodes"
@@ -19,10 +19,10 @@ STRUCTURES::Vector{String} = ["nodes"
                               #"tris",
                               #"edges"
                               ]
-TRIALS::Int64 = 1000
+TRIALS::Int64 = 5000
 DATA_FOLDER::String = "./_200_input/graphs/"
 OUTPUT_FOLDER::String = "./_900_output/data/graphs/"
-MC_DRAWS::Int64 = 1500
+GRID_SIZE::Int64 = 10000
 SEED::Int64 = 111
 
 function read_indices(filename::String)
@@ -84,7 +84,7 @@ function get_truth(filename, unit, trial)
     return data[trial, 1]
 end
 
-function estimate_all(samples, draws, output_dir, trial, truth)
+function estimate_all(samples, ngrid, output_dir, trial, truth)
     n = [length(s) for s in samples]
     K = Dict{Any, Int}()
     for s in samples
@@ -106,7 +106,7 @@ function estimate_all(samples, draws, output_dir, trial, truth)
     end
     t = length(n)
     O = Set([i for j in samples for i in j])
-    (minf, minx, ret) = fit_model(samples, O, n, draws)
+    (minf, minx, ret) = fit_model(samples, O, n, ngrid)
     v = [minx[1], minx[2] + length(O), minx[2], length(O), trial, length(n), sum(n) / length(n), truth, "Pseudolikelihood"]
     write_row(output_dir, v)
     
@@ -191,7 +191,7 @@ for unit in STRUCTURES
             metafile = DATA_FOLDER * "ba_$(epn)/metadata.csv"
             ground_truth = get_truth(metafile, unit, trial)
             println(filename)
-            estimate_all(S, MC_DRAWS, output, trial, ground_truth)
+            estimate_all(S, GRID_SIZE, output, trial, ground_truth)
         end
     end
 end

@@ -5,7 +5,7 @@ NODES <- 1000
 PA_EDGES_PER_NODE <- c(1, 2, 3)
 ER_EDGES <- c(1000, 2000, 3000)
 DRAWS <- 20
-TRIALS <- 1000
+TRIALS <- 5000
 BA_FOLDER <- "./_200_input/graphs/ba_%s/"
 ER_FOLDER <- "./_200_input/graphs/er_%s/"
 
