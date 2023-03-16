@@ -10,67 +10,59 @@ using StatsBase
 
 import Random: seed!
 
-ALPHAS::Vector{Float64} = [1.0, 5.0, 10.0];
-DATA_FOLDER::String = "./_200_input/diffp/";
-breaks_T::Vector{Int64} = [5, 10, 15, 20];
-OUTPUT_FOLDER::String = "./_900_output/data/diffp/";
-const ALPHA_TRACE_RANGE = 0.1:1:50.1;
-const NU_TRACE_RANGE = 0.0:200.0:5000.0;
-MC_DRAWS::Int64 = 5000;
-SEED::Int64 = 111;
+ALPHAS::Vector{Float64} = [0.5, 1.0, 5.0, 10.0]
+DATA_FOLDER::String = "./_200_input/diffp/"
+breaks_T::Vector{Int64} = [5, 10, 15, 20]
+OUTPUT_FOLDER::String = "./_900_output/data/diffp/"
+const ALPHA_TRACE_RANGE = 0.1:1:50.1
+const NU_TRACE_RANGE = 0.0:200.0:5000.0
+GRID_SIZE::Int64 = 10000
+SEED::Int64 = 111
 
 
 seed!(SEED);
 for alpha in ALPHAS
-    folder = DATA_FOLDER * "alpha_$(alpha)/";
-    files = [file for file in readdir(folder) if occursin("sample", file)];
-    for file in files
-        samples = read_captures(folder * file);
+    output_file = OUTPUT_FOLDER * "estimates_$(alpha).csv"
+    write_row(output_file, ["alpha_hat", "N_hat", "Nu_hat", "No", "T", "trial", "alpha", "estimator"])
+    data_folder = DATA_FOLDER * "alpha_$(alpha)/"
+    data_files = [file for file in readdir(data_folder) if occursin("sample", file)]
+    for file in data_files
+        trial_no = parse(Int, split(split(file, "_")[2], ".")[1])
+        samples = read_captures(data_folder * file)
         for t in breaks_T
             S = samples[1:t];
-            K = Dict{Int, Int}();
+            K = Dict{Int, Int}()
             for s in S
-                addcounts!(K, s);
+                addcounts!(K, s)
             end
-            f = countmap(values(K));
-            println("***TRIAL NO $file, $t***");
-            O = Set([i for j in S for i in j]);
-            n = [length(s) for s in S];
-#             (minf, minx, ret) = fit_model(S, O, n, MC_DRAWS);
-#             write_row(OUTPUT_FOLDER * "estimates_$(alpha).csv",
-#                       [minx[1], minx[2], length(O), t, alpha]);
-#             alpha_trace = [loglh(i, minx[2], S, O, n, 1000) for i in ALPHA_TRACE_RANGE];
-#             write_row(OUTPUT_FOLDER * "alpha_trace_$(alpha).csv",
-#                       vcat(alpha_trace, [minx[1], minx[2], length(O), t, alpha]));
-#             Nu_trace = [loglh(minx[1], i, S, O, n, 1000) for i in NU_TRACE_RANGE];
-#             write_row(OUTPUT_FOLDER * "Nu_trace_$(alpha).csv",
-#                       vcat(Nu_trace, [minx[1], minx[2], length(O), t, alpha]));
-            bench_filename = "benchmarks_$(alpha).csv"
-            schnab = schnabel(S, n);
-            write_row(OUTPUT_FOLDER * bench_filename,
-                      [schnab, length(O), t, alpha, "Schnabel"]);
-            chao_est = chao(length(O), f);
-            write_row(OUTPUT_FOLDER * bench_filename,
-                      [chao_est, length(O), t, alpha, "Chao"]);
-            zelt = zelterman(length(O), f);
-            write_row(OUTPUT_FOLDER * bench_filename,
-                      [zelt, length(O), t, alpha, "Zelterman"]);
-            cm = conway_maxwell(length(O), f);
-            write_row(OUTPUT_FOLDER * bench_filename,
-                      [cm, length(O), t, alpha, "Conway-Maxwell-Poisson"]);
-            hug = huggins(t, K);
-            write_row(OUTPUT_FOLDER * bench_filename,
-                      [hug, length(O), t, alpha, "Huggins"]);
-            alan_geo = turing_geometric(length(O), f, t);
-            write_row(OUTPUT_FOLDER * bench_filename,
-                      [alan_geo, length(O), t, alpha, "Turing Geometric"]);
-            alan = turing(length(O), f, t);
-            write_row(OUTPUT_FOLDER * bench_filename,
-                    [alan, length(O), t, alpha, "Turing"]);
+            f = countmap(values(K))
+            println("***TRIAL NO $file, $t***")
+            O = Set([i for j in S for i in j])
+            n = [length(s) for s in S]
+            (minf, minx, ret) = fit_model(S, O, n, GRID_SIZE)
+            write_row(output_file,
+                      [minx[1], minx[2] + length(O), minx[2], length(O), t, trial_no, alpha, "Pseudolikelihood"])
+            # alpha_trace = [loglh(i, minx[2], S, O, n, 1000) for i in ALPHA_TRACE_RANGE];
+            # write_row(OUTPUT_FOLDER * "alpha_trace_$(alpha).csv",
+            #           vcat(alpha_trace, [minx[1], minx[2], length(O), t, alpha]));
+            # Nu_trace = [loglh(minx[1], i, S, O, n, 1000) for i in NU_TRACE_RANGE];
+            # write_row(OUTPUT_FOLDER * "Nu_trace_$(alpha).csv",
+            #           vcat(Nu_trace, [minx[1], minx[2], length(O), t, alpha]));
+            benchmarks = Dict{}()
+            benchmarks["Schnabel"] = schnabel(S, n)
+            benchmarks["Chao"] = chao(length(O), f)
+            benchmarks["Zelterman"] = zelterman(length(O), f)
+            benchmarks["Conway-Maxwell-Poisson"] = conway_maxwell(length(O), f)
+            benchmarks["Huggins"] = huggins(t, K)
+            benchmarks["Turing Geometric"] = turing_geometric(length(O), f, t)
+            benchmarks["Turing"] = turing(length(O), f, t)
             for k in 1:5
-                jk = jackknife(length(O), t, f, k);
-                write_row(OUTPUT_FOLDER * bench_filename,
-                          [jk, length(O), t, alpha, "Jackknife k = $(k)"]);
+                jk = jackknife(length(O), t, f, k)
+                benchmarks["Jackknife k = $(k)"] = jk
+            end
+            for b in keys(benchmarks)
+                write_row(output_file,
+                          [-999.0, benchmarks[b], minx[2], length(O), t, trial_no, alpha, b])
             end
         end
     end

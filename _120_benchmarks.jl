@@ -11,13 +11,13 @@ export lincoln, schnabel, chao,
 
 
 function lincoln(S::Vector,
-                 n::Vector{Int64})
+                 n::Vector{Int})
     r = intersect(Set(S[1]), Set(S[2]));
     return prod(n) / length(r);
 end
 
 function schnabel(S::Vector,
-                  n::Vector{Int64})
+                  n::Vector{Int})
     m = 0;
     N = 0;
     pool = Set();
@@ -35,15 +35,15 @@ function schnabel(S::Vector,
     return sum(num) / sum(denom);
 end
 
-function chao(N_o::Int64, f::Dict{Any, Int})
+function chao(N_o::Int64, f::Dict)
     return N_o + get(f, 1, 0)^2.0 / (2.0 * get(f, 2, 0));
 end
 
-function zelterman(N_o::Int64, f::Dict{Any, Int})
+function zelterman(N_o::Int64, f::Dict)
     return N_o / (1.0 - exp(-2.0 * get(f, 2, 0) / get(f, 1, 0)));
 end
 
-function jackknife(N_o::Int64, T::Int64, f::Dict{Any, Int}, k::Int64)
+function jackknife(N_o::Int64, T::Int64, f::Dict, k::Int64)
     if k == 1
         return N_o + (T - 1.0) / T * get(f, 1, 0);
     elseif k == 2
@@ -73,7 +73,7 @@ function jackknife(N_o::Int64, T::Int64, f::Dict{Any, Int}, k::Int64)
     end
 end
 
-function conway_maxwell(N_o::Int64, f::Dict{Any, Int})
+function conway_maxwell(N_o::Int64, f::Dict)
     y = [log(i * get(f, i, 0) / get(f, i - 1, 0)) for i in 2:length(f)];
     if ((Inf in y) || (-Inf in y))
         return "Nonsequential frequencies";
@@ -90,9 +90,9 @@ function conway_maxwell(N_o::Int64, f::Dict{Any, Int})
     return N;
 end
 
-function moments_huggins(theta::Vector{Float64},
-                         p::Vector{Float64},
-                         T::Int64)
+function moments_huggins(theta::Vector{Real},
+                         p::Vector{Real},
+                         T::Int)
     a = theta[1];
     b = theta[2];
     cdf = 1.0 -  beta(a, b + T) / beta(a, b);
@@ -102,8 +102,8 @@ function moments_huggins(theta::Vector{Float64},
     return out .- p;
 end
 
-function huggins(T::Int64,
-                 K::Dict{Any, Int})
+function huggins(T::Int,
+                 K::Dict)
     param = [sum(values(K)) / length(K) / T, sum(values(K) .^ 2) / length(K) / (T ^ 2)];
     f(x, grad) = sum(moments_huggins(x, param, T)) ^ 2;
     opt = Opt(:LN_SBPLX, 2);
@@ -114,12 +114,12 @@ function huggins(T::Int64,
     return sum(1.0 ./ (1.0 .- (1.0 .- mu).^T));
 end
 
-function turing_geometric(N_o::Int64, f::Dict{Any, Int}, T::Int64)
+function turing_geometric(N_o::Int, f::Dict, T::Int)
     denom = sum([i * get(f, i, 0) for i in 1:maximum(keys(f))]);
     return N_o / (1.0 - sqrt(get(f, 1, 0) / denom));
 end
 
-function turing(N_o::Int64, f::Dict{Any, Int}, T::Int64)
+function turing(N_o::Int, f::Dict, T::Int)
     denom = sum([i * get(f, i, 0) for i in 1:maximum(keys(f))]);
     return N_o / (1.0 - (get(f, 1, 0) / denom) ^ (T / (T - 1)));
 end
