@@ -51,10 +51,8 @@ function loglh(alpha::Real,
     I[I .< 0] .= 5e-200
 #     truncation = 1.0 - monte_carlo(P, comp_P, zeros(Bool, T));
     unobserved = reshape(data[:, cols], length(data[:, cols]), 1)
-    truncation = 1.0 - trapezoid(alpha, beta, unobserved, grid)[1]
-    if truncation < 0
-        truncation = 1.0
-    end
+    integral_unobserved = trapezoid(alpha, beta, unobserved, grid)[1]
+    truncation = 1.0 - integral_unobserved
     lh = -N_o * log(truncation) + sum(log.(I))
     println("....alpha = $alpha, N_u = $N_u, error_rate = $fails, avg_error = $avg_fail, lh = $lh")
     return lh;

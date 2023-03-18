@@ -8,8 +8,6 @@ using .Benchmarks
 
 using StatsBase
 
-import Random: seed!
-
 ALPHAS::Vector{Float64} = [0.5, 1.0, 5.0, 10.0]
 DATA_FOLDER::String = "./_200_input/diffp/"
 breaks_T::Vector{Int64} = [5, 10, 15, 20]
@@ -17,10 +15,8 @@ OUTPUT_FOLDER::String = "./_900_output/data/diffp/"
 const ALPHA_TRACE_RANGE = 0.1:1:50.1
 const NU_TRACE_RANGE = 0.0:200.0:5000.0
 GRID_SIZE::Int64 = 10000
-SEED::Int64 = 111
 
 
-seed!(SEED);
 for alpha in ALPHAS
     output_file = OUTPUT_FOLDER * "estimates_$(alpha).csv"
     write_row(output_file, ["alpha_hat", "N_hat", "Nu_hat", "No", "T", "trial", "alpha", "estimator"])
