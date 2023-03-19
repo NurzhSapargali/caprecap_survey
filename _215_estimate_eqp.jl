@@ -7,6 +7,7 @@ using .Utils
 using .Benchmarks
 
 using StatsBase
+using DelimitedFiles
 
 DATA_FOLDER::String = "./_200_input/eqp/"
 breaks_T::Vector{Int64} = [5, 10, 15, 20]
@@ -15,10 +16,16 @@ const ALPHA_TRACE_RANGE = 0.1:1:50.1
 const NU_TRACE_RANGE = 0.0:200.0:5000.0
 GRID_SIZE::Int64 = 10000
 
+function get_truth(filename)
+    data = readdlm(filename, ' ', String, '\n')[2, 1]
+    return parse(Float64, split(data, ",")[1])
+end
+
 
 files = [file for file in readdir(DATA_FOLDER) if occursin("sample", file)]
 output_file = OUTPUT_FOLDER * "estimates.csv"
-write_row(output_file, ["alpha_hat", "N_hat", "Nu_hat", "No", "T", "trial", "alpha", "estimator"])
+write_row(output_file, ["a_hat", "N_hat", "Nu_hat", "No", "trial", "T", "alpha", "N", "type"])
+N = get_truth(DATA_FOLDER * "metadata.csv")
 for file in files
     samples = read_captures(DATA_FOLDER * file)
     trial_no = parse(Int, split(split(file, "_")[2], ".")[1])
@@ -34,7 +41,7 @@ for file in files
         n = [length(s) for s in S]
         (minf, minx, ret) = fit_model(S, O, n, GRID_SIZE)
         write_row(output_file,
-                  [minx[1], minx[2] + length(O), minx[2], length(O), t, trial_no, Inf, "Pseudolikelihood"])
+                  [minx[1], minx[2] + length(O), minx[2], length(O), trial_no, t, Inf, N, "Pseudolikelihood"])
 #         (minf, minx, ret) = fit_model(S, O, n, MC_DRAWS);
 #         write_row(OUTPUT_FOLDER * "estimates.csv",
 #                     [minx[1], minx[2], length(O), t]);
@@ -58,8 +65,7 @@ for file in files
         end
         for b in keys(benchmarks)
             write_row(output_file,
-                      [-999.0, benchmarks[b], minx[2], length(O), t, trial_no, Inf, b])
-        end
+                      [-999.0, benchmarks[b], minx[2], length(O), trial_no, t, Inf, N, b])
         end
     end
 end

@@ -9,21 +9,12 @@ using .Benchmarks
 using StatsBase
 using DelimitedFiles
 
-import Random: seed!
-
-BA_EDGES_PER_NODE::Vector{Int64} = [2]
-ER_EDGES::Vector{Int64} = [1000, 2000, 3000]
+BA_EDGES_PER_NODE::Vector{Int64} = [1]
 # SBM_TYPES::Vector{String} = ["assortative", "disassortative", "core_periphery"]
-STRUCTURES::Vector{String} = ["nodes"
-                              #"4cliques",
-                              #"tris",
-                              #"edges"
-                              ]
 TRIALS::Int64 = 5000
 DATA_FOLDER::String = "./_200_input/graphs/"
 OUTPUT_FOLDER::String = "./_900_output/data/graphs/"
 GRID_SIZE::Int64 = 10000
-SEED::Int64 = 111
 
 function read_indices(filename::String)
     S = try 
@@ -36,33 +27,10 @@ function read_indices(filename::String)
     return S
 end
 
-function split_indexarray(inds::Vector{Vector{Int64}},
-                          step::Int64)
-    out = []
-    for s in inds
-        if (step == 2)
-            row = [sort([s[i], s[i + 1]]) for i in 1:step:length(s)]
-        elseif (step == 3)
-            row = [sort([s[i], s[i + 1], s[i + 2]]) for i in 1:step:length(s)]
-        elseif (step == 4)
-            row = [sort([s[i], s[i + 1], s[i + 2], s[i + 3]]) for i in 1:step:length(s)]
-        end
-        push!(out, row)
-    end
-    return out
-end
-
-function read_data(data, unit)
+function read_data(data)
     samples = read_indices(data)
     if (length(samples) <= 1)
         return []
-    end
-    if (unit == "edges")
-        samples = split_indexarray(samples, 2)
-    elseif (unit == "tris")
-        samples = split_indexarray(samples, 3)
-    elseif (unit == "4cliques")
-        samples = split_indexarray(samples, 4)
     end
     O = Set([i for j in samples for i in j])
     if sum([length(s) for s in samples]) == length(O)
@@ -72,16 +40,9 @@ function read_data(data, unit)
     return samples
 end
 
-function get_truth(filename, unit, trial)
-    data = readdlm(filename, ' ', Int, '\n')
-    if (unit == "edges")
-        return data[trial, 2]
-    elseif (unit == "tris")
-        return data[trial, 3]
-    elseif (unit == "4cliques")
-        return data[trial, 4]
-    end
-    return data[trial, 1]
+function get_truth(filename)
+    data = readdlm(filename, ' ', String, '\n')[2, 1]
+    return parse(Float64, split(data, ",")[1])
 end
 
 function estimate_all(samples, ngrid, output_dir, trial, truth)
@@ -107,91 +68,39 @@ function estimate_all(samples, ngrid, output_dir, trial, truth)
     t = length(n)
     O = Set([i for j in samples for i in j])
     (minf, minx, ret) = fit_model(samples, O, n, ngrid)
-    v = [minx[1], minx[2] + length(O), minx[2], length(O), trial, length(n), sum(n) / length(n), truth, "Pseudolikelihood"]
+    v = [minx[1], minx[2] + length(O), minx[2], length(O), trial, t, sum(n) / length(n), truth, "Pseudolikelihood"]
     write_row(output_dir, v)
-    
-    schnab = schnabel(samples, n)
-    v[1] = -999
-    v[lastindex(v)] = "Schnabel"
-    v[2] = schnab
-    write_row(output_dir, v)
-    
-    chao_est = chao(length(O), f)
-    v[2] = chao_est
-    v[lastindex(v)] = "Chao"
-    write_row(output_dir, v)
-    
-    zelt = zelterman(length(O), f)
-    v[2] = zelt
-    v[lastindex(v)] = "Zelterman"
-    write_row(output_dir, v)
-    
-    cm = conway_maxwell(length(O), f)
-    v[2] = cm
-    v[lastindex(v)] = "Conway-Maxwell-Poisson"
-    write_row(output_dir, v)
-    
-    hug = huggins(t, K)
-    v[2] = hug
-    v[lastindex(v)] = "Huggins"
-    write_row(output_dir, v)
-    
-    alan_geo = turing_geometric(length(O), f, t)
-    v[2] = alan_geo
-    v[lastindex(v)] = "Turing Geometric"
-    write_row(output_dir, v)
-    
-    alan = turing(length(O), f, t)
-    v[2] = alan
-    v[lastindex(v)] = "Turing"
-    write_row(output_dir, v)
-    
+    benchmarks = Dict{}()
+    benchmarks["Schnabel"] = schnabel(samples, n)
+    benchmarks["Chao"] = chao(length(O), f)
+    benchmarks["Zelterman"] = zelterman(length(O), f)
+    benchmarks["Conway-Maxwell-Poisson"] = conway_maxwell(length(O), f)
+    benchmarks["Huggins"] = huggins(t, K)
+    benchmarks["Turing Geometric"] = turing_geometric(length(O), f, t)
+    benchmarks["Turing"] = turing(length(O), f, t)
     for k in 1:5
         jk = jackknife(length(O), t, f, k)
-        v[2] = jk
-        v[lastindex(v)] = "Jackknife k = $(k)"
-        write_row(output_dir, v)
+        benchmarks["Jackknife k = $(k)"] = jk
+    end
+    for b in keys(benchmarks)
+        write_row(output_dir,
+                  [-999.0, benchmarks[b], minx[2], length(O), trial, t, sum(n) / length(n), truth, b])
     end
 end
 
-seed!(SEED)
-for unit in STRUCTURES
+
+for epn in BA_EDGES_PER_NODE
+    output = OUTPUT_FOLDER * "ba_$(epn)/nodes_estimates.csv"
+    write_row(output, ["a_hat", "N_hat", "Nu_hat", "No", "trial", "T", "avg_n", "N", "type"])
+    metafile = DATA_FOLDER * "ba_$(epn)/metadata.csv"
+    ground_truth = get_truth(metafile)
     for trial in 1:TRIALS
-#         for edges in ER_EDGES
-#             for gtype in SBM_TYPES
-#                 output = OUTPUT_FOLDER * "sbm_$(edges)/$gtype/$(unit)_estimates.csv"
-#                 filename = DATA_FOLDER * "sbm_$(edges)/$gtype/$(unit)_$(trial).csv"
-#                 S = read_data(filename, unit)
-#                 if (length(S) == 0)
-#                     continue
-#                 end
-#                 metafile = DATA_FOLDER * "sbm_$(edges)/$gtype/metadata.csv"
-#                 ground_truth = get_truth(metafile, unit, trial)
-#                 println(filename)
-#                 estimate_all(S, MC_DRAWS, output, trial, ground_truth)
-#             end
-#             output = OUTPUT_FOLDER * "er_$(edges)/$(unit)_estimates.csv"
-#             filename = DATA_FOLDER * "er_$(edges)/$(unit)_$(trial).csv"
-#             S = read_data(filename, unit)
-#             if (length(S) == 0)
-#                 continue
-#             end
-#             metafile = DATA_FOLDER * "er_$(edges)/metadata.csv"
-#             ground_truth = get_truth(metafile, unit, trial)
-#             println(filename)
-#             estimate_all(S, MC_DRAWS, output, trial, ground_truth)
-#         end
-        for epn in BA_EDGES_PER_NODE
-            output = OUTPUT_FOLDER * "ba_$(epn)/$(unit)_estimates.csv"
-            filename = DATA_FOLDER * "ba_$(epn)/$(unit)_$(trial).csv"
-            S = read_data(filename, unit)
-            if (length(S) == 0)
-                continue
-            end
-            metafile = DATA_FOLDER * "ba_$(epn)/metadata.csv"
-            ground_truth = get_truth(metafile, unit, trial)
-            println(filename)
-            estimate_all(S, GRID_SIZE, output, trial, ground_truth)
+        filename = DATA_FOLDER * "ba_$(epn)/nodes_$(trial).csv"
+        S = read_captures(filename)
+        if (length(S) == 0)
+            continue
         end
+        println(filename)
+        estimate_all(S, GRID_SIZE, output, trial, ground_truth)
     end
 end

@@ -16,7 +16,7 @@ SEED::Int = 10000
 DATA_FOLDER::String = "./_200_input/diffp/";
 
 
-seed!(SEED);
+seed!(SEED)
 for alpha in ALPHAS
     metafile = DATA_FOLDER * "alpha_$(alpha)/metadata_$(alpha).csv"
     write_row(metafile, vcat(["N", "T", "alpha"], ["n_$i" for i in 1:T]))

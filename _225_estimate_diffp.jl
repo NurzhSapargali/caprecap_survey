@@ -7,6 +7,7 @@ using .Utils
 using .Benchmarks
 
 using StatsBase
+using DelimitedFiles
 
 ALPHAS::Vector{Float64} = [0.5, 1.0, 5.0, 10.0]
 DATA_FOLDER::String = "./_200_input/diffp/"
@@ -16,12 +17,18 @@ const ALPHA_TRACE_RANGE = 0.1:1:50.1
 const NU_TRACE_RANGE = 0.0:200.0:5000.0
 GRID_SIZE::Int64 = 10000
 
+function get_truth(filename)
+    data = readdlm(filename, ' ', String, '\n')[2, 1]
+    return parse(Float64, split(data, ",")[1])
+end
+
 
 for alpha in ALPHAS
     output_file = OUTPUT_FOLDER * "estimates_$(alpha).csv"
-    write_row(output_file, ["alpha_hat", "N_hat", "Nu_hat", "No", "T", "trial", "alpha", "estimator"])
+    write_row(output_file, ["a_hat", "N_hat", "Nu_hat", "No", "trial", "T", "alpha", "N", "type"])
     data_folder = DATA_FOLDER * "alpha_$(alpha)/"
     data_files = [file for file in readdir(data_folder) if occursin("sample", file)]
+    N = get_truth(data_folder * "metadata_$(alpha).csv")
     for file in data_files
         trial_no = parse(Int, split(split(file, "_")[2], ".")[1])
         samples = read_captures(data_folder * file)
@@ -37,7 +44,7 @@ for alpha in ALPHAS
             n = [length(s) for s in S]
             (minf, minx, ret) = fit_model(S, O, n, GRID_SIZE)
             write_row(output_file,
-                      [minx[1], minx[2] + length(O), minx[2], length(O), t, trial_no, alpha, "Pseudolikelihood"])
+                      [minx[1], minx[2] + length(O), minx[2], length(O), trial_no, t, alpha, N, "Pseudolikelihood"])
             # alpha_trace = [loglh(i, minx[2], S, O, n, 1000) for i in ALPHA_TRACE_RANGE];
             # write_row(OUTPUT_FOLDER * "alpha_trace_$(alpha).csv",
             #           vcat(alpha_trace, [minx[1], minx[2], length(O), t, alpha]));
@@ -58,7 +65,7 @@ for alpha in ALPHAS
             end
             for b in keys(benchmarks)
                 write_row(output_file,
-                          [-999.0, benchmarks[b], minx[2], length(O), t, trial_no, alpha, b])
+                          [-999.0, benchmarks[b], minx[2], length(O), trial_no, t, alpha, N, b])
             end
         end
     end

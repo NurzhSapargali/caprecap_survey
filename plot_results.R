@@ -4,8 +4,9 @@ library(directlabels)
 
 
 datalist = list()
+BA_EDGE_PER_NODE = 1:3
 
-for (i in 1:3){
+for (i in BA_EDGE_PER_NODE){
   filename = sprintf("./_900_output/data/graphs/ba_%s/nodes_estimates.csv", i)
   dat = read.csv(filename, header = FALSE)
   colnames(dat) = c("a_hat", "N_hat", "Nu_hat", "No", "trial", "T", "avg_n", "N", "type")
