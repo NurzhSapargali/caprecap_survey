@@ -12,7 +12,7 @@ preprocess = function(results, drop_alpha = FALSE){
   results$N_hat = as.numeric(results$N_hat)
   results$sq_dev = (results$N_hat - results$N)^2
   if (drop_alpha){
-    results = select(results, -alpha)
+    results = dplyr::select(results, -alpha)
   }
   results
 }

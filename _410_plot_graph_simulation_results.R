@@ -8,14 +8,13 @@ BA_EDGE_PER_NODE = 1:3
 
 for (i in BA_EDGE_PER_NODE){
   filename = sprintf("./_900_output/data/graphs/ba_%s/nodes_estimates.csv", i)
-  dat = read.csv(filename, header = FALSE)
-  colnames(dat) = c("a_hat", "N_hat", "Nu_hat", "No", "trial", "T", "avg_n", "N", "type")
+  dat = read.csv(filename)
   dat[dat == "Nonsequential frequencies"] = NA
   dat[dat == "Noninvertible X'WX"] = NA
   dat[dat == Inf] = NA
   dat$N_hat = as.numeric(dat$N_hat)
   dat$sq_dev = (dat$N_hat - dat$N)^2
-  header = "Distribution of alpha estimates, 1000 nodes, %s edges"
+  header = "Distribution of alpha estimates, T = 20, 1000 nodes, %s edges"
   bins = 1.0 + 3.322 * log(nrow(dat[dat$a_hat > 0.0,])) 
   ggplot(data = dat[dat$a_hat > 0.0,], mapping = aes(x = log(a_hat))) +
     geom_histogram(size = 0.25, colour = "white", bins = bins) +
@@ -60,12 +59,12 @@ ggplot(
   coord_cartesian(ylim = c(NA, NA), xlim = c(775, NA)) +
   geom_dl(
     aes(label = type),
-    method = list(dl.trans(x = x * 0.90, y = y * 1.03), "first.points", cex = 0.8)
+    method = list(dl.trans(x = x * 0.90, y = y * 1.03), "first.bumpup", cex = 0.8)
     ) +
   guides(colour = "none") +
   xlab("Edges") +
   ylab("Log of relative RMSE") +
-  ggtitle("Relative RMSE of alternative estimators")
+  ggtitle("Relative RMSE of alternative estimators, T = 20")
 
 ggsave(filename="rel_rmse.pdf", device = cairo_pdf, width = 297, height = 210, units = "mm")
 
@@ -81,11 +80,11 @@ ggplot(
   coord_cartesian(ylim = c(NA, NA), xlim = c(775, NA)) +
   geom_dl(
     aes(label = type),
-    method = list(dl.trans(x = x * 0.90, y = y * 1.03), "first.points", cex = 0.8)
+    method = list(dl.trans(x = x * 0.90, y = y * 1.03), "first.bumpup", cex = 0.8)
   ) +
   guides(colour = "none") +
   xlab("Edges") +
   ylab("Relative bias") +
-  ggtitle("Relative bias of all estimators")
+  ggtitle("Relative bias of all estimators, T = 20")
 
 ggsave(filename="rel_bias.pdf", device = cairo_pdf, width = 297, height = 210, units = "mm")
