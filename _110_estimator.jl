@@ -5,7 +5,7 @@ import Distributions: Beta, logpdf
 using NLopt
 using StatsBase
 
-export loglh, fit_model
+export loglh, fit_model, fit_univariate_model, datalh
 
 function log_prior(p::Real, a::Real, b::Real)
     d = Beta(a, b)
@@ -39,7 +39,8 @@ function loglh(alpha::Real,
                N_u::Real,
                N_o::Int,
                data::Matrix,
-               grid::LinRange{Float64, Int})
+               grid::LinRange{Float64, Int},
+               verbose::Bool = true)
     beta = alpha * (N_u + N_o - 1.0)
 #     points = rand(Beta(alpha, beta), draws);
 #     P = n * transpose(points)
@@ -53,8 +54,16 @@ function loglh(alpha::Real,
     unobserved = reshape(data[:, cols], length(data[:, cols]), 1)
     integral_unobserved = trapezoid(alpha, beta, unobserved, grid)[1]
     truncation = 1.0 - integral_unobserved
+    if truncation < 0.0
+        bad_truncation = truncation
+        truncation = 5e-200
+        fails = fails + (1.0 - fails) / 2.0
+        avg_fail = avg_fail + (bad_truncation - avg_fail) / 2.0
+    end
     lh = -N_o * log(truncation) + sum(log.(I))
-    println("....alpha = $alpha, N_u = $N_u, error_rate = $fails, avg_error = $avg_fail, lh = $lh")
+    if verbose
+        println("....alpha = $alpha, N_u = $N_u, error_rate = $fails, avg_error = $avg_fail, lh = $lh")
+    end
     return lh;
 end
 
@@ -83,6 +92,44 @@ function fit_model(S::Vector,
     println("Optimizing....")
     (minf, minx, ret) = NLopt.optimize(opt, [5.0, length(O)]);
     return (minf, minx, ret);
+end
+
+function fit_univariate_model(S::Vector,
+                              O::Set,
+                              n::Vector{Int64},
+                              fixed_val::Real,
+                              ngrid::Int,
+                              fixed_name::String = "alpha")
+    grid = LinRange(0.0001, 0.9999, ngrid)
+    println("Setting up the design matrix....")
+    X = Dict{Any, Vector{Bool}}()
+    for i in O
+        X[i] = [i in s for s in S]
+        println("....$(length(O) - length(X)) left")
+    end
+    N_o = length(X)
+    D = reduce(hcat, [[datalh(p, X[i], n) for p in grid] for i in keys(X)])
+    D = hcat(D, [datalh(p, zeros(Bool, length(n)), n) for p in grid])
+    opt = Opt(:LN_SBPLX, 1)
+    if fixed_name == "alpha"
+        LL1(x, grad) = -loglh(fixed_val, x[1], N_o, D, grid);
+        lower = [0]
+        upper = [Inf]
+        initial_guess = [N_o]
+        opt.min_objective = LL1
+    elseif fixed_name == "Nu"
+        LL2(x, grad) = -loglh(x[1], fixed_val, N_o, D, grid);
+        upper = [10000]
+        lower = [0.01]
+        initial_guess = [5.0]
+        opt.min_objective = LL2
+    end
+    opt.upper_bounds = upper
+    opt.lower_bounds = lower
+    opt.xtol_abs = 1e-2
+    println("Optimizing....")
+    (minf, minx, ret) = NLopt.optimize(opt, initial_guess)
+    return (minf, minx, ret)
 end
 
 end
