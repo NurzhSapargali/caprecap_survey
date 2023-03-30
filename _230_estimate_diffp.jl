@@ -9,11 +9,11 @@ using .Benchmarks
 using StatsBase
 using DelimitedFiles
 
-ALPHAS::Vector{Float64} = [0.5, 1.0, 5.0, 10.0]
+ALPHAS::Vector{Float64} = [0.5, 1.0, 10.0, 5.0]
 DATA_FOLDER::String = "./_200_input/diffp/"
 breaks_T::Vector{Int64} = [5, 10, 15, 20]
 OUTPUT_FOLDER::String = "./_900_output/data/diffp/"
-GRID_SIZE::Int64 = 10000
+
 
 function get_truth(filename)
     data = readdlm(filename, ' ', String, '\n')[2, 1]
@@ -40,7 +40,7 @@ for alpha in ALPHAS
             println("***TRIAL NO $file, $t***")
             O = Set([i for j in S for i in j])
             n = [length(s) for s in S]
-            (minf, minx, ret) = fit_model(S, O, n, GRID_SIZE)
+            (minf, minx, ret) = fit_model(S, O, n)
             write_row(output_file,
                       [minx[1], minx[2] + length(O), minx[2], length(O), trial_no, t, alpha, N, "Pseudolikelihood"])
             # alpha_trace = [loglh(i, minx[2], S, O, n, 1000) for i in ALPHA_TRACE_RANGE];

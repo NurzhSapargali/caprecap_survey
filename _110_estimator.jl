@@ -4,6 +4,7 @@ import Distributions: Beta, logpdf
 
 using NLopt
 using StatsBase
+using QuadGK
 
 export loglh, fit_model, fit_univariate_model, datalh
 
@@ -15,6 +16,10 @@ end
 function datalh(p::Real, x_i::Vector{Bool}, n::Vector{Int})
     comp_prob = 1.0 .- n * p
     return prod((n * p).^x_i .* comp_prob.^(1 .- x_i))
+end
+
+function joint(p::Real, a::Real, b::Real, x_i::Vector{Bool}, n::Vector{Int})
+    return exp(log_prior(p, a, b)) * datalh(p, x_i, n)
 end
 
 function trapezoid(a::Real, b::Real, data::Matrix, grid::LinRange{Float64, Int})
@@ -38,31 +43,34 @@ end
 function loglh(alpha::Real,
                N_u::Real,
                N_o::Int,
-               data::Matrix,
-               grid::LinRange{Float64, Int},
+               X::Dict,
+               n::Vector{Int},
                verbose::Bool = true)
     beta = alpha * (N_u + N_o - 1.0)
 #     points = rand(Beta(alpha, beta), draws);
 #     P = n * transpose(points)
 #     comp_P = 1.0 .- P
 #     I = keys(X) .|> (g -> monte_carlo(P, comp_P, X[g]))
-    cols = size(data)[2]
-    I = trapezoid(alpha, beta, data[:, 1:(cols - 1)], grid)
+#    cols = size(data)[2]
+    I = [quadgk(p -> joint(p, alpha, beta, X[i], n), 0, 1)[1] for i in keys(X)]
     fails, avg_fail = (length(I[I .< 0]) / length(I), mean(I[I .< 0]))
     I[I .< 0] .= 5e-200
 #     truncation = 1.0 - monte_carlo(P, comp_P, zeros(Bool, T));
-    unobserved = reshape(data[:, cols], length(data[:, cols]), 1)
-    integral_unobserved = trapezoid(alpha, beta, unobserved, grid)[1]
+#    unobserved = reshape(data[:, cols], length(data[:, cols]), 1)
+    integral_unobserved = quadgk(p -> joint(p, alpha, beta, zeros(Bool, length(n)), n), 0, 1)[1]
     truncation = 1.0 - integral_unobserved
+    bad_truncation = false
     if truncation < 0.0
         bad_truncation = truncation
         truncation = 5e-200
-        fails = fails + (1.0 - fails) / 2.0
-        avg_fail = avg_fail + (bad_truncation - avg_fail) / 2.0
     end
     lh = -N_o * log(truncation) + sum(log.(I))
     if verbose
-        println("....alpha = $alpha, N_u = $N_u, error_rate = $fails, avg_error = $avg_fail, lh = $lh")
+        if bad_truncation
+            println("....alpha = $alpha, N_u = $N_u, error_rate = $fails, avg_error = $avg_fail, bad_truncation = $bad_truncation, lh = $lh")
+        else
+            println("....alpha = $alpha, N_u = $N_u, error_rate = $fails, avg_error = $avg_fail, lh = $lh")
+        end
     end
     return lh;
 end
@@ -70,8 +78,9 @@ end
 function fit_model(S::Vector,
                    O::Set,
                    n::Vector{Int64},
-                   ngrid::Int)
-    grid = LinRange(0.0001, 0.9999, ngrid)
+                   lower = [0.01, 0],
+                   upper = [Inf, Inf])
+#     grid = LinRange(0.0001, 0.9999, ngrid)
     println("Setting up the design matrix....")
     X = Dict{Any, Vector{Bool}}()
     for i in O
@@ -79,19 +88,17 @@ function fit_model(S::Vector,
         println("....$(length(O) - length(X)) left")
     end
     N_o = length(X)
-    D = reduce(hcat, [[datalh(p, X[i], n) for p in grid] for i in keys(X)])
-    D = hcat(D, [datalh(p, zeros(Bool, length(n)), n) for p in grid])
-    LL(x, grad) = -loglh(x[1], x[2], N_o, D, grid);
-    opt = Opt(:LN_SBPLX, 2);
-    lower = [0.01, 0];
-    upper = [10000, Inf];
+#     D = reduce(hcat, [[datalh(p, X[i], n) for p in grid] for i in keys(X)])
+#     D = hcat(D, [datalh(p, zeros(Bool, length(n)), n) for p in grid])
+    LL(x, grad) = -loglh(x[1], x[2], N_o, X, n)
+    opt = Opt(:LN_SBPLX, 2)
     opt.upper_bounds = upper
-    opt.lower_bounds = lower;
-    opt.min_objective = LL;
-    opt.xtol_abs = 1e-2
+    opt.lower_bounds = lower
+    opt.min_objective = LL
+    opt.ftol_rel = 10e-8
     println("Optimizing....")
-    (minf, minx, ret) = NLopt.optimize(opt, [5.0, length(O)]);
-    return (minf, minx, ret);
+    (minf, minx, ret) = NLopt.optimize(opt, [5.0, length(O)])
+    return (minf, minx, ret)
 end
 
 function fit_univariate_model(S::Vector,
