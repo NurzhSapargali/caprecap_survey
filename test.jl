@@ -25,8 +25,7 @@ alpha = 0.5
 data_folder = DATA_FOLDER * "alpha_$(alpha)/"
 data_files = [file for file in readdir(data_folder) if occursin("sample", file)]
 N = get_truth(data_folder * "metadata_$(alpha).csv")
-file = "sample_639.csv"
-trial_no = parse(Int, split(split(file, "_")[2], ".")[1])
+file = "perfect_sample_1.csv"
 samples = read_captures(data_folder * file)
 t = 5
 S = samples[1:t]
@@ -38,4 +37,9 @@ f = countmap(values(K))
 println("***TRIAL NO $file, $t***")
 O = Set([i for j in S for i in j])
 n = [length(s) for s in S]
-(minf, minx, ret) = fit_model(S, O, n)
+X = Dict{Any, Vector{Bool}}()
+for i in O
+    X[i] = [i in s for s in S]
+    println("....$(length(O) - length(X)) left")
+end
+(minf, minx, ret) = fit_model(X, n)

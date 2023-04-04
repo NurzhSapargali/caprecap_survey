@@ -9,10 +9,10 @@ import Distributions: Beta, Poisson
 import Random: seed!
 
 N::Int = 1000
-T::Int = 20
+T::Int = 30
 T_min::Int = 5
-TRIALS::Int = 5000
-ALPHAS::Vector{Float64} = [0.5, 1.0, 5.0, 10.0]
+TRIALS::Int = 1000
+ALPHAS::Vector{Float64} = [0.5]
 AVG_SAMPLE_SIZE::Int = 30
 SEED::Int = 10000
 DATA_FOLDER::String = "./_200_input/diffp/"

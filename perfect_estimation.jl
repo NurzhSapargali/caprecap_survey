@@ -9,9 +9,9 @@ using .Benchmarks
 using StatsBase
 using DelimitedFiles
 
-ALPHAS::Vector{Float64} = [0.5, 1.0, 10.0, 5.0]
+ALPHAS::Vector{Float64} = [0.5]
 DATA_FOLDER::String = "./_200_input/diffp/"
-breaks_T::Vector{Int64} = [5, 10, 15, 20]
+breaks_T::Vector{Int64} = [5, 10, 15, 20, 25, 30]
 OUTPUT_FOLDER::String = "./_900_output/data/diffp/"
 
 
@@ -31,7 +31,7 @@ for alpha in ALPHAS
         trial_no = parse(Int, split(split(file, "_")[3], ".")[1])
         samples = read_captures(data_folder * file)
         for t in breaks_T
-            S = samples[1:t];
+            S = samples[1:t]
             K = Dict{Int, Int}()
             for s in S
                 addcounts!(K, s)
@@ -40,7 +40,12 @@ for alpha in ALPHAS
             println("***TRIAL NO $file, $t***")
             O = Set([i for j in S for i in j])
             n = [length(s) for s in S]
-            (minf, minx, ret) = fit_model(S, O, n)
+            X = Dict{Any, Vector{Bool}}()
+            for i in O
+                X[i] = [i in s for s in S]
+                println("....$(length(O) - length(X)) left")
+            end
+            (minf, minx, ret) = fit_model(X, n)
             write_row(output_file,
                       [minx[1], minx[2] + length(O), minx[2], length(O), trial_no, t, alpha, N, "Pseudolikelihood"])
             # alpha_trace = [loglh(i, minx[2], S, O, n, 1000) for i in ALPHA_TRACE_RANGE];
