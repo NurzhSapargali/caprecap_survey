@@ -9,7 +9,7 @@ import Distributions: Beta, Poisson
 import Random: seed!
 
 N::Int = 1000
-T::Int = 30
+T::Int = 20
 T_min::Int = 5
 TRIALS::Int = 1000
 ALPHAS::Vector{Float64} = [0.5]

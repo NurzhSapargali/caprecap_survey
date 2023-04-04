@@ -23,11 +23,11 @@ end
 
 alpha = 0.5
 data_folder = DATA_FOLDER * "alpha_$(alpha)/"
-data_files = [file for file in readdir(data_folder) if occursin("sample", file)]
+data_files = [file for file in readdir(data_folder) if occursin("perfect_sample", file)]
 N = get_truth(data_folder * "metadata_$(alpha).csv")
-file = "perfect_sample_1.csv"
+file = "sample_10.csv"
 samples = read_captures(data_folder * file)
-t = 5
+t = 20
 S = samples[1:t]
 K = Dict{Int, Int}()
 for s in S
@@ -42,4 +42,4 @@ for i in O
     X[i] = [i in s for s in S]
     println("....$(length(O) - length(X)) left")
 end
-(minf, minx, ret) = fit_model(X, n)
+(minf, minx, ret) = fit_model(X, n, 2500)

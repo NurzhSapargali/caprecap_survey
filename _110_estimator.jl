@@ -35,43 +35,47 @@ function monte_carlo(prob_matrix::Matrix,
                      complement_prob_matrix::Matrix,
                      x_i::Vector{Bool})
     X = repeat(x_i, 1, size(prob_matrix)[2]);
-    G_X = (prob_matrix .^ X) .* (complement_prob_matrix .^ (1 .- X));
-    integrands = prod(G_X, dims=1);
-    return mean(integrands);
+    G_X = X .* log.(prob_matrix) .+ (1 .- X) .* log.(complement_prob_matrix);
+    integrands = sum(G_X, dims=1);
+    return mean(exp.(integrands));
 end
 
 function loglh(alpha::Real,
                N_u::Real,
                X::Dict,
                n::Vector{Int},
+               draws::Int,
                verbose::Bool = true)
     try
         N_o = length(X)
         beta = alpha * (N_u + N_o - 1.0)
-    #     points = rand(Beta(alpha, beta), draws);
-    #     P = n * transpose(points)
-    #     comp_P = 1.0 .- P
-    #     I = [g -> monte_carlo(P, comp_P, X[g]) for g in keys(X)]
+        points = rand(Beta(alpha, beta), draws)
+        P = n * transpose(points)
+        if (length(P[P .>= 1]) != 0)
+            P[P .>= 1] .= 0.99
+        end
+        comp_P = 1.0 .- P
+        I = [monte_carlo(P, comp_P, X[g]) for g in keys(X)]
     #    cols = size(data)[2]
-        I = [quadgk(p -> joint(p, alpha, beta, X[i], n), 0, 1)[1] for i in keys(X)]
+    #    I = [quadgk(p -> joint(p, alpha, beta, X[i], n), 0, 1)[1] for i in keys(X)]
         fails, avg_fail = (length(I[I .< 0]) / length(I), mean(I[I .< 0]))
         I[I .<= 0] .= 5e-200
-    #     truncation = 1.0 - monte_carlo(P, comp_P, zeros(Bool, length(n)));
+        truncation = 1.0 - monte_carlo(P, comp_P, zeros(Bool, length(n)));
     #    unobserved = reshape(data[:, cols], length(data[:, cols]), 1)
-        integral_unobserved = 0.0
-        try
-            integral_unobserved = quadgk(p -> joint(p, alpha, beta, zeros(Bool, length(n)), n), 0, 1)[1]
-        catch y
-            if isa(y, DomainError)
-                points = rand(Beta(alpha, beta), 100000)
-                P = n * transpose(points)
-                comp_P = 1.0 .- P
-                integral_unobserved = monte_carlo(P, comp_P, zeros(Bool, length(n)))
-            else
-                error("Something wrong by truncation")
-            end
-        end
-        truncation = 1.0 - integral_unobserved
+    #    integral_unobserved = 0.0
+    #    try
+    #        integral_unobserved = quadgk(p -> joint(p, alpha, beta, zeros(Bool, length(n)), n), 0, 1)[1]
+    #    catch y
+    #        if isa(y, DomainError)
+    #            points = rand(Beta(alpha, beta), 100000)
+    #            P = n * transpose(points)
+    #            comp_P = 1.0 .- P
+    #            integral_unobserved = monte_carlo(P, comp_P, zeros(Bool, length(n)))
+    #        else
+    #            error("Something wrong by truncation")
+    #        end
+    #    end
+    #    truncation = 1.0 - integral_unobserved
         bad_truncation = 1.0
         if truncation <= 0.0
             bad_truncation = truncation
@@ -95,18 +99,19 @@ end
 
 function fit_model(X::Dict,
                    n::Vector{Int64},
+                   draws::Int,
                    lower = [0.01, 0],
                    upper = [Inf, Inf])
 #     grid = LinRange(0.0001, 0.9999, ngrid)
     N_o = length(X)
 #     D = reduce(hcat, [[datalh(p, X[i], n) for p in grid] for i in keys(X)])
 #     D = hcat(D, [datalh(p, zeros(Bool, length(n)), n) for p in grid])
-    LL(x, grad) = -loglh(x[1], x[2], X, n)
+    LL(x, grad) = -loglh(x[1], x[2], X, n, draws)
     opt = Opt(:LN_SBPLX, 2)
     opt.upper_bounds = upper
     opt.lower_bounds = lower
     opt.min_objective = LL
-    opt.ftol_abs = 0.0001
+    opt.xtol_abs = 0.0001
     println("Optimizing....")
     (minf, minx, ret) = NLopt.optimize(opt, [5.0, N_o])
     return (minf, minx, ret)
