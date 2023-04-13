@@ -42,4 +42,4 @@ for i in O
     X[i] = [i in s for s in S]
     println("....$(length(O) - length(X)) left")
 end
-(minf, minx, ret) = fit_model(X, n, 2500)
+(minf, minx, ret) = fit_model(X, n, 10000, [5.0, length(X)])
