@@ -15,7 +15,7 @@ ALPHAS::Vector{Float64} = [0.5]
 DATA_FOLDER::String = "./_200_input/diffp/"
 breaks_T::Vector{Int64} = [5, 10, 15, 20]
 OUTPUT_FOLDER::String = "./_900_output/data/diffp/"
-NGRID::Int = 15000
+DRAWS::Int = 3500
 
 
 function get_truth(filename)
@@ -47,7 +47,7 @@ for alpha in ALPHAS
                 X[i] = [i in s for s in S]
                 println("....$(length(O) - length(X)) left")
             end
-            (minf, minx, ret) = fit_model(X, n, NGRID, [5.0, length(X)]; ftol = 0.000000001)
+            (minf, minx, ret) = fit_model(X, n, DRAWS, [5.0, length(X)]; upper = [500.0, Inf])
             write_row(output_file,
                       [minx[1], minx[2] + length(O), minx[2], length(O), trial_no, t, alpha, N, "Pseudolikelihood"])
             # alpha_trace = [loglh(i, minx[2], S, O, n, 1000) for i in ALPHA_TRACE_RANGE];

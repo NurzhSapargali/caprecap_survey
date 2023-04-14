@@ -1,6 +1,6 @@
 module Estimator
 
-import Distributions: Beta, logpdf, truncated
+import Distributions: Gamma, Beta, logpdf, truncated
 import StatsFuns: logistic, logit
 
 using NLopt
@@ -50,28 +50,36 @@ end
 
 function loglh(alpha::Real,
                N_u::Real,
-               data::Matrix,
+               X::Dict,
+#               data::Matrix,
                n::Vector{Int},
-               grid::LinRange{Float64, Int},
+               draws::Int,
+#               grid::LinRange{Float64, Int},
                verbose::Bool = true)
     try
-        N_o = size(data)[2] - 1
+        #N_o = size(data)[2] - 1
+        N_o = length(X)
         N = N_o + N_u
 #         I = [trapezoid(alpha, N, X[i], n, grid) for i in keys(X)]
 #         unobserved = trapezoid(alpha, N, zeros(Bool, length(n)), n, grid)
-#         beta = alpha * (N_u + N_o - 1.0)
-#         points = rand(Beta(alpha, beta), draws)
-#         P = n * transpose(points)
+        beta = alpha * (N_u + N_o - 1.0)
+        z = rand(Gamma(beta), draws)
+        n_max = maximum(n)
+        y = [rand(truncated(Gamma(alpha), upper = exp(logit(1 / n_max)) * i)) for i in z]
+        points = log.(y) - log.(z)
+#        d = truncated(Beta(alpha, beta), upper = 1.0 / maximum(n))
+#        points = rand(d, draws)
+        P = n * logistic.(transpose(points))
 #         if (length(P[P .>= 1]) != 0)
 #             P[P .>= 1] .= 0.99
 #         end
-#         comp_P = 1.0 .- P
-#         I = [monte_carlo(P, comp_P, X[g]) for g in keys(X)]
+        comp_P = 1.0 .- P
+        obs = [monte_carlo(P, comp_P, X[g]) for g in keys(X)]
     #    cols = size(data)[2]
     #    I = [quadgk(p -> joint(p, alpha, beta, X[i], n), 0, 1)[1] for i in keys(X)]
 #         fails, avg_fail = (length(I[I .< 0]) / length(I), mean(I[I .< 0]))
 #         I[I .<= 0] .= 5e-200
-#         truncation = 1.0 - monte_carlo(P, comp_P, zeros(Bool, length(n)));
+        truncation = 1.0 - monte_carlo(P, comp_P, zeros(Bool, length(n)));
     #    unobserved = reshape(data[:, cols], length(data[:, cols]), 1)
     #    integral_unobserved = 0.0
     #    try
@@ -86,9 +94,9 @@ function loglh(alpha::Real,
     #            error("Something wrong by truncation")
     #        end
     #    end
-        integrals = trapezoid(alpha, N, data, n, grid)
-        obs = integrals[:,1:(lastindex(integrals) - 1)]
-        truncation = 1.0 - integrals[1,lastindex(integrals)]
+        # integrals = trapezoid(alpha, N, data, n, grid)
+        # obs = integrals[:,1:(lastindex(integrals) - 1)]
+        # truncation = 1.0 - integrals[1,lastindex(integrals)]
 #         bad_truncation = 1.0
 #         if truncation <= 0.0
 #             bad_truncation = truncation
@@ -113,22 +121,23 @@ end
 
 function fit_model(X::Dict,
                    n::Vector{Int64},
-                   ngrid::Int,
+                   draws::Int,
+                   #ngrid::Int,
                    theta0::Vector;
                    lower::Vector = [0.01, 0.0],
                    upper::Vector = [Inf, Inf],
-                   ftol::Real = 0.0001)
+                   xtol::Real = 0.001)
 #     grid = LinRange(0.0001, 0.9999, ngrid)
-    upper_bound = logit(1.0 / maximum(n) - eps())
-    grid = LinRange(-700.0, upper_bound, ngrid)
-    D = reduce(hcat, [[log_datalh(eta, X[i], n) for eta in grid] for i in keys(X)])
-    D = hcat(D, [log_datalh(eta, zeros(Bool, length(n)), n) for eta in grid])
-    LL(x, grad) = -loglh(x[1], x[2], D, n, grid)
+#    upper_bound = logit(1.0 / maximum(n) - eps())
+#    grid = LinRange(-700.0, upper_bound, ngrid)
+#    D = reduce(hcat, [[log_datalh(eta, X[i], n) for eta in grid] for i in keys(X)])
+#    D = hcat(D, [log_datalh(eta, zeros(Bool, length(n)), n) for eta in grid])
+    LL(x, grad) = -loglh(x[1], x[2], X, n, draws)
     opt = Opt(:LN_SBPLX, 2)
     opt.upper_bounds = upper
     opt.lower_bounds = lower
     opt.min_objective = LL
-    opt.ftol_abs = ftol
+    opt.xtol_abs = xtol
     println("Optimizing....")
     (minf, minx, ret) = NLopt.optimize(opt, theta0)
     return (minf, minx, ret)
