@@ -6,7 +6,7 @@ import StatsFuns: logistic, logit
 using NLopt
 using StatsBase
 
-export loglh, log_datalh, log_prior, log_posterior, fit_model #, fit_univariate_model
+export loglh, log_datalh, log_prior, log_posterior, fit_model, trapezoid, monte_carlo #, fit_univariate_model
 
 function log_prior(eta::Real, a::Real, N::Real, max_n::Int)
     p = logistic(eta)
