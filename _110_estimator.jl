@@ -8,9 +8,9 @@ using StatsBase
 
 export loglh, log_datalh, log_prior, log_posterior, fit_model, trapezoid, monte_carlo #, fit_univariate_model
 
-function log_prior(eta::Real, a::Real, N::Real, max_n::Int)
+function log_prior(eta::Real, a::Real, b::Real, max_n::Int)
     p = logistic(eta)
-    b = (N - 1.0) * a
+#    b = (N - 1.0) * a
     d = truncated(Beta(a, b), upper = 1.0 / max_n)
     return logpdf(d, p) + log(p) + log(1.0 - p)
 end
@@ -22,9 +22,9 @@ function log_datalh(eta::Real, x_i::Vector{Bool}, n::Vector{Int})
     return sum(lhs)
 end
 
-function log_posterior(eta::Real, a::Real, N::Real, x_i::Vector{Bool}, n::Vector{Int})
+function log_posterior(eta::Real, a::Real, b::Real, x_i::Vector{Bool}, n::Vector{Int})
     max_n = maximum(n)
-    return log_prior(eta, a, N, max_n) + log_datalh(eta, x_i, n)
+    return log_prior(eta, a, b, max_n) + log_datalh(eta, x_i, n)
 end
 
 function trapezoid(a::Real, N::Real, data::Matrix, n::Vector{Int}, grid::LinRange{Float64, Int})
@@ -49,37 +49,38 @@ function monte_carlo(prob_matrix::Matrix,
 end
 
 function loglh(alpha::Real,
-               N_u::Real,
-               X::Dict,
-#               data::Matrix,
+               b::Real,
+#               N_u::Real,
+#               X::Dict,
+               data::Matrix,
                n::Vector{Int},
-               draws::Int,
-#               grid::LinRange{Float64, Int},
+#               draws::Int,
+               grid::LinRange{Float64, Int},
                verbose::Bool = true)
     try
-        #N_o = size(data)[2] - 1
-        N_o = length(X)
-        N = N_o + N_u
-#         I = [trapezoid(alpha, N, X[i], n, grid) for i in keys(X)]
-#         unobserved = trapezoid(alpha, N, zeros(Bool, length(n)), n, grid)
-        beta = alpha * (N_u + N_o - 1.0)
-        z = rand(Gamma(beta), draws)
-        n_max = maximum(n)
-        y = [rand(truncated(Gamma(alpha), upper = exp(logit(1 / n_max)) * i)) for i in z]
-        points = log.(y) - log.(z)
+        N_o = size(data)[2] - 1
+#        N_o = length(X)
+#        N = N_o + N_u
+#        I = [trapezoid(alpha, b, X[i], n, grid) for i in keys(X)]
+#        unobserved = trapezoid(alpha, b, zeros(Bool, length(n)), n, grid)
+#        beta = alpha * (N_u + N_o - 1.0)
+#        z = rand(Gamma(beta), draws)
+#        n_max = maximum(n)
+#        y = [rand(truncated(Gamma(alpha), upper = exp(logit(1 / n_max)) * i)) for i in z]
+#        points = log.(y) - log.(z)
 #        d = truncated(Beta(alpha, beta), upper = 1.0 / maximum(n))
 #        points = rand(d, draws)
-        P = n * logistic.(transpose(points))
+#        P = n * logistic.(transpose(points))
 #         if (length(P[P .>= 1]) != 0)
 #             P[P .>= 1] .= 0.99
 #         end
-        comp_P = 1.0 .- P
-        obs = [monte_carlo(P, comp_P, X[g]) for g in keys(X)]
+#        comp_P = 1.0 .- P
+#        obs = [monte_carlo(P, comp_P, X[g]) for g in keys(X)]
     #    cols = size(data)[2]
     #    I = [quadgk(p -> joint(p, alpha, beta, X[i], n), 0, 1)[1] for i in keys(X)]
 #         fails, avg_fail = (length(I[I .< 0]) / length(I), mean(I[I .< 0]))
 #         I[I .<= 0] .= 5e-200
-        truncation = 1.0 - monte_carlo(P, comp_P, zeros(Bool, length(n)));
+#        truncation = 1.0 - monte_carlo(P, comp_P, zeros(Bool, length(n)));
     #    unobserved = reshape(data[:, cols], length(data[:, cols]), 1)
     #    integral_unobserved = 0.0
     #    try
@@ -94,9 +95,9 @@ function loglh(alpha::Real,
     #            error("Something wrong by truncation")
     #        end
     #    end
-        # integrals = trapezoid(alpha, N, data, n, grid)
-        # obs = integrals[:,1:(lastindex(integrals) - 1)]
-        # truncation = 1.0 - integrals[1,lastindex(integrals)]
+        integrals = trapezoid(alpha, b, data, n, grid)
+        obs = integrals[:,1:(lastindex(integrals) - 1)]
+        truncation = 1.0 - integrals[1,lastindex(integrals)]
 #         bad_truncation = 1.0
 #         if truncation <= 0.0
 #             bad_truncation = truncation
@@ -109,7 +110,7 @@ function loglh(alpha::Real,
 #             else
 #                 println("....alpha = $alpha, N_u = $N_u, error_rate = $fails, avg_error = $avg_fail, lh = $lh")
 #             end
-              println("....alpha = $alpha, N_u = $N_u, lh = $lh")
+              println("....alpha = $alpha, b = $b, lh = $lh")
         end
         return lh
     catch e
@@ -121,23 +122,23 @@ end
 
 function fit_model(X::Dict,
                    n::Vector{Int64},
-                   draws::Int,
-                   #ngrid::Int,
+#                   draws::Int,
+                   ngrid::Int,
                    theta0::Vector;
                    lower::Vector = [0.01, 0.0],
                    upper::Vector = [Inf, Inf],
-                   xtol::Real = 0.001)
+                   ftol::Real = 0.001)
 #     grid = LinRange(0.0001, 0.9999, ngrid)
-#    upper_bound = logit(1.0 / maximum(n) - eps())
-#    grid = LinRange(-700.0, upper_bound, ngrid)
-#    D = reduce(hcat, [[log_datalh(eta, X[i], n) for eta in grid] for i in keys(X)])
-#    D = hcat(D, [log_datalh(eta, zeros(Bool, length(n)), n) for eta in grid])
-    LL(x, grad) = -loglh(x[1], x[2], X, n, draws)
+    upper_bound = logit(1.0 / maximum(n) - eps())
+    grid = LinRange(-700.0, upper_bound, ngrid)
+    D = reduce(hcat, [[log_datalh(eta, X[i], n) for eta in grid] for i in keys(X)])
+    D = hcat(D, [log_datalh(eta, zeros(Bool, length(n)), n) for eta in grid])
+    LL(x, grad) = -loglh(x[1], x[2], D, n, grid)
     opt = Opt(:LN_SBPLX, 2)
     opt.upper_bounds = upper
     opt.lower_bounds = lower
     opt.min_objective = LL
-    opt.xtol_abs = xtol
+    opt.ftol_abs = ftol
     println("Optimizing....")
     (minf, minx, ret) = NLopt.optimize(opt, theta0)
     return (minf, minx, ret)

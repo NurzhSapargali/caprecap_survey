@@ -32,7 +32,7 @@ data_files = [file for file in readdir(data_folder) if occursin("perfect_sample"
 N = get_truth(data_folder * "metadata_$(alpha).csv")
 file = "perfect_sample_10.csv"
 samples = read_captures(data_folder * file)
-t = 20
+t = 10
 S = samples[1:t]
 K = Dict{Int, Int}()
 for s in S
@@ -49,18 +49,18 @@ for i in O
 end
 upper_bound = logit(1 / maximum(n)) - eps()
 grid = LinRange(-700.0, upper_bound, 15000)
-beta = alpha * (N - 1.0)
-z = rand(Gamma(beta), 3500)
-n_max = maximum(n)
-y = [rand(truncated(Gamma(alpha), upper = exp(logit(1 / n_max)) * i)) for i in z]
-points = log.(y) - log.(z)
-histogram(points, normalize = :pdf, label = "")
-plot!(grid, exp.(log_prior.(grid, 0.5, N, maximum(n))), xlim = [-20, Inf], label = "")
-vline!([logit(1 / maximum(n)), -log(N - 1)], label = "")
-P = n * logistic.(transpose(points))
-comp_P = 1.0 .- P
-mc = [monte_carlo(P, comp_P, X[g]) for g in keys(X)]
-D = reduce(hcat, [[log_datalh(eta, X[i], n) for eta in grid] for i in keys(X)])
-quad = transpose(trapezoid(0.5, N, D, n, grid))
-histogram(quad - mc, title = "Trapezoid (15k grid points) - MC (3.5k draws)", label = "")
-(minf, minx, ret) = fit_model(X, n, 10000, [5.0, length(X)])
+# beta = alpha * (N - 1.0)
+# z = rand(Gamma(beta), 3500)
+# n_max = maximum(n)
+# y = [rand(truncated(Gamma(alpha), upper = exp(logit(1 / n_max)) * i)) for i in z]
+# points = log.(y) - log.(z)
+# histogram(points, normalize = :pdf, label = "")
+# plot!(grid, exp.(log_prior.(grid, 0.5, N, maximum(n))), xlim = [-20, Inf], label = "")
+# vline!([logit(1 / maximum(n)), -log(N - 1)], label = "")
+# P = n * logistic.(transpose(points))
+# comp_P = 1.0 .- P
+# mc = [monte_carlo(P, comp_P, X[g]) for g in keys(X)]
+# D = reduce(hcat, [[log_datalh(eta, X[i], n) for eta in grid] for i in keys(X)])
+# quad = transpose(trapezoid(0.5, N, D, n, grid))
+# histogram(quad - mc, title = "Trapezoid (15k grid points) - MC (3.5k draws)", label = "")
+(minf, minx, ret) = fit_model(X, n, 10000, [5.0, length(X)]; ftol = 0.000000001)
