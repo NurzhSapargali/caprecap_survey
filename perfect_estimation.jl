@@ -10,12 +10,13 @@ using StatsBase
 using DelimitedFiles
 
 import Random: seed!
+import Distributions: Beta, logcdf
 
 ALPHAS::Vector{Float64} = [0.5]
 DATA_FOLDER::String = "./_200_input/diffp/"
-breaks_T::Vector{Int64} = [5, 10, 15, 20]
+breaks_T::Vector{Int64} = [5, 10, 15, 20, 30, 35]
 OUTPUT_FOLDER::String = "./_900_output/data/diffp/"
-DRAWS::Int = 3500
+DRAWS::Int = 35000
 
 
 function get_truth(filename)
@@ -23,9 +24,16 @@ function get_truth(filename)
     return parse(Float64, split(data, ",")[1])
 end
 
+function logN(a, b, upper)
+    main_term = (log(a + b) - log(a))
+    temper = logcdf(Beta(a, b), upper) - logcdf(Beta(a + 1, b), upper)
+    println(exp(main_term + temper))
+    return main_term + temper
+end
+
 for alpha in ALPHAS
     output_file = OUTPUT_FOLDER * "perfect_estimates_$(alpha).csv"
-    write_row(output_file, ["a_hat", "N_hat", "Nu_hat", "No", "trial", "T", "alpha", "N", "type"])
+    #write_row(output_file, ["a_hat", "N_hat", "Nu_hat", "No", "trial", "T", "alpha", "N", "type"])
     data_folder = DATA_FOLDER * "alpha_$(alpha)/"
     data_files = [file for file in readdir(data_folder) if occursin("perfect_sample", file)]
     N = get_truth(data_folder * "metadata_perfect_$(alpha).csv")
@@ -47,9 +55,10 @@ for alpha in ALPHAS
                 X[i] = [i in s for s in S]
                 println("....$(length(O) - length(X)) left")
             end
-            (minf, minx, ret) = fit_model(X, n, DRAWS, [5.0, length(X)]; upper = [500.0, Inf])
+            (minf, minx, ret) = fit_model(X, n, [5.0, length(X)]; ftol = 0.000000001)
+#            (minf, minx, ret) = fit_model(X, n, DRAWS, [5.0, length(X)]; upper = [500.0, Inf])
             write_row(output_file,
-                      [minx[1], minx[2] + length(O), minx[2], length(O), trial_no, t, alpha, N, "Pseudolikelihood"])
+                      [minx[1], exp(logN(minx[1], minx[2], 1 / maximum(n))), minx[2], length(O), trial_no, t, alpha, N, "Pseudolikelihood"])
             # alpha_trace = [loglh(i, minx[2], S, O, n, 1000) for i in ALPHA_TRACE_RANGE];
             # write_row(OUTPUT_FOLDER * "alpha_trace_$(alpha).csv",
             #           vcat(alpha_trace, [minx[1], minx[2], length(O), t, alpha]));
