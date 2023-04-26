@@ -7,7 +7,7 @@ using NLopt
 using StatsBase
 using QuadGK
 
-export loglh, log_datalh, log_prior, log_posterior, fit_model, trapezoid, monte_carlo #, fit_univariate_model
+export loglh, log_datalh, log_prior, log_posterior, fit_model, trapezoid, monte_carlo, u_size #, fit_univariate_model
 
 function u_size(a::Real, b::Real, max_n::Int, o_size::Int)
     first = log(a + b) - log(a)
@@ -123,7 +123,7 @@ function loglh(a::Real,
 #             else
 #                 println("....alpha = $alpha, N_u = $N_u, error_rate = $fails, avg_error = $avg_fail, lh = $lh")
 #             end
-              println("....alpha = $a, Nu = $N_u, b = $b, lh = $lh")
+#              println("....alpha = $a, Nu = $N_u, b = $b, lh = $lh")
         end
         return lh
     catch e
