@@ -10,7 +10,7 @@ import Random: seed!
 
 b::Float64 = 499.5
 N::Int = 1000
-T::Int = 35
+T::Int = 30
 T_min::Int = 5
 TRIALS::Int = 1000
 ALPHAS::Vector{Float64} = [0.5]

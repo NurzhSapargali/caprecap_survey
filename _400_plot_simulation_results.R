@@ -3,7 +3,7 @@ library(magrittr)
 library(directlabels)
 
 OUTPUT_FOLDER = "./_900_output/figures/"
-DRAWS = c(5, 10, 15, 20)
+DRAWS = c(5, 10, 15, 20, 30, 35)
 
 preprocess = function(results, drop_alpha = FALSE){
   results[results == "Nonsequential frequencies"] = NA
@@ -41,14 +41,16 @@ plot_alpha_hat = function(pr_results, title_ending, filename, true_alpha = NA){
   full_title = paste(header, title_ending, sep = ", ")
   p = ggplot(
     data = pr_results[pr_results$type == "Pseudolikelihood",],
-    mapping = aes(x = log(a_hat), y = T, group = T)
+    mapping = aes(y = log(a_hat), x = T)
     ) +
     geom_boxplot() +
+    stat_summary(fun=mean, colour="darkred", geom="point", shape=18, size=3, show.legend=FALSE) +
     theme_minimal() +
+    coord_flip() +
     xlab("Log of alpha estimate") +
     ggtitle(full_title)
   if (!is.na(true_alpha)){
-    p = p + geom_vline(xintercept = log(true_alpha), colour = "red")
+    p = p + geom_hline(yintercept = log(true_alpha), colour = "red")
   }
   ggsave(filename, plot = p, device = cairo_pdf, width = 297, height = 210, units = "mm")
 }
@@ -174,14 +176,14 @@ p1 = plot_aggregated_data(
   DRAWS,
   "Relative bias",
   ylim = c(NA, 0.20),
-  xlim = c(NA, 24)
+  xlim = c(NA, 39)
 ) + 
   geom_dl(
     aes(label = type),
     method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup", cex = 0.8)
   )
 ggsave(
-  filename = paste(OUTPUT_FOLDER, "diffp/rel_bias_0.5.pdf", sep = ""),
+  filename = paste(OUTPUT_FOLDER, "diffp/perfect_rel_bias_0.5.pdf", sep = ""),
   plot = p1,
   device = cairo_pdf,
   width = 297,
@@ -195,7 +197,7 @@ p2 = plot_aggregated_data(
   DRAWS,
   "Log of relative RMSE",
   ylim = c(NA, 0.5),
-  xlim = c(NA, 24)
+  xlim = c(NA, 39)
 ) + 
   geom_dl(
     aes(label = type),
@@ -204,7 +206,7 @@ p2 = plot_aggregated_data(
     )
   )
 ggsave(
-  filename = paste(OUTPUT_FOLDER, "diffp/rel_rmse_0.5.pdf", sep = ""),
+  filename = paste(OUTPUT_FOLDER, "diffp/perfect_rel_rmse_0.5.pdf", sep = ""),
   plot = p2,
   device = cairo_pdf,
   width = 297,
@@ -218,7 +220,7 @@ p3 = plot_aggregated_data(
   DRAWS,
   "Log of relative variance",
   ylim = c(NA, 5),
-  xlim = c(NA, 24)
+  xlim = c(NA, 39)
 ) + 
   geom_dl(
     aes(label = type),
@@ -227,7 +229,7 @@ p3 = plot_aggregated_data(
     )
   )
 ggsave(
-  filename = paste(OUTPUT_FOLDER, "diffp/rel_var_0.5.pdf", sep = ""),
+  filename = paste(OUTPUT_FOLDER, "diffp/perfect_rel_var_0.5.pdf", sep = ""),
   plot = p3,
   device = cairo_pdf,
   width = 297,

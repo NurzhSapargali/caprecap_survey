@@ -83,10 +83,10 @@ using Plots
 import Random: seed!
 
 N = 1000
-a = 0.9
-b = 899.1
+a = 0.5
+b = 499.5
 n = 30
-T = 20
+T = 10
 trials = 500
 d = truncated(Beta(a, b), upper = 1.0 / n)
 res = zeros(trials, 3)
