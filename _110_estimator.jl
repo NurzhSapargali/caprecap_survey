@@ -58,15 +58,15 @@ end
 function loglh(a::Real,
 #               N_u::Real,
                b::Real,
-               X::Dict,
-#               data::Matrix,
+#               X::Dict,
+               data::Matrix,
                n::Vector{Int},
 #               draws::Int,
-#               grid::LinRange{Float64, Int},
+               grid::LinRange{Float64, Int},
                verbose::Bool = true)
     try
-#        N_o = size(data)[2] - 1
-        N_o = length(X)
+        N_o = size(data)[2] - 1
+#        N_o = length(X)
 #        b = a * (N_o + N_u - 1.0)
 #        N = N_o + N_u
 #        I = [trapezoid(alpha, b, X[i], n, grid) for i in keys(X)]
@@ -85,10 +85,10 @@ function loglh(a::Real,
 #        comp_P = 1.0 .- P
 #        obs = [monte_carlo(P, comp_P, X[g]) for g in keys(X)]
     #    cols = size(data)[2]
-        upper = logit(1.0 / maximum(n))
-        obs = [quadgk(p -> exp(log_posterior(p, a, b, X[i], n)), -709.99, upper)[1] for i in keys(X)]
-        no_inc = zeros(Bool, length(n))
-        nobs = quadgk(p -> exp(log_posterior(p, a, b, no_inc, n)), -709.99, upper)[1]
+#        upper = logit(1.0 / maximum(n))
+#        obs = [quadgk(p -> exp(log_posterior(p, a, b, X[i], n)), -709.99, upper)[1] for i in keys(X)]
+#        no_inc = zeros(Bool, length(n))
+#        nobs = quadgk(p -> exp(log_posterior(p, a, b, no_inc, n)), -709.99, upper)[1]
         N_u = u_size(a, b, maximum(n), N_o)
 #         fails, avg_fail = (length(I[I .< 0]) / length(I), mean(I[I .< 0]))
 #         I[I .<= 0] .= 5e-200
@@ -107,23 +107,23 @@ function loglh(a::Real,
     #            error("Something wrong by truncation")
     #        end
     #    end
-#        integrals = trapezoid(alpha, b, data, n, grid)
-#        obs = integrals[:,1:(lastindex(integrals) - 1)]
-#        truncation = 1.0 - integrals[1,lastindex(integrals)]
+        integrals = trapezoid(a, N_u + N_o, data, n, grid)
+        obs = integrals[:,1:(lastindex(integrals) - 1)]
+        truncation = 1.0 - integrals[1,lastindex(integrals)]
 #         bad_truncation = 1.0
 #         if truncation <= 0.0
 #             bad_truncation = truncation
 #             truncation = 5e-200
 #         end
-#         lh = -N_o * log(truncation) + sum(log.(obs))
-        lh = -N_o * log(1.0 - nobs) + sum(log.(obs))
+         lh = -N_o * log(truncation) + sum(log.(obs))
+#        lh = -N_o * log(1.0 - nobs) + sum(log.(obs))
         if verbose
 #             if bad_truncation <= 0.0
 #                 println("....alpha = $alpha, N_u = $N_u, error_rate = $fails, avg_error = $avg_fail, bad_truncation = $bad_truncation, lh = $lh")
 #             else
 #                 println("....alpha = $alpha, N_u = $N_u, error_rate = $fails, avg_error = $avg_fail, lh = $lh")
 #             end
-#              println("....alpha = $a, Nu = $N_u, b = $b, lh = $lh")
+              println("....alpha = $a, Nu = $N_u, b = $b, lh = $lh")
         end
         return lh
     catch e
@@ -136,23 +136,23 @@ end
 function fit_model(X::Dict,
                    n::Vector{Int64},
 #                   draws::Int,
-#                   ngrid::Int,
+                   ngrid::Int,
                    theta0::Vector;
                    lower::Vector = [0.01, 0.01],
                    upper::Vector = [Inf, Inf],
                    ftol::Real = 0.001)
 #     grid = LinRange(0.0001, 0.9999, ngrid)
-#    upper_bound = logit(1.0 / maximum(n) - eps())
-#    grid = LinRange(-709.99, upper_bound, ngrid)
-#    D = reduce(hcat, [[log_datalh(eta, X[i], n) for eta in grid] for i in keys(X)])
-#    D = hcat(D, [log_datalh(eta, zeros(Bool, length(n)), n) for eta in grid])
-    LL(x, grad) = -loglh(x[1], x[2], X, n)
-    opt = Opt(:LN_COBYLA, 2)
+    upper_bound = logit(1.0 / maximum(n) - eps())
+    grid = LinRange(-709.99, upper_bound, ngrid)
+    D = reduce(hcat, [[log_datalh(eta, X[i], n) for eta in grid] for i in keys(X)])
+    D = hcat(D, [log_datalh(eta, zeros(Bool, length(n)), n) for eta in grid])
+    LL(x, grad) = -loglh(x[1], x[2], D, n, grid)
+    opt = Opt(:LN_SBPLX, 2)
     opt.upper_bounds = upper
     opt.lower_bounds = lower
     opt.min_objective = LL
     opt.ftol_abs = ftol
-    inequality_constraint!(opt, (x,g) -> -u_size(x[1], x[2], maximum(n), length(X)), 0.0)
+#    inequality_constraint!(opt, (x,g) -> -u_size(x[1], x[2], maximum(n), length(X)), 0.0)
     println("Optimizing....")
     (minf, minx, ret) = NLopt.optimize(opt, theta0)
     return (minf, minx, ret)

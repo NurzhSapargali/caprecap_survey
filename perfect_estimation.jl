@@ -14,8 +14,9 @@ import Distributions: Beta, logcdf
 
 ALPHAS::Vector{Float64} = [0.5]
 DATA_FOLDER::String = "./_200_input/diffp/"
-breaks_T::Vector{Int64} = [5, 10, 15, 20, 25, 30]
+breaks_T::Vector{Int64} = [15]
 OUTPUT_FOLDER::String = "./_900_output/data/diffp/"
+NGRID::Int64 = 100000
 
 function get_truth(filename)
     data = readdlm(filename, ' ', String, '\n')[2, 1]
@@ -23,7 +24,7 @@ function get_truth(filename)
 end
 
 for alpha in ALPHAS
-    output_file = OUTPUT_FOLDER * "perfect_estimates_$(alpha).csv"
+    output_file = OUTPUT_FOLDER * "perfect_estimates_$(alpha)_15.csv"
     Utils.write_row(output_file, ["a_hat", "b_hat", "N_hat", "No", "trial", "T", "alpha", "N", "type"])
     data_folder = DATA_FOLDER * "alpha_$(alpha)/"
     data_files = [file for file in readdir(data_folder) if occursin("perfect_sample", file)]
@@ -32,7 +33,7 @@ for alpha in ALPHAS
         trial_no = parse(Int, split(split(file, "_")[3], ".")[1])
         samples = Utils.read_captures(data_folder * file)
         draws = []
-        Threads.@threads for t in breaks_T
+        for t in breaks_T
             S = samples[1:t]
             K = Dict{Int, Int}()
             for s in S
@@ -47,9 +48,10 @@ for alpha in ALPHAS
                 X[i] = [i in s for s in S]
                 # println("....$(length(O) - length(X)) left")
             end
-            (minf, minx, ret) = Estimator.fit_model(X, n, [3.0, 6.0 * length(X)]; ftol = 1e-7)
+            (minf, minx, ret) = Estimator.fit_model(X, n, NGRID, [3.0, 5.0 * length(X)]; ftol = 1e-6, upper = [1000.0, 100000])
             N_hat = Estimator.u_size(minx[1], minx[2], maximum(n), length(X)) + length(X)
 #            (minf, minx, ret) = fit_model(X, n, DRAWS, [5.0, length(X)]; upper = [500.0, Inf])
+            println([minx[1], minx[2], N_hat, length(O), trial_no, t, alpha, N])
             push!(draws, [minx[1], minx[2], N_hat, length(O), trial_no, t, alpha, N, "Pseudolikelihood"])
             # alpha_trace = [loglh(i, minx[2], S, O, n, 1000) for i in ALPHA_TRACE_RANGE];
             # write_row(OUTPUT_FOLDER * "alpha_trace_$(alpha).csv",

@@ -3,7 +3,7 @@ library(magrittr)
 library(directlabels)
 
 OUTPUT_FOLDER = "./_900_output/figures/"
-DRAWS = c(5, 10, 15, 20, 30, 35)
+DRAWS = c(5, 10, 15, 20, 25, 30)
 
 preprocess = function(results, drop_alpha = FALSE){
   results[results == "Nonsequential frequencies"] = NA
@@ -41,7 +41,7 @@ plot_alpha_hat = function(pr_results, title_ending, filename, true_alpha = NA){
   full_title = paste(header, title_ending, sep = ", ")
   p = ggplot(
     data = pr_results[pr_results$type == "Pseudolikelihood",],
-    mapping = aes(y = log(a_hat), x = T)
+    mapping = aes(y = log(a_hat), x = T, group = T)
     ) +
     geom_boxplot() +
     stat_summary(fun=mean, colour="darkred", geom="point", shape=18, size=3, show.legend=FALSE) +
@@ -159,7 +159,7 @@ ggsave(
 )
 
 
-dat_name = "./_900_output/data/diffp/estimates_0.5.csv"
+dat_name = "./_900_output/data/diffp/perfect_estimates_0.5.csv"
 dat = read.csv(dat_name) %>%
   preprocess() %>%
   drop_na()
@@ -175,7 +175,7 @@ p1 = plot_aggregated_data(
   "Relative bias of estimators, alpha = 0.5",
   DRAWS,
   "Relative bias",
-  ylim = c(NA, 0.20),
+  ylim = c(NA, 0.5),
   xlim = c(NA, 39)
 ) + 
   geom_dl(
