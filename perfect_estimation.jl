@@ -14,7 +14,7 @@ import Distributions: Beta, logcdf
 
 ALPHAS::Vector{Float64} = [0.5]
 DATA_FOLDER::String = "./_200_input/diffp/"
-breaks_T::Vector{Int64} = [15]
+breaks_T::Vector{Int64} = [30]
 OUTPUT_FOLDER::String = "./_900_output/data/diffp/"
 NGRID::Int64 = 100000
 
@@ -24,12 +24,12 @@ function get_truth(filename)
 end
 
 for alpha in ALPHAS
-    output_file = OUTPUT_FOLDER * "perfect_estimates_$(alpha)_15.csv"
-    Utils.write_row(output_file, ["a_hat", "b_hat", "N_hat", "No", "trial", "T", "alpha", "N", "type"])
+    output_file = OUTPUT_FOLDER * "perfect_estimates_$(alpha)_30.csv"
+    #Utils.write_row(output_file, ["a_hat", "b_hat", "N_hat", "No", "trial", "T", "alpha", "N", "type"])
     data_folder = DATA_FOLDER * "alpha_$(alpha)/"
     data_files = [file for file in readdir(data_folder) if occursin("perfect_sample", file)]
     N = get_truth(data_folder * "metadata_perfect_$(alpha).csv")
-    for file in data_files
+    for file in data_files[84:500]
         trial_no = parse(Int, split(split(file, "_")[3], ".")[1])
         samples = Utils.read_captures(data_folder * file)
         draws = []

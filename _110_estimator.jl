@@ -34,9 +34,9 @@ function log_posterior(eta::Real, a::Real, b::Real, x_i::Vector{Bool}, n::Vector
     return log_prior(eta, a, b, max_n) + log_datalh(eta, x_i, n)
 end
 
-function trapezoid(a::Real, N::Real, data::Matrix, n::Vector{Int}, grid::LinRange{Float64, Int})
+function trapezoid(a::Real, b::Real, data::Matrix, n::Vector{Int}, grid::LinRange{Float64, Int})
     delta = grid[2] - grid[1]
-    prior_vals = log_prior.(grid, a, N, maximum(n))
+    prior_vals = log_prior.(grid, a, b, maximum(n))
     I = deepcopy(data)
     for c in 1:size(data)[2]
         I[:,c] += prior_vals
@@ -107,7 +107,7 @@ function loglh(a::Real,
     #            error("Something wrong by truncation")
     #        end
     #    end
-        integrals = trapezoid(a, N_u + N_o, data, n, grid)
+        integrals = trapezoid(a, b, data, n, grid)
         obs = integrals[:,1:(lastindex(integrals) - 1)]
         truncation = 1.0 - integrals[1,lastindex(integrals)]
 #         bad_truncation = 1.0

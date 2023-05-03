@@ -86,11 +86,12 @@ N = 1000
 a = 0.5
 b = 499.5
 n = 30
-T = 10
-trials = 500
+T = 5
+trials = 10
 d = truncated(Beta(a, b), upper = 1.0 / n)
 res = zeros(trials, 3)
-Threads.@threads for i in 1:500
+ngrid = 100000
+for i in 1:trials
     p = rand(d, N)
     S = [sample(1:N, pweights(p * n), n, replace = true) for t in 1:T]
     O = Set([i for j in S for i in j])
@@ -98,7 +99,7 @@ Threads.@threads for i in 1:500
     for i in O
         X[i] = [i in s for s in S]
     end
-    (minf, minx, ret) = Estimator.fit_model(X, repeat([n], T), [3.0, 6.0 * length(X)]; ftol = 1e-7)
+    (minf, minx, ret) = Estimator.fit_model(X, repeat([n], T), ngrid, [1.0, length(X)]; ftol = 1e-6, upper = [10000.0, 1e6])
     res[i,:] = [minx[1], minx[2], Estimator.u_size(minx[1], minx[2], maximum(n), length(X)) + length(X)]
     println(res[i,:])
 end
