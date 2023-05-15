@@ -1,6 +1,6 @@
 include("_110_estimator.jl")
 # include("_100_utils.jl")
-# include("_120_benchmarks.jl")
+include("_120_benchmarks.jl")
 # 
 # using .Estimator
 # using .Utils
@@ -75,31 +75,57 @@ include("_110_estimator.jl")
 # println(exp(logN(minx[1], minx[2], 1 / maximum(n))))
 
 import .Estimator
+import .Benchmarks
 
 using Distributions
 using StatsBase
 using Plots
+using StatsFuns
 
 import Random: seed!
 
 N = 1000
-a = 0.5
-b = 499.5
-n = 30
-T = 5
-trials = 10
-d = truncated(Beta(a, b), upper = 1.0 / n)
-res = zeros(trials, 3)
-ngrid = 100000
+a = 10.0
+b = a * (N - 1.0)
+n = 50
+T = 20
+trials = 1
+d = truncated(LogitNormal(-6.907, 2.21), upper = 1.0 / n)
+res = zeros(trials, 15)
+ngrid = 5000
+seed!(777)
 for i in 1:trials
     p = rand(d, N)
-    S = [sample(1:N, pweights(p * n), n, replace = true) for t in 1:T]
+    S = [sample(1:N, pweights(p * n), n, replace = false) for t in 1:20][1:T]
+    K = Dict{Int, Int}()
+    for s in S
+        addcounts!(K, s)
+    end
+    f = countmap(values(K))
     O = Set([i for j in S for i in j])
     X = Dict{Any, Any}()
     for i in O
         X[i] = [i in s for s in S]
     end
-    (minf, minx, ret) = Estimator.fit_model(X, repeat([n], T), ngrid, [1.0, length(X)]; ftol = 1e-6, upper = [10000.0, 1e6])
-    res[i,:] = [minx[1], minx[2], Estimator.u_size(minx[1], minx[2], maximum(n), length(X)) + length(X)]
+    (minf, minx, ret) = Estimator.fit_model(X, repeat([n], T), 5000, [logit(1 / length(X)), 0.0]; ftol = 1e-4)
+    mc_estimate = logistic.(rand(truncated(Normal(minx[1], exp(minx[2])), upper = logit(1 / n)), 100000))
+    row = [1 / mean(mc_estimate), minx[1], minx[2]]
+    benchmarks = Dict{}()
+    benchmarks["Schnabel"] = Benchmarks.schnabel(S, repeat([n], T))
+    benchmarks["Chao"] = Benchmarks.chao(length(O), f)
+    benchmarks["Zelterman"] = Benchmarks.zelterman(length(O), f)
+    #benchmarks["Conway-Maxwell-Poisson"] = Benchmarks.conway_maxwell(length(O), f)
+    benchmarks["Huggins"] = Benchmarks.huggins(T, K)
+    benchmarks["Turing Geometric"] = Benchmarks.turing_geometric(length(O), f, T)
+    benchmarks["Turing"] = Benchmarks.turing(length(O), f, T)
+    for k in 1:5
+        jk = Benchmarks.jackknife(length(O), T, f, k)
+        benchmarks["Jackknife k = $(k)"] = jk
+    end
+    for b in keys(benchmarks)
+        push!(row, benchmarks[b])
+    end
+    push!(row, length(X))
+    res[i,:] = row
     println(res[i,:])
 end

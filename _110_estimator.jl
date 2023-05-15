@@ -1,6 +1,6 @@
 module Estimator
 
-import Distributions: Gamma, Beta, logpdf, truncated, logcdf
+import Distributions: Gamma, Beta, logpdf, truncated, logcdf, Normal
 import StatsFuns: logistic, logit
 
 using NLopt
@@ -37,7 +37,7 @@ end
 function trapezoid(a::Real, b::Real, data::Matrix, n::Vector{Int}, grid::LinRange{Float64, Int})
     delta = grid[2] - grid[1]
     prior_vals = log_prior.(grid, a, b, maximum(n))
-    I = deepcopy(data)
+    I = 0 .+ data
     for c in 1:size(data)[2]
         I[:,c] += prior_vals
     end
@@ -55,18 +55,20 @@ function monte_carlo(prob_matrix::Matrix,
     return mean(exp.(integrands));
 end
 
-function loglh(a::Real,
+function loglh(mu::Real,
 #               N_u::Real,
-               b::Real,
-#               X::Dict,
-               data::Matrix,
+               logsigma::Real,
+               X::Dict,
+#               data::Matrix,
                n::Vector{Int},
+               points::Vector{Float64},
 #               draws::Int,
-               grid::LinRange{Float64, Int},
+#               grid::LinRange{Float64, Int},
                verbose::Bool = true)
     try
-        N_o = size(data)[2] - 1
-#        N_o = length(X)
+#        N_o = size(data)[2] - 1
+        N_o = length(X)
+        sigma = exp(logsigma)
 #        b = a * (N_o + N_u - 1.0)
 #        N = N_o + N_u
 #        I = [trapezoid(alpha, b, X[i], n, grid) for i in keys(X)]
@@ -76,20 +78,27 @@ function loglh(a::Real,
 #        n_max = maximum(n)
 #        y = [rand(truncated(Gamma(alpha), upper = exp(logit(1 / n_max)) * i)) for i in z]
 #        points = log.(y) - log.(z)
-#        d = truncated(Beta(alpha, beta), upper = 1.0 / maximum(n))
+#        d = truncated(Normal(mu, sigma), upper = logit(1.0 / maximum(n)))
 #        points = rand(d, draws)
-#        P = n * logistic.(transpose(points))
-#         if (length(P[P .>= 1]) != 0)
-#             P[P .>= 1] .= 0.99
-#         end
-#        comp_P = 1.0 .- P
-#        obs = [monte_carlo(P, comp_P, X[g]) for g in keys(X)]
+        shifted = points * sigma .+ mu
+        shifted = shifted[shifted .< logit(1.0 / maximum(n))]
+        if (length(shifted) == 0)
+            obs = 0.0
+            truncation = Inf
+            N = N_o
+        else
+            P = n * transpose(logistic.(shifted))
+            comp_P = 1.0 .- P
+            obs = [monte_carlo(P, comp_P, X[g]) for g in keys(X)]
+            truncation = 1.0 - monte_carlo(P, comp_P, zeros(Bool, length(n)))
+            N = 1.0 / mean(logistic.(shifted))
+        end
     #    cols = size(data)[2]
 #        upper = logit(1.0 / maximum(n))
 #        obs = [quadgk(p -> exp(log_posterior(p, a, b, X[i], n)), -709.99, upper)[1] for i in keys(X)]
 #        no_inc = zeros(Bool, length(n))
 #        nobs = quadgk(p -> exp(log_posterior(p, a, b, no_inc, n)), -709.99, upper)[1]
-        N_u = u_size(a, b, maximum(n), N_o)
+#        N_u = u_size(a, b, maximum(n), N_o)
 #         fails, avg_fail = (length(I[I .< 0]) / length(I), mean(I[I .< 0]))
 #         I[I .<= 0] .= 5e-200
 #        truncation = 1.0 - monte_carlo(P, comp_P, zeros(Bool, length(n)));
@@ -107,9 +116,9 @@ function loglh(a::Real,
     #            error("Something wrong by truncation")
     #        end
     #    end
-        integrals = trapezoid(a, b, data, n, grid)
-        obs = integrals[:,1:(lastindex(integrals) - 1)]
-        truncation = 1.0 - integrals[1,lastindex(integrals)]
+#        integrals = trapezoid(a, b, data, n, grid)
+#        obs = integrals[:,1:(lastindex(integrals) - 1)]
+#        truncation = 1.0 - integrals[1,lastindex(integrals)]
 #         bad_truncation = 1.0
 #         if truncation <= 0.0
 #             bad_truncation = truncation
@@ -123,7 +132,7 @@ function loglh(a::Real,
 #             else
 #                 println("....alpha = $alpha, N_u = $N_u, error_rate = $fails, avg_error = $avg_fail, lh = $lh")
 #             end
-              println("....alpha = $a, Nu = $N_u, b = $b, lh = $lh")
+              println("....mu = $mu, sigma = $sigma, N = $N, lh = $lh")
         end
         return lh
     catch e
@@ -135,18 +144,19 @@ end
 
 function fit_model(X::Dict,
                    n::Vector{Int64},
-#                   draws::Int,
-                   ngrid::Int,
+                   draws::Int,
+#                   ngrid::Int,
                    theta0::Vector;
-                   lower::Vector = [0.01, 0.01],
+                   lower::Vector = [-Inf, -Inf],
                    upper::Vector = [Inf, Inf],
                    ftol::Real = 0.001)
 #     grid = LinRange(0.0001, 0.9999, ngrid)
-    upper_bound = logit(1.0 / maximum(n) - eps())
-    grid = LinRange(-709.99, upper_bound, ngrid)
-    D = reduce(hcat, [[log_datalh(eta, X[i], n) for eta in grid] for i in keys(X)])
-    D = hcat(D, [log_datalh(eta, zeros(Bool, length(n)), n) for eta in grid])
-    LL(x, grad) = -loglh(x[1], x[2], D, n, grid)
+#    upper_bound = logit(1.0 / maximum(n) - eps())
+#    grid = LinRange(-709.99, upper_bound, ngrid)
+#    D = reduce(hcat, [[log_datalh(eta, X[i], n) for eta in grid] for i in keys(X)])
+#    D = hcat(D, [log_datalh(eta, zeros(Bool, length(n)), n) for eta in grid])
+    points = rand(Normal(0, 1), draws)
+    LL(x, grad) = -loglh(x[1], x[2], X, n, points)
     opt = Opt(:LN_SBPLX, 2)
     opt.upper_bounds = upper
     opt.lower_bounds = lower
