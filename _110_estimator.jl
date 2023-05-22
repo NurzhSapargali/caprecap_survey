@@ -22,6 +22,17 @@ function log_prior(eta::Real, a::Real, b::Real, max_n::Int)
     return logpdf(d, p) + log(p) + log(1.0 - p)
 end
 
+function small_grid(bqs::Vector{Float64}, a::Real, b::Real, max_n::Int, tol::Real)
+    fun = exp.(log_prior.(logit.(bqs), a, b, max_n))
+    deltas = logit.(bqs[2:lastindex(bqs)]) .- logit.(bqs[1:lastindex(bqs) - 1])
+    I = sum((fun[1:lastindex(bqs) - 1] .+ fun[2:lastindex(bqs)]) / 2.0 .* deltas)
+    if abs(1.0 - I) > tol
+        return (true, I)
+    else
+        return (false, I)
+    end
+end
+
 function log_datalh(eta::Real, x_i::Vector{Bool}, n::Vector{Int})
     p = logistic(eta)
     comp_prob = 1.0 .- n * p
@@ -34,16 +45,10 @@ function log_posterior(eta::Real, a::Real, b::Real, x_i::Vector{Bool}, n::Vector
     return log_prior(eta, a, b, max_n) + log_datalh(eta, x_i, n)
 end
 
-function trapezoid(a::Real, b::Real, data::Matrix, n::Vector{Int}, grid::LinRange{Float64, Int})
-    delta = grid[2] - grid[1]
-    prior_vals = log_prior.(grid, a, b, maximum(n))
-    I = 0 .+ data
-    for c in 1:size(data)[2]
-        I[:,c] += prior_vals
-    end
-    I[1,:] /= 2.0
-    I[size(I)[1],:] /= 2.0
-    return sum(2 * exp.(I), dims = 1) * delta / 2.0
+function trapezoid(a::Real, b::Real, x_i::Vector{Bool}, n::Vector{Int}, bqs::Vector{Float64})
+    deltas = logit.(bqs[2:lastindex(bqs)]) - logit.(bqs[1:lastindex(bqs) - 1])
+    f = exp.([log_posterior(logit(q), a, b, x_i, n) for q in bqs])
+    return sum((f[1:lastindex(f) - 1] .+ f[2:lastindex(f)]) / 2.0 .* deltas)
 end
 
 function monte_carlo(prob_matrix::Matrix,
@@ -55,20 +60,50 @@ function monte_carlo(prob_matrix::Matrix,
     return mean(exp.(integrands));
 end
 
-function loglh(mu::Real,
+function loglh(a::Real,
+#               mu::Real,
 #               N_u::Real,
-               logsigma::Real,
+#               logsigma::Real,
+               N_u::Real,
                X::Dict,
 #               data::Matrix,
                n::Vector{Int},
-               points::Vector{Float64},
+#               points::Vector{Float64},
 #               draws::Int,
 #               grid::LinRange{Float64, Int},
+               ngrid::Int,
                verbose::Bool = true)
     try
 #        N_o = size(data)[2] - 1
         N_o = length(X)
-        sigma = exp(logsigma)
+        N = N_u + N_o
+        b = (N - 1.0) * a
+        start_grid = 0.01
+        end_grid = 0.99
+        qgrid = LinRange(start_grid, end_grid, ngrid)
+        qs = [quantile(truncated(Beta(a, b), upper = 1.0 / maximum(n)), q) for q in qgrid]
+        edge_case = false
+        (check, prior_int) = small_grid(qs, a, b, maximum(n), 0.01)
+        while check
+            start_grid = start_grid * 0.1
+            end_grid = (1.0 - end_grid) * 0.9 + end_grid
+            qgrid = LinRange(start_grid, end_grid, ngrid)
+            qs = [quantile(truncated(Beta(a, b), upper = 1.0 / maximum(n)), q) for q in qgrid]
+            if length(qs[qs .== 0.0]) != 0
+                obs = 0.0
+                truncation = Inf
+                N = N_o
+                edge_case = true
+                break
+            end
+            (check, prior_int) = small_grid(qs, a, b, maximum(n), 0.05)
+        end
+        if !edge_case
+            obs = [trapezoid(a, b, X[i], n, qs) for i in keys(X)]
+            truncation = 1.0 - trapezoid(a, b, zeros(Bool, length(n)), n, qs)
+            N = u_size(a, b, maximum(n), 0)
+        end
+#        sigma = exp(logsigma)
 #        b = a * (N_o + N_u - 1.0)
 #        N = N_o + N_u
 #        I = [trapezoid(alpha, b, X[i], n, grid) for i in keys(X)]
@@ -80,19 +115,19 @@ function loglh(mu::Real,
 #        points = log.(y) - log.(z)
 #        d = truncated(Normal(mu, sigma), upper = logit(1.0 / maximum(n)))
 #        points = rand(d, draws)
-        shifted = points * sigma .+ mu
-        shifted = shifted[shifted .< logit(1.0 / maximum(n))]
-        if (length(shifted) == 0)
-            obs = 0.0
-            truncation = Inf
-            N = N_o
-        else
-            P = n * transpose(logistic.(shifted))
-            comp_P = 1.0 .- P
-            obs = [monte_carlo(P, comp_P, X[g]) for g in keys(X)]
-            truncation = 1.0 - monte_carlo(P, comp_P, zeros(Bool, length(n)))
-            N = 1.0 / mean(logistic.(shifted))
-        end
+#        shifted = points * sigma .+ mu
+#        shifted = shifted[shifted .< logit(1.0 / maximum(n))]
+#        if (length(shifted) == 0)
+#            obs = 0.0
+#            truncation = Inf
+#            N = N_o
+#        else
+#            P = n * transpose(logistic.(shifted))
+#            comp_P = 1.0 .- P
+#            obs = [monte_carlo(P, comp_P, X[g]) for g in keys(X)]
+#            truncation = 1.0 - monte_carlo(P, comp_P, zeros(Bool, length(n)))
+#            N = 1.0 / mean(logistic.(shifted))
+#        end
     #    cols = size(data)[2]
 #        upper = logit(1.0 / maximum(n))
 #        obs = [quadgk(p -> exp(log_posterior(p, a, b, X[i], n)), -709.99, upper)[1] for i in keys(X)]
@@ -132,7 +167,7 @@ function loglh(mu::Real,
 #             else
 #                 println("....alpha = $alpha, N_u = $N_u, error_rate = $fails, avg_error = $avg_fail, lh = $lh")
 #             end
-              println("....mu = $mu, sigma = $sigma, N = $N, lh = $lh")
+              println("a = $a, b = $b, N = $N, prior_int = $prior_int, lh = $lh")
         end
         return lh
     catch e
@@ -144,10 +179,10 @@ end
 
 function fit_model(X::Dict,
                    n::Vector{Int64},
-                   draws::Int,
-#                   ngrid::Int,
+#                   draws::Int,
+                   ngrid::Int,
                    theta0::Vector;
-                   lower::Vector = [-Inf, -Inf],
+                   lower::Vector = [0.1, 0.1],
                    upper::Vector = [Inf, Inf],
                    ftol::Real = 0.001)
 #     grid = LinRange(0.0001, 0.9999, ngrid)
@@ -155,8 +190,8 @@ function fit_model(X::Dict,
 #    grid = LinRange(-709.99, upper_bound, ngrid)
 #    D = reduce(hcat, [[log_datalh(eta, X[i], n) for eta in grid] for i in keys(X)])
 #    D = hcat(D, [log_datalh(eta, zeros(Bool, length(n)), n) for eta in grid])
-    points = rand(Normal(0, 1), draws)
-    LL(x, grad) = -loglh(x[1], x[2], X, n, points)
+#    points = rand(Normal(0, 1), draws)
+    LL(x, grad) = -loglh(x[1], x[2], X, n, ngrid)
     opt = Opt(:LN_SBPLX, 2)
     opt.upper_bounds = upper
     opt.lower_bounds = lower

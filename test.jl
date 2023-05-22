@@ -85,18 +85,18 @@ using StatsFuns
 import Random: seed!
 
 N = 1000
-a = 10.0
+a = 0.5
 b = a * (N - 1.0)
-n = 50
-T = 20
+T = 5
+n = repeat([100, 150], 10)[1:T]
 trials = 1
-d = truncated(LogitNormal(-6.907, 2.21), upper = 1.0 / n)
-res = zeros(trials, 15)
-ngrid = 5000
-seed!(777)
+d = truncated(Beta(a, b), upper = 1.0 / maximum(n))
+res = zeros(trials, 13)
+ngrid = 75
+seed!(7)
 for i in 1:trials
     p = rand(d, N)
-    S = [sample(1:N, pweights(p * n), n, replace = false) for t in 1:20][1:T]
+    S = [sample(1:N, pweights(p * n[t]), n[t], replace = false) for t in 1:T]
     K = Dict{Int, Int}()
     for s in S
         addcounts!(K, s)
@@ -107,11 +107,13 @@ for i in 1:trials
     for i in O
         X[i] = [i in s for s in S]
     end
-    (minf, minx, ret) = Estimator.fit_model(X, repeat([n], T), 5000, [logit(1 / length(X)), 0.0]; ftol = 1e-4)
-    mc_estimate = logistic.(rand(truncated(Normal(minx[1], exp(minx[2])), upper = logit(1 / n)), 100000))
-    row = [1 / mean(mc_estimate), minx[1], minx[2]]
+    println("$(length(X))")
+    (minf, minx, ret) = Estimator.fit_model(X, n, ngrid, [5.0, length(X)]; ftol = 1e-4, upper = [Inf, Inf])
+#    mc_estimate = logistic.(rand(truncated(Normal(minx[1], exp(minx[2])), upper = logit(1 / n)), 100000))
+    N_hat = Estimator.u_size(minx[1], (minx[2] + length(X) - 1) * minx[1], maximum(n), 0)
+    row = [N_hat]
     benchmarks = Dict{}()
-    benchmarks["Schnabel"] = Benchmarks.schnabel(S, repeat([n], T))
+    benchmarks["Schnabel"] = Benchmarks.schnabel(S, n)
     benchmarks["Chao"] = Benchmarks.chao(length(O), f)
     benchmarks["Zelterman"] = Benchmarks.zelterman(length(O), f)
     #benchmarks["Conway-Maxwell-Poisson"] = Benchmarks.conway_maxwell(length(O), f)
