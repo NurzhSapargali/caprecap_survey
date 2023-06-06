@@ -74,20 +74,28 @@ function jackknife(N_o::Int64, T::Int64, f::Dict, k::Int64)
 end
 
 function conway_maxwell(N_o::Int64, f::Dict)
-    y = [log(i * get(f, i, 0) / get(f, i - 1, 0)) for i in 2:length(f)];
-    if ((Inf in y) || (-Inf in y))
-        return "Nonsequential frequencies";
+    y = [log(i * get(f, i, 0) / get(f, i - 1, 0)) for i in 2:maximum(keys(f))]
+    x = [log(i) for i in 2:maximum(keys(f))]
+    x = hcat(ones(length(x)), x)
+    faults = findall((y .== -Inf) .| (y .== Inf) .| (isnan.(y)))
+    inds = setdiff(1:length(y), faults)
+    y = y[inds,:]
+    x = x[inds,:]
+    w = diagm([1.0 / get(f, i - 1, 0) + 1.0 / get(f, i, 0) for i in 2:maximum(keys(f))])
+    w = w[inds, inds]
+    w = inv(w)
+    b = 
+    try
+        inv(transpose(x) * w * x) * transpose(x) * w * y
+    catch y
+        if isa(y, LoadError)
+            inv(transpose(x) * x) * transpose(x) * y
+        else
+            0.0
+        end
     end
-    x = [log(i) for i in 2:length(f)];
-    x = hcat(ones(length(x)), x);
-    w = diagm([1.0 / get(f, i - 1, 0) + 1.0 / get(f, i, 0) for i in 2:length(f)]);
-    w = inv(w);
-    if det(transpose(x) * w * x) == 0
-        return "Noninvertible X'WX";
-    end
-    b = inv(transpose(x) * w * x) * transpose(x) * w * y;
-    N = N_o + get(f, 1, 0) * exp(-b[1]);
-    return N;
+    N = N_o + get(f, 1, 0) * exp(-b[1])
+    return N
 end
 
 function moments_huggins(theta::Vector{Real},
@@ -105,7 +113,7 @@ end
 function huggins(T::Int,
                  K::Dict)
     param = [sum(values(K)) / length(K) / T, sum(values(K) .^ 2) / length(K) / (T ^ 2)];
-    f(x, grad) = sum(moments_huggins(x, param, T)) ^ 2;
+    f(x, grad) = sum(moments_huggins(x, param, T).^2);
     opt = Opt(:LN_SBPLX, 2);
     opt.lower_bounds = [0.01, 0.01];
     opt.min_objective = f;

@@ -1,78 +1,7 @@
 include("_110_estimator.jl")
-# include("_100_utils.jl")
 include("_120_benchmarks.jl")
-# 
-# using .Estimator
-# using .Utils
-# using .Benchmarks
-# 
-# using StatsBase
-# using DelimitedFiles
-# 
-# import Random: seed!
-# import Distributions: Gamma, Beta, logpdf, logcdf, truncated
-# import StatsFuns: logistic, logit
-# import Plots: plot, histogram, plot!, vline!
-# 
-# ALPHAS::Vector{Float64} = [0.5, 1.0, 5.0, 10.0]
-# DATA_FOLDER::String = "./_200_input/diffp/"
-# breaks_T::Vector{Int64} = [5, 10, 15, 20]
-# OUTPUT_FOLDER::String = "./_900_output/data/diffp/"
-# 
-# 
-# function get_truth(filename)
-#     data = readdlm(filename, ' ', String, '\n')[2, 1]
-#     return parse(Float64, split(data, ",")[1])
-# end
-# 
-# function logN(a, b, upper)
-#     main_term = (log(a + b) - log(a))
-#     temper = logcdf(Beta(a, b), upper) - logcdf(Beta(a + 1, b), upper)
-#     println(exp(main_term))
-#     println(exp(temper))
-#     return main_term + temper
-# end
-# 
-# seed!(100)
-# alpha = 0.5
-# data_folder = DATA_FOLDER * "alpha_$(alpha)/"
-# data_files = [file for file in readdir(data_folder) if occursin("perfect_sample", file)]
-# N = get_truth(data_folder * "metadata_$(alpha).csv")
-# file = "sample_10.csv"
-# samples = read_captures(data_folder * file)
-# t = 20
-# S = samples[1:t]
-# K = Dict{Int, Int}()
-# for s in S
-#     addcounts!(K, s)
-# end
-# f = countmap(values(K))
-# println("***TRIAL NO $file, $t***")
-# O = Set([i for j in S for i in j])
-# n = [length(s) for s in S]
-# X = Dict{Any, Vector{Bool}}()
-# for i in O
-#     X[i] = [i in s for s in S]
-#     println("....$(length(O) - length(X)) left")
-# end
-# upper_bound = logit(1 / maximum(n)) - eps()
-# grid = LinRange(-700, upper_bound, 15000)
-# beta = alpha * (N - 1.0)
-# z = rand(Gamma(beta), 3500)
-# n_max = maximum(n)
-# y = [rand(truncated(Gamma(alpha), upper = exp(logit(1 / n_max)) * i)) for i in z]
-# points = log.(y) - log.(z)
-# histogram(points, normalize = :pdf, label = "")
-# plot!(grid, exp.(log_prior.(grid, 0.5, N, maximum(n))), xlim = [-20, Inf], label = "")
-# vline!([logit(1 / maximum(n)), -log(N - 1)], label = "")
-# P = n * logistic.(transpose(points))
-# comp_P = 1.0 .- P
-# mc = [monte_carlo(P, comp_P, X[g]) for g in keys(X)]
-# D = reduce(hcat, [[log_datalh(eta, X[i], n) for eta in grid] for i in keys(X)])
-# quad = transpose(trapezoid(0.5, N, D, n, grid))
-# histogram(quad - mc, title = "Trapezoid (15k grid points) - MC (3.5k draws)", label = "")
-# (minf, minx, ret) = fit_model(X, n, [5.0, length(X)]; ftol = 0.000000001)
-# println(exp(logN(minx[1], minx[2], 1 / maximum(n))))
+include("_100_utils.jl")
+
 
 import .Estimator
 import .Benchmarks
@@ -85,17 +14,22 @@ using StatsFuns
 import Random: seed!
 
 N = 1000
-a = 0.5
+a = 5.0
 b = a * (N - 1.0)
-T = 5
-n = repeat([100, 150], 10)[1:T]
-trials = 1
+T = 20
+n = repeat([5, 100], 20)[1:T]
+trials = 500
 d = truncated(Beta(a, b), upper = 1.0 / maximum(n))
-res = zeros(trials, 13)
+res = zeros(trials, 15)
 ngrid = 75
 seed!(7)
+p = rand(d, N)
+while abs(sum(p) - 1.0) > 0.01
+    global p = rand(d, N)
+end
+output_file = "poisson_estimates.csv"
+#Utils.write_row(output_file, ["a_hat", "Nu_hat", "N_hat", "No", "trial", "T", "alpha", "N", "type"])
 for i in 1:trials
-    p = rand(d, N)
     S = [sample(1:N, pweights(p * n[t]), n[t], replace = false) for t in 1:T]
     K = Dict{Int, Int}()
     for s in S
@@ -103,20 +37,49 @@ for i in 1:trials
     end
     f = countmap(values(K))
     O = Set([i for j in S for i in j])
-    X = Dict{Any, Any}()
-    for i in O
-        X[i] = [i in s for s in S]
-    end
-    println("$(length(X))")
-    (minf, minx, ret) = Estimator.fit_model(X, n, ngrid, [5.0, length(X)]; ftol = 1e-4, upper = [Inf, Inf])
+#    X = Dict{Any, Any}()
+#    for i in O
+#        X[i] = [i in s for s in S]
+#    end
+#    println("$(length(X))")
+#    (minf, minx, ret) = Estimator.fit_model(X, n, ngrid, [5.0, length(X)]; ftol = 1e-6, upper = [Inf, 10000])
 #    mc_estimate = logistic.(rand(truncated(Normal(minx[1], exp(minx[2])), upper = logit(1 / n)), 100000))
-    N_hat = Estimator.u_size(minx[1], (minx[2] + length(X) - 1) * minx[1], maximum(n), 0)
-    row = [N_hat]
+#    N_hat = Estimator.u_size(minx[1], (minx[2] + length(X) - 1) * minx[1], maximum(n), 0)
+    No = length(O)
+    sum_x = collect(values(K))
+    theta = [log(5.0), log(length(O))]
+    for i in 1:10000
+        grad = [Estimator.gradient_a(theta[2], theta[1], n, No, sum_x), Estimator.gradient_Nu(theta[2], theta[1], n, No, sum_x)]
+        if sum(isnan.(grad)) > 0
+            break
+        else
+            theta = theta + 0.01 * grad
+        end
+    end
+    N_hat = exp(theta[2]) + No
+    draws = []
+    push!(draws, [exp(theta[1]), exp(theta[2]), N_hat, length(O), i, T, a, N, "Pseudolikelihood"])
+#    row = [exp(theta[1]), N_hat]
+#     benchmarks = []
+#     push!(benchmarks, Benchmarks.schnabel(S, n))
+#     push!(benchmarks, Benchmarks.chao(length(O), f))
+#     push!(benchmarks, Benchmarks.zelterman(length(O), f))
+#     push!(benchmarks, Benchmarks.conway_maxwell(length(O), f))
+#     push!(benchmarks, Benchmarks.huggins(T, K))
+#     push!(benchmarks, Benchmarks.turing_geometric(length(O), f, T))
+#     push!(benchmarks, Benchmarks.turing(length(O), f, T))
+#     for k in 1:5
+#         jk = Benchmarks.jackknife(length(O), T, f, k)
+#         push!(benchmarks, jk)
+#     end
+#     for b in benchmarks
+#         push!(row, b)
+#     end
     benchmarks = Dict{}()
     benchmarks["Schnabel"] = Benchmarks.schnabel(S, n)
     benchmarks["Chao"] = Benchmarks.chao(length(O), f)
     benchmarks["Zelterman"] = Benchmarks.zelterman(length(O), f)
-    #benchmarks["Conway-Maxwell-Poisson"] = Benchmarks.conway_maxwell(length(O), f)
+    benchmarks["Conway-Maxwell-Poisson"] = Benchmarks.conway_maxwell(length(O), f)
     benchmarks["Huggins"] = Benchmarks.huggins(T, K)
     benchmarks["Turing Geometric"] = Benchmarks.turing_geometric(length(O), f, T)
     benchmarks["Turing"] = Benchmarks.turing(length(O), f, T)
@@ -125,9 +88,12 @@ for i in 1:trials
         benchmarks["Jackknife k = $(k)"] = jk
     end
     for b in keys(benchmarks)
-        push!(row, benchmarks[b])
+        push!(draws, [-999.0, -999.0, benchmarks[b], length(O), i, T, a, N, b])
     end
-    push!(row, length(X))
-    res[i,:] = row
-    println(res[i,:])
+    for d in draws
+        Utils.write_row(output_file, d)
+    end
+    #push!(row, length(O))
+    #res[i,:] = row
+    println(draws[1])
 end
