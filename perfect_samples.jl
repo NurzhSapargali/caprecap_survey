@@ -10,11 +10,11 @@ import Random: seed!
 
 b::Float64 = 499.5
 N::Int = 1000
-T::Int = 30
+T::Int = 20
 T_min::Int = 5
-TRIALS::Int = 1000
-ALPHAS::Vector{Float64} = [1.0]
-AVG_SAMPLE_SIZE::Int = 30
+TRIALS::Int = 500
+ALPHAS::Vector{Float64} = [0.5]
+AVG_SAMPLE_SIZE::Int = 50
 SEED::Int = 10000
 DATA_FOLDER::String = "./_200_input/diffp/"
 

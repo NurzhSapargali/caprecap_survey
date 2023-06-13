@@ -10,8 +10,8 @@ import Random: seed!
 N::Int = 1000
 T::Int = 20
 T_min::Int = 5
-TRIALS::Int = 5000
-AVG_SAMPLE_SIZE::Int = 30
+TRIALS::Int = 500
+n::Vector{Int64} = repeat([5, 100], Int(T / 2))
 SEED::Int = 10000
 DATA_FOLDER::String = "./_200_input/eqp/";
 
@@ -19,7 +19,6 @@ DATA_FOLDER::String = "./_200_input/eqp/";
 seed!(SEED)
 metafile = DATA_FOLDER * "metadata.csv"
 write_row(metafile, vcat(["N", "T"], ["n_$i" for i in 1:T]))
-n = rand(Poisson(AVG_SAMPLE_SIZE), T)
 write_row(metafile, vcat([N, T], n))
 for trial in 1:TRIALS
     println("Generating samples for $n")

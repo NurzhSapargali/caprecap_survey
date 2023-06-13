@@ -14,7 +14,7 @@ using StatsFuns
 import Random: seed!
 
 N = 1000
-a = 5.0
+a = 10.0
 b = a * (N - 1.0)
 T = 20
 n = repeat([5, 100], 20)[1:T]
@@ -22,14 +22,15 @@ trials = 500
 d = truncated(Beta(a, b), upper = 1.0 / maximum(n))
 res = zeros(trials, 15)
 ngrid = 75
-seed!(7)
+#seed!(7)
 p = rand(d, N)
 while abs(sum(p) - 1.0) > 0.01
     global p = rand(d, N)
 end
 output_file = "poisson_estimates.csv"
 #Utils.write_row(output_file, ["a_hat", "Nu_hat", "N_hat", "No", "trial", "T", "alpha", "N", "type"])
-for i in 1:trials
+i = 1
+#for i in 1:trials
     S = [sample(1:N, pweights(p * n[t]), n[t], replace = false) for t in 1:T]
     K = Dict{Int, Int}()
     for s in S
@@ -47,18 +48,11 @@ for i in 1:trials
 #    N_hat = Estimator.u_size(minx[1], (minx[2] + length(X) - 1) * minx[1], maximum(n), 0)
     No = length(O)
     sum_x = collect(values(K))
-    theta = [log(5.0), log(length(O))]
-    for i in 1:10000
-        grad = [Estimator.gradient_a(theta[2], theta[1], n, No, sum_x), Estimator.gradient_Nu(theta[2], theta[1], n, No, sum_x)]
-        if sum(isnan.(grad)) > 0
-            break
-        else
-            theta = theta + 0.01 * grad
-        end
-    end
-    N_hat = exp(theta[2]) + No
+    theta = [log(No), log(5.0)]
+    theta = Estimator.fit_model(theta, n, No, sum_x)
+    N_hat = exp(theta[1]) + No
     draws = []
-    push!(draws, [exp(theta[1]), exp(theta[2]), N_hat, length(O), i, T, a, N, "Pseudolikelihood"])
+    push!(draws, [exp(theta[2]), exp(theta[1]), N_hat, length(O), i, T, a, N, "Pseudolikelihood"])
 #    row = [exp(theta[1]), N_hat]
 #     benchmarks = []
 #     push!(benchmarks, Benchmarks.schnabel(S, n))
@@ -90,10 +84,10 @@ for i in 1:trials
     for b in keys(benchmarks)
         push!(draws, [-999.0, -999.0, benchmarks[b], length(O), i, T, a, N, b])
     end
-    for d in draws
-        Utils.write_row(output_file, d)
-    end
+#    for d in draws
+#        Utils.write_row(output_file, d)
+#    end
     #push!(row, length(O))
     #res[i,:] = row
     println(draws[1])
-end
+# end
