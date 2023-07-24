@@ -24,13 +24,14 @@ function gradient_a(log_Nu, log_a, n, No, sum_x)
     alpha = exp(log_a)
     beta = N * alpha
     beta_tilde = beta + sum(n)
-    fraction_num = ( beta_tilde^alpha * (log(beta_tilde) + beta / beta_tilde)
-                    - beta^alpha * (log(beta) + 1.0) )
-    fraction_denom = beta_tilde^alpha - beta^alpha
-    fraction = fraction_num / fraction_denom
-    fraction += digamma(alpha) - log(beta) - 1.0
+    inner_del_num = ( beta_tilde^alpha * log(beta_tilde)
+                    + beta * beta_tilde^(alpha - 1.0)
+                    - beta^alpha * log(beta) )
+    inner_del_denom = beta_tilde^alpha - beta^alpha
+    inner_del = inner_del_num / inner_del_denom
+    inner_del += digamma(alpha) - log(alpha) - 1.0
     sum_term = sum(digamma.(alpha .+ sum_x))
-    return (-No * fraction - N / beta_tilde * sum(sum_x) + sum_term) * alpha
+    return (-No * inner_del - N / beta_tilde * sum(sum_x) + sum_term) * alpha
 end
 
 
@@ -40,11 +41,11 @@ function gradient_Nu(log_Nu, log_a, n, No, sum_x)
     alpha = exp(log_a)
     beta = N * alpha
     beta_tilde = beta + sum(n)
-    fraction_num = alpha^2.0 * ( beta_tilde^(alpha - 1.0) - beta^(alpha - 1.0) )
-    fraction_denom = beta_tilde^alpha - beta^alpha
-    fraction = fraction_num / fraction_denom
-    fraction += -alpha / N
-    return (-No * fraction - alpha / beta_tilde * sum(sum_x)) * Nu
+    inner_del_num = alpha^2 * beta_tilde^(alpha - 1.0) - beta^(alpha - 1.0) * alpha^2
+    inner_del_denom = beta_tilde^alpha - beta^alpha
+    inner_del = inner_del_num / inner_del_denom
+    inner_del += -alpha / N
+    return (-No * inner_del - alpha / beta_tilde * sum(sum_x)) * Nu
 end
 
 # function update_a(log_a, log_Nu, n, No, sum_x; eta = 0.01)
