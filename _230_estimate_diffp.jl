@@ -22,12 +22,12 @@ function get_truth(filename)
     return parse(Float64, split(data, ",")[1])
 end
 
-for N in pops
-    for alpha in ALPHAS
-        output_file = OUTPUT_FOLDER * "estimates_$(alpha).csv"
-        Utils.write_row(output_file, ["a_hat", "Nu_hat", "N_hat", "No", "trial", "T", "alpha", "N", "type"])
+for alpha in ALPHAS
+    output_file = OUTPUT_FOLDER * "estimates_$(alpha).csv"
+    Utils.write_row(output_file, ["a_hat", "Nu_hat", "N_hat", "No", "trial", "T", "alpha", "N", "type"])
+    for N in pops
         data_folder = DATA_FOLDER * "alpha_$(alpha)/"
-        data_files = [file for file in readdir(data_folder) if occursin("sample", file)]
+        data_files = [file for file in readdir(data_folder) if occursin("sample", file) && occursin("$(N).csv", file)]
         #N = get_truth(data_folder * "metadata_$(alpha).csv")
         for file in data_files
             trial_no = parse(Int, split(split(file, "_")[2], ".")[1])

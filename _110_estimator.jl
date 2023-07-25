@@ -4,7 +4,7 @@ using NLopt
 
 import SpecialFunctions: digamma, loggamma
 
-export loglh, gradient_a, gradient_Nu, update_a, update_Nu
+export loglh, gradient_a, gradient_Nu #, update_a, update_Nu
 
 function loglh(log_Nu, log_a, n, No, sum_x)
     Nu = exp(log_Nu)
@@ -90,7 +90,7 @@ function fit_model(theta0, n, No, sum_x; tol = 1e-4)
         #println(x)
         return L(x)
     end
-    opt = Opt(:LD_MMA, 2)
+    opt = Opt(:LD_LBFGS, 2)
     opt.min_objective = objective
     opt.xtol_rel = tol
     opt.maxeval = 10000

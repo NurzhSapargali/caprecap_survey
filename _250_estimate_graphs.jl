@@ -22,14 +22,14 @@ function get_truth(filename)
 end
 
 
-for N in pops
-    for epn in BA_EDGES_PER_NODE
-        output_file = OUTPUT_FOLDER * "nodes_estimates_$(epn).csv"
-        Utils.write_row(output_file, ["a_hat", "Nu_hat", "N_hat", "No", "trial", "T", "avg_n", "N", "type"])
+for epn in BA_EDGES_PER_NODE
+    output_file = OUTPUT_FOLDER * "nodes_estimates_$(epn).csv"
+    Utils.write_row(output_file, ["a_hat", "Nu_hat", "N_hat", "No", "trial", "T", "avg_n", "N", "type"])
+    for N in pops
         metafile = DATA_FOLDER * "ba_$(epn)/metadata_$N.csv"
         # N = get_truth(metafile)
         data_folder = DATA_FOLDER * "ba_$(epn)/"
-        data_files = [file for file in readdir(data_folder) if occursin("nodes", file)]
+        data_files = [file for file in readdir(data_folder) if occursin("nodes", file) && occursin("$(N).csv", file)]
         for file in data_files
             samples = Utils.read_captures(data_folder * file)
             trial_no = parse(Int, split(split(file, "_")[2], ".")[1])
