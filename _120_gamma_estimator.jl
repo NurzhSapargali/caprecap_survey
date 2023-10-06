@@ -1,12 +1,12 @@
-module Estimator
+module GammaEstimator
 
 using NLopt
 
 import SpecialFunctions: digamma, loggamma
 
-export loglh, gradient_a, gradient_Nu #, update_a, update_Nu
+export loglh, gradient_a, gradient_Nu
 
-function loglh(log_Nu, log_a, n, No, sum_x)
+function loglh(log_Nu, log_a, n, No, sum_x; verbose::Bool = true)
     Nu = exp(log_Nu)
     N = Nu + No
     alpha = exp(log_a)
@@ -14,7 +14,11 @@ function loglh(log_Nu, log_a, n, No, sum_x)
     beta_tilde = beta + sum(n)
     sum_term = sum(loggamma.(alpha .+ sum_x))
     const_term = -No * ( log(beta_tilde^alpha - beta^alpha) + loggamma(alpha) - alpha * log(beta) )
-    return const_term + sum_term - log(beta_tilde) * sum(sum_x)
+    lh = const_term + sum_term - log(beta_tilde) * sum(sum_x)
+    if verbose
+        println("a = $(exp(log_a)), b = $beta, N = $(exp(log_Nu) + No), lh = $lh")
+    end
+    return lh
 end
 
 
@@ -31,7 +35,9 @@ function gradient_a(log_Nu, log_a, n, No, sum_x)
     inner_del = inner_del_num / inner_del_denom
     inner_del += digamma(alpha) - log(alpha) - 1.0
     sum_term = sum(digamma.(alpha .+ sum_x))
-    return (-No * inner_del - N / beta_tilde * sum(sum_x) + sum_term) * alpha
+    out = (-No * inner_del - N / beta_tilde * sum(sum_x) + sum_term) * alpha
+    println(out)
+    return out
 end
 
 
@@ -45,57 +51,41 @@ function gradient_Nu(log_Nu, log_a, n, No, sum_x)
     inner_del_denom = beta_tilde^alpha - beta^alpha
     inner_del = inner_del_num / inner_del_denom
     inner_del += -alpha / N
-    return (-No * inner_del - alpha / beta_tilde * sum(sum_x)) * Nu
+    out = (-No * inner_del - alpha / beta_tilde * sum(sum_x)) * Nu
+    println(out)
+    return out
 end
 
-# function update_a(log_a, log_Nu, n, No, sum_x; eta = 0.01)
-#     return log_a + eta * gradient_a(log_Nu, log_a, n, No, sum_x)
-# end
-# 
-# function update_Nu(log_Nu, log_a, n, No, sum_x; eta = 0.5)
-#     return log_Nu + eta * gradient_Nu(log_Nu, log_a, n, No, sum_x)
-# end
-# 
-# function coordinate_ascent(theta0, n, No, sum_x; eta = 0.1, tol = 0.001, maxiter = 10000)
-#     log_ahat = theta0[1]
-#     log_Nuhat = theta0[2]
-#     converged = false
-#     iters = 0
-#     while !converged
-#         iters += 1
-#         old_Nuhat = log_Nuhat
-#         old_ahat = log_ahat
-#         log_Nuhat = Estimator.update_Nu(log_Nuhat, log_ahat, n, No, sum_x; eta = 0.1)
-#         log_ahat = Estimator.update_a(log_ahat, log_Nuhat, n, No, sum_x; eta = 0.1)
-#         if sum(isnan.([log_ahat, log_Nuhat])) > 0.0
-#             return [old_ahat, old_Nuhat]
-#         end
-#         if ((abs(log_Nuhat - old_Nuhat) < tol)&(abs(log_ahat - old_ahat) < tol))|(maxiter <= iters)
-#             converged = true
-#         end
-#         println(iters)
-#     end
-#     return [log_ahat, log_Nuhat]
-# end
-
-function fit_model(theta0, n, No, sum_x; tol = 1e-4)
+function fit_Gamma(theta0, n, No, sum_x; lower::Vector = [log(0.1), log(0.1)], upper::Vector = [log(10000), log(60.0)], tol = 1e-4)
     L(x) = -loglh(x[1], x[2], n, No, sum_x)
     g_Nu(x)  = -gradient_Nu(x[1], x[2], n, No, sum_x)
     g_a(x) = -gradient_a(x[1], x[2], n, No, sum_x)
+#    theta = theta0
+#     for i in 1:1000
+#         new_Nu = theta[1] - 0.01 * g_Nu(theta)
+#         new_a = theta[2] - 0.01 * g_a(theta)
+#         theta = [new_Nu, new_a]
+#         theta[theta .< log(0.01)] .= log(0.01)
+#         println(theta)
+#     end
     function objective(x::Vector, grad::Vector)
         if length(grad) > 0
             grad[1] = g_Nu(x)
             grad[2] = g_a(x)
         end
-        #println(x)
         return L(x)
     end
-    opt = Opt(:LD_LBFGS, 2)
+    opt = Opt(:LD_SLSQP, 2)
     opt.min_objective = objective
     opt.xtol_rel = tol
+    opt.lower_bounds = lower
+    opt.upper_bounds = upper
     opt.maxeval = 10000
     (minf,minx,ret) = optimize(opt, theta0)
-    return minx
+#     minx = theta
+#     minf = L(minx)
+#     ret = 0
+    return (minf, minx, ret)
 end
 
 
