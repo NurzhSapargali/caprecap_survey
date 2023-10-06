@@ -3,7 +3,7 @@ module Utils
 using StatsBase
 
 export sampford_sample, write_row, freq_of_freq,
-       cap_freq, read_captures
+       cap_freq, read_captures, lower_pr
 
 
 function write_row(filename::String, row)
@@ -56,6 +56,10 @@ end
 
 function freq_of_freq(K::Dict{Int64, Int64})
     return countmap(values(K));
+end
+
+function lower_pr(N, n, q)
+    return exp((n - 1) * ( log(N * (1.0 - q) - 1.0) - log(N) - log(1.0 - q) ) + log(n - 1.0 + N * (1.0 - q)) - log(N) - log(1.0 - q))
 end
 
 end
