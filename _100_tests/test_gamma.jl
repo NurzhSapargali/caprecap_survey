@@ -13,8 +13,8 @@ using StatsFuns
 
 import Random: seed!
 
-N = 1000
-a = 5.0
+N = 10000
+a = 10.0
 b = a * (N - 1.0)
 T = 20
 n = repeat(Int.(ceil.([37, 2, 100, 17, 2, 75, 17, 44, 112, 3] ./ 1.0)), 2)[1:T]
@@ -36,16 +36,16 @@ for i in O
     X[i] = [i in s for s in S]
 end
 println("$(length(X))")
-sum_x = [sum(i) for i in values(X)]
+x_sums = Dict(i => sum(X[i]) for i in keys(X))
 (minf1, minx1, ret1) = GammaEstimator.fit_Gamma(
-    [log(100.0), log(5.0)],
+    [length(X), 5.0],
     n,
     length(X),
-    sum_x
+    x_sums
 )
-N_hat1 = length(X) + exp(minx1[1])
+N_hat1 = length(X) + minx1[1]
 row = [N_hat1]
-(minf2, minx2, ret2) = BetaEstimator.fit_Beta(X, n, ngrid, [5.0, length(X)]; ftol = 1e-4, upper = [Inf, Inf])
+(minf2, minx2, ret2) = BetaEstimator.fit_Beta(X, n, ngrid, [5.0, length(X)]; ftol = 1e-4, upper = [200, 30000])
 N_hat2 = minx2[2] + length(X)
 push!(row, N_hat2)
 benchmarks = Dict{}()

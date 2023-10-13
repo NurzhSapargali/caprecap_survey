@@ -2,25 +2,45 @@ module GammaEstimator
 
 using NLopt
 
-import SpecialFunctions: digamma, loggamma
-
 export loglh, gradient_a, gradient_Nu
 
-function loglh(log_Nu, log_a, n, No, sum_x; verbose::Bool = true)
-    Nu = exp(log_Nu)
+function loglh(Nu, alpha, n, No, x_sums; verbose::Bool = true)
     N = Nu + No
-    alpha = exp(log_a)
-    beta = N * alpha
-    beta_tilde = beta + sum(n)
-    sum_term = sum(loggamma.(alpha .+ sum_x))
-    const_term = -No * ( log(beta_tilde^alpha - beta^alpha) + loggamma(alpha) - alpha * log(beta) )
-    lh = const_term + sum_term - log(beta_tilde) * sum(sum_x)
+    fact_term = 0.0
+    for i in keys(x_sums)
+        incs = get(x_sums, i, 0)
+        range_inc = sum([log(alpha + incs - j) for j in 1:incs])
+        fact_term += range_inc
+    end
+    large_term = alpha * log(alpha * N + sum(n)) + log( 1.0 - ( alpha * N / (alpha * N + sum(n)) )^alpha )
+    lh = ( No * alpha * (log(alpha) + log(N))
+          - log(alpha * N + sum(n)) * sum(n)
+          + fact_term
+          - No * large_term )
     if verbose
-        println("a = $(exp(log_a)), b = $beta, N = $(exp(log_Nu) + No), lh = $lh")
+        println("a = $alpha, b = $(N * alpha), N = $N, lh = $lh")
     end
     return lh
 end
-
+    
+function loglh_redux(Nu, alpha, n, No, x_sums; verbose::Bool = true)
+    N = Nu + No
+    fact_term = 0.0
+    for i in keys(x_sums)
+        incs = get(x_sums, i, 0)
+        range_inc = sum([log(alpha + incs - j) for j in 1:incs])
+        fact_term += range_inc
+    end
+    ratio = sum(n) / alpha / N
+    lh = (- sum(n) * (log(alpha) + log(N))
+          - No * log(1.0 - 1.0 / ((1.0 + ratio)^alpha))
+          + fact_term
+          - (No * alpha + sum(n)) * log(1.0 + ratio) )
+    if verbose
+        println("a = $alpha, b = $(N * alpha), N = $N, lh = $lh")
+    end
+    return lh
+end
 
 function gradient_a(log_Nu, log_a, n, No, sum_x)
     Nu = exp(log_Nu)
@@ -56,35 +76,15 @@ function gradient_Nu(log_Nu, log_a, n, No, sum_x)
     return out
 end
 
-function fit_Gamma(theta0, n, No, sum_x; lower::Vector = [log(0.1), log(0.1)], upper::Vector = [log(10000), log(60.0)], tol = 1e-4)
-    L(x) = -loglh(x[1], x[2], n, No, sum_x)
-    g_Nu(x)  = -gradient_Nu(x[1], x[2], n, No, sum_x)
-    g_a(x) = -gradient_a(x[1], x[2], n, No, sum_x)
-#    theta = theta0
-#     for i in 1:1000
-#         new_Nu = theta[1] - 0.01 * g_Nu(theta)
-#         new_a = theta[2] - 0.01 * g_a(theta)
-#         theta = [new_Nu, new_a]
-#         theta[theta .< log(0.01)] .= log(0.01)
-#         println(theta)
-#     end
-    function objective(x::Vector, grad::Vector)
-        if length(grad) > 0
-            grad[1] = g_Nu(x)
-            grad[2] = g_a(x)
-        end
-        return L(x)
-    end
-    opt = Opt(:LD_SLSQP, 2)
-    opt.min_objective = objective
-    opt.xtol_rel = tol
+function fit_Gamma(theta0, n, No, x_sums; lower::Vector = [0.1, 0.1], upper::Vector = [Inf, Inf], xtol = 1e-7)
+    L(x, grad) = -loglh_redux(x[1], x[2], n, No, x_sums)
+    opt = Opt(:LN_SBPLX, 2)
+    opt.min_objective = L
+    opt.xtol_rel = xtol
     opt.lower_bounds = lower
     opt.upper_bounds = upper
     opt.maxeval = 10000
     (minf,minx,ret) = optimize(opt, theta0)
-#     minx = theta
-#     minf = L(minx)
-#     ret = 0
     return (minf, minx, ret)
 end
 
