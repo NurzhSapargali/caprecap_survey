@@ -104,7 +104,7 @@ function gradient_Nu(log_Nu, log_a, n, No, sum_x)
     return out
 end
 
-function fit_Gamma(theta0, n, No, x_sums; lower::Vector = [0.01, 0.1], upper::Vector = [Inf, Inf], xtol = 1e-7)
+function fit_Gamma(theta0, n, No, x_sums; lower::Vector = [0.01, 0.1], upper::Vector = [1000, 100000], xtol = 1e-7)
     L(x) = -loglh_redux(x[1], x[2], n, No, x_sums)
     g_Nu(x)  = -gradient_Nu_redux(x[1], x[2], n, No, x_sums)
     g_a(x) = -gradient_a_redux(x[1], x[2], n, No, x_sums)
@@ -115,12 +115,13 @@ function fit_Gamma(theta0, n, No, x_sums; lower::Vector = [0.01, 0.1], upper::Ve
         end
         return L(x)
     end
-    opt = Opt(:LN_SBPLX, 2)
+    opt = Opt(:LD_SLSQP, 2)
     opt.min_objective = objective
     opt.xtol_rel = xtol
     opt.lower_bounds = lower
     opt.upper_bounds = upper
     opt.maxeval = 10000
+    #opt.vector_storage = 10
     (minf,minx,ret) = optimize(opt, theta0)
     return (minf, minx, ret)
 end
