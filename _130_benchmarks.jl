@@ -4,9 +4,10 @@ import SpecialFunctions: beta
 
 using LinearAlgebra
 using NLopt
+using RCall
 
 export lincoln, schnabel, chao,
-       zelterman, jackknife, huggins,
+       zelterman, jackknife, morgan_ridout,
        turing, conway_maxwell, turing_geometric
 
 
@@ -84,42 +85,60 @@ function conway_maxwell(N_o::Int64, f::Dict)
     w = diagm([1.0 / get(f, i - 1, 0) + 1.0 / get(f, i, 0) for i in 2:maximum(keys(f))])
     w = w[inds, inds]
     w = inv(w)
-    b = 
-    try
-        inv(transpose(x) * w * x) * transpose(x) * w * y
-    catch y
-        if isa(y, LoadError)
-            inv(transpose(x) * x) * transpose(x) * y
-        else
-            0.0
+    if length(y) < 2
+        return -999
+    else
+        b = inv(transpose(x) * w * x) * transpose(x) * w * y
+#         try
+
+#         catch y
+#             if isa(y, LoadError)
+#                 inv(transpose(x) * x) * transpose(x) * y
+#             else
+#                 0.0
+#             end
+#         end
+        N = N_o + get(f, 1, 0) * exp(-b[1])
+        return N
+    end
+end
+
+function chao_lee_jeng(N_o::Int64, f::Dict, T::Int, n::Vector, bias::Int = 0)
+    seq = 1:T
+    cdenom = 0
+    gamma_num = 0
+    double_nsum = 0
+    for k in 1:T
+        cdenom += k * get(f, k, 0)
+        gamma_num += k * (k - 1) * get(f, k, 0)
+        remain = seq[seq .> k]
+        for j in remain
+            double_nsum += n[k] * n[j]
         end
     end
-    N = N_o + get(f, 1, 0) * exp(-b[1])
-    return N
+    if bias == 1
+        C = 1.0 - (get(f, 1, 0) - 2.0 * get(f, 2, 0) / (T - 1)) / cdenom
+    elseif bias == 2
+        C = 1.0 - (get(f, 1, 0) - 2.0 * get(f, 2, 0) / (T - 1) + 6.0 * get(f, 3, 0) / ((T - 1) * (T - 2))) / cdenom
+    else
+        C = 1.0 - get(f, 1, 0) / cdenom
+    end
+    No_hat = N_o / C 
+    gamma = maximum([No_hat * gamma_num / (2.0 * double_nsum) - 1.0, 0.0])^2
+    return No_hat + get(f, 1, 0) / C * gamma
 end
-
-function moments_huggins(theta::Vector{Real},
-                         p::Vector{Real},
-                         T::Int)
-    a = theta[1];
-    b = theta[2];
-    cdf = 1.0 -  beta(a, b + T) / beta(a, b);
-    first = a / (a + b) /  cdf;
-    second = (a * b * (a + b + T) / (T * (a + b + T) * (a + b)^2) + (a / (a + b))^2) / cdf;
-    out = [first, second];
-    return out .- p;
-end
-
-function huggins(T::Int,
-                 K::Dict)
-    param = [sum(values(K)) / length(K) / T, sum(values(K) .^ 2) / length(K) / (T ^ 2)];
-    f(x, grad) = sum(moments_huggins(x, param, T).^2);
-    opt = Opt(:LN_SBPLX, 2);
-    opt.lower_bounds = [0.01, 0.01];
-    opt.min_objective = f;
-    (minf, minx, ret) = NLopt.optimize(opt, [5.0, 5.0]);
-    mu = (values(K) .+ minx[1]) / (sum(minx) + T);
-    return sum(1.0 ./ (1.0 .- (1.0 .- mu).^T));
+        
+    
+function morgan_ridout(f::Dict, T::Int, filename::String)
+    skinks = [get(f, i, 0) for i in 1:maximum(keys(f))]
+    R"""
+    source($filename)
+    out <- capture.output(fitonemodel($skinks, $T, model="binbbin"))
+    """
+    out = @rget out
+    out = out[occursin.("Estimated total population", out)][1]
+    out = strip(split(out, "= ")[2])
+    return parse(Float64, out)
 end
 
 function turing_geometric(N_o::Int, f::Dict, T::Int)
