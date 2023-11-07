@@ -115,7 +115,7 @@ function fit_Gamma(theta0, n, No, x_sums; lower::Vector = [0.01, 0.1], upper::Ve
         end
         return L(x)
     end
-    opt = Opt(:LD_SLSQP, 2)
+    opt = Opt(:LN_SBPLX, 2)
     opt.min_objective = objective
     opt.xtol_rel = xtol
     opt.lower_bounds = lower
