@@ -46,6 +46,39 @@ function sampford_sample(p::Vector{Float64}, n::Int64)
     return collect(s);
 end
 
+function pareto_sample(p::Vector{Float64}, n::Int64)
+    pr = n * p
+    N = length(pr)
+    U = rand(N)
+    Q = ( U ./ (1.0 .- U) ) ./ ( pr ./ (1.0 .- pr) )
+    return sortperm(Q)[1:n]
+end
+
+function ar_pareto_sample(p::Vector{Float64}, n::Int64)
+    pr = n * p
+    N = length(pr)
+    d = sum(pr .* (1.0 .- pr))
+    sigma2_k = 1.0 ./ (d .+ pr .* (1.0 .- pr))
+    ckc0 = (1.0 .- pr) .* sigma2_k.^0.5 .* exp.(sigma2_k .* pr.^2 / 2)
+    ckc0 = ckc0 / sum((1.0 .- pr) .* sigma2_k.^0.5 .* exp.(sigma2_k .* pr.^2 / 2))
+    ckc0 = (N - n) * ckc0
+    Jk = ckc0 ./ (1.0 .- pr)
+    A = minimum(Jk)
+    S = []
+    accept = false
+    while (!accept)
+        S = pareto_sample(p, n)
+        car = sum(1.0 .- pr[S]) / sum(Jk[S] / A .* (1.0 .- pr[S]))
+        println(car)
+        U = rand()
+        if (U <= car)
+            accept = true
+        end
+    end
+    return S
+end
+
+
 function cap_freq(S::Vector{Vector{Int64}})
     K = Dict{Int, Int}();
     for s in S
