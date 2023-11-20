@@ -79,13 +79,11 @@ function gradient_a_redux(alpha, Nu, n, No, x_sums)
     return out
 end
 
-function gradient_Nu_redux(alpha, Nu, n, No, x_sums)
+function gradient_Nu_redux(alpha, Nu, n, No)
     N = Nu + No
-    log_aN = log(alpha) + log(N)
     ratio = 1.0 + sum(n) / alpha / N
-    inner_derivative = ( (alpha^(2.0 - alpha) * N^(2.0 - alpha) * ratio  - 1.0)
-                        / (ratio^alpha - 1.0) )
-    out = ( No / N * alpha - No / N * alpha * inner_derivative - sum(n) / N * 1.0 / ratio )
+    inner_derivative = (ratio^(alpha - 1.0)  - 1.0) / (ratio^alpha - 1.0) * alpha / N
+    out = ( alpha * No / N - No * inner_derivative - sum(n) / N * 1.0 / ratio )
     return out
 end
 
@@ -106,7 +104,7 @@ end
 
 function fit_Gamma(theta0, n, No, x_sums; lower::Vector = [0.01, 0.1], upper::Vector = [1000, 100000], xtol = 1e-7)
     L(x) = -loglh_redux(x[1], x[2], n, No, x_sums)
-    g_Nu(x)  = -gradient_Nu_redux(x[1], x[2], n, No, x_sums)
+    g_Nu(x)  = -gradient_Nu_redux(x[1], x[2], n, No)
     g_a(x) = -gradient_a_redux(x[1], x[2], n, No, x_sums)
     function objective(x::Vector, grad::Vector)
         if length(grad) > 0
@@ -115,7 +113,7 @@ function fit_Gamma(theta0, n, No, x_sums; lower::Vector = [0.01, 0.1], upper::Ve
         end
         return L(x)
     end
-    opt = Opt(:LN_SBPLX, 2)
+    opt = Opt(:LD_LBFGS, 2)
     opt.min_objective = objective
     opt.xtol_rel = xtol
     opt.lower_bounds = lower

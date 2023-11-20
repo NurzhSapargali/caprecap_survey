@@ -150,7 +150,6 @@ function loglh(
         if !edge_case
             obs = [marginal(a, b, X[i], n, qs) for i in keys(X)]
             truncation = 1.0 - marginal(a, b, zeros(Bool, length(n)), n, qs)
-            N = u_size(a, b, maximum(n), 0)
         end
             lh = -N_o * log(truncation) + sum(log.(obs))
         if verbose

@@ -89,15 +89,6 @@ function conway_maxwell(N_o::Int64, f::Dict)
         return -999
     else
         b = inv(transpose(x) * w * x) * transpose(x) * w * y
-#         try
-
-#         catch y
-#             if isa(y, LoadError)
-#                 inv(transpose(x) * x) * transpose(x) * y
-#             else
-#                 0.0
-#             end
-#         end
         N = N_o + get(f, 1, 0) * exp(-b[1])
         return N
     end
@@ -129,16 +120,26 @@ function chao_lee_jeng(N_o::Int64, f::Dict, T::Int, n::Vector, bias::Int = 0)
 end
         
     
-function morgan_ridout(f::Dict, T::Int, filename::String)
+function morgan_ridout(f::Dict, T::Int, filename::String; estimates::Int = 4)
     skinks = [get(f, i, 0) for i in 1:maximum(keys(f))]
-    R"""
-    source($filename)
-    out <- capture.output(fitonemodel($skinks, $T, model="binbbin"))
-    """
-    out = @rget out
-    out = out[occursin.("Estimated total population", out)][1]
-    out = strip(split(out, "= ")[2])
-    return parse(Float64, out)
+    counter = 0
+    hats = []
+    while counter < estimates
+        try
+            R"""
+            source($filename)
+            out <- capture.output(fitonemodel($skinks, $T, model="binbbin"))
+            """
+            out = @rget out
+            out = out[occursin.("Estimated total population", out)][1]
+            out = strip(split(out, "= ")[2])
+            push!(hats, out)
+        catch e
+            continue
+        end
+        counter += 1
+    end
+    return parse.(Float64, hats)
 end
 
 function turing_geometric(N_o::Int, f::Dict, T::Int)

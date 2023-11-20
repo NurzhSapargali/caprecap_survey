@@ -1,10 +1,12 @@
 include("../_120_gamma_estimator.jl")
 include("../_110_beta_estimator.jl")
 include("../_130_benchmarks.jl")
+include("../_100_utils.jl")
 
 import .GammaEstimator
 import .BetaEstimator
 import .Benchmarks
+import .Utils
 
 using Distributions
 using StatsBase
@@ -14,7 +16,7 @@ using StatsFuns
 import Random: seed!
 
 N = 10000
-a = 0.5
+a = 1.0
 b = a * (N - 1.0)
 T = 20
 n = repeat([37, 2, 100, 17, 2, 75, 17, 44, 112, 3], 5)[1:T]
@@ -24,7 +26,7 @@ res = zeros(trials, 18)
 ngrid = 75
 seed!(7)
 p = rand(d, N)
-S = [sample(1:N, pweights(p * n[t]), n[t], replace = false) for t in 1:T]
+S = [Utils.ar_pareto_sample(p, n[t]) for t in 1:T]
 K = Dict{Int, Int}()
 for s in S
     addcounts!(K, s)
@@ -38,14 +40,14 @@ end
 println("$(length(X))")
 x_sums = Dict(i => sum(X[i]) for i in keys(X))
 (minf1, minx1, ret1) = GammaEstimator.fit_Gamma(
-    [2.0, length(X) / 4],
+    [5.0, Benchmarks.turing(length(O), f, T) - length(X)],
     n,
     length(X),
     x_sums
 )
 N_hat1 = length(X) + minx1[2]
 row = [N_hat1]
-(minf2, minx2, ret2) = BetaEstimator.fit_Beta(X, n, ngrid, [2.0, length(X)]; ftol = 1e-4, upper = [200, 30000])
+(minf2, minx2, ret2) = BetaEstimator.fit_Beta(X, n, ngrid, [5.0, Benchmarks.turing(length(O), f, T) - length(X)]; ftol = 1e-4, upper = [200, Inf])
 N_hat2 = minx2[2] + length(X)
 push!(row, N_hat2)
 benchmarks = Dict{}()
@@ -55,7 +57,8 @@ benchmarks["Zelterman"] = Benchmarks.zelterman(length(O), f)
 benchmarks["Conway-Maxwell-Poisson"] = Benchmarks.conway_maxwell(length(O), f)
 benchmarks["Turing Geometric"] = Benchmarks.turing_geometric(length(O), f, T)
 benchmarks["Turing"] = Benchmarks.turing(length(O), f, T)
-benchmarks["Morgan Ridout"] = Benchmarks.morgan_ridout(f, T, "../estimateN.R")
+MR_hats = Benchmarks.morgan_ridout(f, T, "../estimateN.R")
+benchmarks["Morgan Ridout"] = MR_hats[argmin(abs.(MR_hats .- N))]
 for b in 0:2
     benchmarks["Chao Lee Jeng $b"] = Benchmarks.chao_lee_jeng(length(O), f, T, n, b)
 end

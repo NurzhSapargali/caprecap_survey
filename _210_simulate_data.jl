@@ -33,18 +33,17 @@ for pop in N
             sum_n_T_min = 0
             samples = []
             O = Set{Int64}()
-            if (alpha == Inf)
+            if (alpha != Inf)
                 # Ensure that there is non-zero recaptures in the first 5 samples
                 while !(length(O) < sum_n_T_min)
-                    samples = [sample(1:pop, i, replace=false) for i in n]
+                    samples = [ar_pareto_sample(p, i) for i in n]
                     O = Set([i for j in samples[1:T_min] for i in j])
                     sum_n_T_min = sum([length(s) for s in samples[1:T_min]])
                 end
             else
                 # Ensure that there is non-zero recaptures in the first 5 samples
                 while !(length(O) < sum_n_T_min)
-                    samples = [sample(1:pop, pweights(i * p), i, replace=false) for i in n]
-                    #samples = [sampford_sample(p, i) for i in n]
+                    samples = [sample(1:pop, i, replace=false) for i in n]
                     O = Set([i for j in samples[1:T_min] for i in j])
                     sum_n_T_min = sum([length(s) for s in samples[1:T_min]])
                 end

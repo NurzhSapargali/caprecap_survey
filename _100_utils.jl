@@ -2,7 +2,7 @@ module Utils
 
 using StatsBase
 
-export sampford_sample, write_row, freq_of_freq,
+export ar_pareto_sample, write_row, freq_of_freq,
        cap_freq, read_captures, lower_pr
 
 
@@ -69,7 +69,7 @@ function ar_pareto_sample(p::Vector{Float64}, n::Int64)
     while (!accept)
         S = pareto_sample(p, n)
         car = sum(1.0 .- pr[S]) / sum(Jk[S] / A .* (1.0 .- pr[S]))
-        println(car)
+        #println(car)
         U = rand()
         if (U <= car)
             accept = true
@@ -79,7 +79,7 @@ function ar_pareto_sample(p::Vector{Float64}, n::Int64)
 end
 
 
-function cap_freq(S::Vector{Vector{Int64}})
+function cap_freq(S::Vector)
     K = Dict{Int, Int}();
     for s in S
         addcounts!(K, s);
@@ -87,7 +87,7 @@ function cap_freq(S::Vector{Vector{Int64}})
     return K;
 end
 
-function freq_of_freq(K::Dict{Int64, Int64})
+function freq_of_freq(K::Dict)
     return countmap(values(K));
 end
 
