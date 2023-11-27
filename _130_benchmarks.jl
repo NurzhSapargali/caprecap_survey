@@ -120,26 +120,37 @@ function chao_lee_jeng(N_o::Int64, f::Dict, T::Int, n::Vector, bias::Int = 0)
 end
         
     
-function morgan_ridout(f::Dict, T::Int, filename::String; estimates::Int = 4)
+function morgan_ridout(f::Dict, T::Int, filename::String; seed::Int = 1)
     skinks = [get(f, i, 0) for i in 1:maximum(keys(f))]
-    counter = 0
-    hats = []
-    while counter < estimates
-        try
-            R"""
-            source($filename)
-            out <- capture.output(fitonemodel($skinks, $T, model="binbbin"))
-            """
-            out = @rget out
-            out = out[occursin.("Estimated total population", out)][1]
-            out = strip(split(out, "= ")[2])
-            push!(hats, out)
-        catch e
-            continue
-        end
-        counter += 1
+    hat = -999
+    R"""
+    set.seed($seed)
+    source($filename)
+    out <- 0.0
+    fail <- TRUE
+    tol <- 10
+    counter <- 0
+    while (fail){
+        tryCatch(
+            out <- capture.output(fitonemodel($skinks, $T, model="binbbin")),
+            fail <<- FALSE,
+            error = function(e){ fail <<- TRUE }
+        )
+        if (counter > tol){
+            fail <<- FALSE
+        }
+        counter <- counter + 1
+    }
+    """
+    out = @rget out
+    if (length(out) == 1)
+        hat = -999
+    else
+        out = out[occursin.("Estimated total population", out)][1]
+        out = strip(split(out, "= ")[2])
+        hat = parse(Float64, out)
     end
-    return parse.(Float64, hats)
+    return hat
 end
 
 function turing_geometric(N_o::Int, f::Dict, T::Int)

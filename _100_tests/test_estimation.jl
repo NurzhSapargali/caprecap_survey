@@ -16,13 +16,13 @@ using StatsFuns
 import Random: seed!
 
 N = 10000
-a = 1.0
+a = 0.5
 b = a * (N - 1.0)
-T = 20
+T = 50
 n = repeat([37, 2, 100, 17, 2, 75, 17, 44, 112, 3], 5)[1:T]
 trials = 1
 d = truncated(Beta(a, b), upper = 1.0 / maximum(n))
-res = zeros(trials, 18)
+res = zeros(trials, 17)
 ngrid = 75
 seed!(7)
 p = rand(d, N)
@@ -47,9 +47,9 @@ x_sums = Dict(i => sum(X[i]) for i in keys(X))
 )
 N_hat1 = length(X) + minx1[2]
 row = [N_hat1]
-(minf2, minx2, ret2) = BetaEstimator.fit_Beta(X, n, ngrid, [5.0, Benchmarks.turing(length(O), f, T) - length(X)]; ftol = 1e-4, upper = [200, Inf])
-N_hat2 = minx2[2] + length(X)
-push!(row, N_hat2)
+# (minf2, minx2, ret2) = BetaEstimator.fit_Beta(X, n, ngrid, [5.0, Benchmarks.turing(length(O), f, T) - length(X)]; ftol = 1e-4, upper = [200, Inf])
+# N_hat2 = minx2[2] + length(X)
+# push!(row, N_hat2)
 benchmarks = Dict{}()
 benchmarks["Schnabel"] = Benchmarks.schnabel(S, n)
 benchmarks["Chao"] = Benchmarks.chao(length(O), f)
@@ -57,8 +57,7 @@ benchmarks["Zelterman"] = Benchmarks.zelterman(length(O), f)
 benchmarks["Conway-Maxwell-Poisson"] = Benchmarks.conway_maxwell(length(O), f)
 benchmarks["Turing Geometric"] = Benchmarks.turing_geometric(length(O), f, T)
 benchmarks["Turing"] = Benchmarks.turing(length(O), f, T)
-MR_hats = Benchmarks.morgan_ridout(f, T, "../estimateN.R")
-benchmarks["Morgan Ridout"] = MR_hats[argmin(abs.(MR_hats .- N))]
+benchmarks["Morgan Ridout"] = Benchmarks.morgan_ridout(f, T, "../estimateN.R")
 for b in 0:2
     benchmarks["Chao Lee Jeng $b"] = Benchmarks.chao_lee_jeng(length(O), f, T, n, b)
 end

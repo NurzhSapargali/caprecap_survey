@@ -15,8 +15,11 @@ DATA_FOLDER::String = "./_200_input/caprecap_data/"
 breaks_T::Vector{Int64} = collect(5:5:50)
 OUTPUT_FOLDER::String = "./_900_output/data/simulated/"
 pops::Vector{Int64} = [1000, 5000, 10000]
+SEED::Int = 777
 
-for alpha in ALPHAS
+seed!(SEED)
+for i in 1:length(ALPHAS)
+    alpha = ALPHAS[i]
     output_file = OUTPUT_FOLDER * "estimates_$(alpha).csv"
     Utils.write_row(output_file, ["a_hat", "Nu_hat", "N_hat", "No", "trial", "T", "alpha", "N", "type"])
     for N in pops
@@ -50,8 +53,7 @@ for alpha in ALPHAS
                 benchmarks["Zelterman"] = Benchmarks.zelterman(No, f)
                 benchmarks["Conway-Maxwell-Poisson"] = Benchmarks.conway_maxwell(No, f)
                 benchmarks["Turing Geometric"] = Benchmarks.turing_geometric(No, f, t)
-                MR_hats = Benchmarks.morgan_ridout(f, t, "./estimateN.R")
-                benchmarks["Morgan Ridout"] = MR_hats[argmin(abs.(MR_hats .- N))]
+                benchmarks["Morgan Ridout"] = Benchmarks.morgan_ridout(f, t, "./estimateN.R")
                 for b in 0:2
                     benchmarks["Chao Lee Jeng $b"] = Benchmarks.chao_lee_jeng(No, f, t, n, b)
                 end
