@@ -5,22 +5,16 @@ library(directlabels)
 OUTPUT_FOLDER = "./_900_output/figures/"
 DRAWS = c(5, 10, 15, 20)
 
-preprocess = function(results, drop_alpha = FALSE){
-  results[results == "Nonsequential frequencies"] = NA
-  results[results == "Noninvertible X'WX"] = NA
-  results[results == Inf] = NA
-  results$N_hat = as.numeric(results$N_hat)
-  results$sq_dev = (results$N_hat - results$N)^2
-  if (drop_alpha){
-    results = dplyr::select(results, -alpha)
-  }
-  results$T = as.factor(results$T)
-  results
+preprocess = function(results){
+  res = results[(results$N_hat != Inf)&(results$N_hat >= 0),]
+  res$sq_dev = (res$N_hat - res$N)^2
+  res$T = as.factor(res$T)
+  res
 }
 
-aggregate_data = function(pr_results, true_N){
+aggregate_data = function(pr_results){
   agg = pr_results %>%
-    group_by(type, T) %>%
+    group_by(type, T, N) %>%
     summarise(
       mse = mean(sq_dev),
       hat_mean = mean(N_hat),
@@ -28,13 +22,12 @@ aggregate_data = function(pr_results, true_N){
       hat_var = var(N_hat)
     )
   agg$rmse = sqrt(agg$mse)
-  agg$bias = agg$hat_mean - true_N
-  agg$rel_bias = agg$bias / true_N
-  we_rmse = agg[agg$type == "Pseudolikelihood",]$rmse
-  we_var = agg[agg$type == "Pseudolikelihood",]$hat_var
-  agg$log_rel_rmse = log(agg$rmse / we_rmse)
-  agg$log_rel_var = log(agg$hat_var / we_var)
-  agg$T = as.numeric(levels(agg$T))[agg$T]
+  agg$bias = abs(agg$hat_mean - agg$N)
+  nexps = length(agg[agg$type == "Pseudolikelihood",]$rmse)
+  repeats = dim(agg)[1] / nexps
+  agg$rel_bias = agg$bias / rep(agg[agg$type == "Pseudolikelihood",]$bias, repeats)
+  agg$rel_var = agg$hat_var / rep(agg[agg$type == "Pseudolikelihood",]$hat_var, repeats)
+  agg$rel_rmse = agg$rmse / rep(agg[agg$type == "Pseudolikelihood",]$rmse, repeats)
   agg
 }
 
@@ -61,51 +54,45 @@ plot_alpha_hat = function(pr_results, title_ending, filename, true_alpha = NA){
 plot_aggregated_data = function(
     agg,
     y,
-    plot_title,
-    xaxis_breaks,
+#    plot_title,
+#    xaxis_breaks,
     ylab,
     xlim = c(NA, NA),
     ylim = c(NA, NA)
     ){
-  p = ggplot(agg, mapping = aes_string(x = "T", y = y, colour = "type")) +
+  p = ggplot(agg, mapping = aes_string(x = "T", y = y, colour = "type", group = "type")) +
     geom_line() +
     geom_point() +
     geom_hline(yintercept = 0, colour = "black", alpha = 0.25) +
     theme_minimal() +
-    scale_x_continuous(breaks = xaxis_breaks) +
+#    scale_x_continuous(breaks = xaxis_breaks) +
     coord_cartesian(ylim = ylim, xlim = xlim) +
     guides(colour = "none") +
     xlab("T") +
-    ylab(ylab) +
-    ggtitle(plot_title)
+    ylab(ylab)
+#    ggtitle(plot_title)
   p
 }
 
 
-dat_name = "./_900_output/data/eqp/estimates.csv"
+dat_name = "./_900_output/data/simulated/estimates_0.5.csv"
 dat = read.csv(dat_name) %>%
-  preprocess(drop_alpha = TRUE) %>%
-  drop_na()
-dat %>% plot_alpha_hat(
-  "simple random sampling",
-  paste(OUTPUT_FOLDER, "eqp/alpha_estimates.pdf", sep = "")
-  )
-agg = aggregate_data(dat, 1000)
+  preprocess()
+agg = aggregate_data(dat)
+agg$lrel_rmse = log(agg$rel_rmse)
 p1 = plot_aggregated_data(
-  agg,
-  "rel_bias",
-  "Relative bias of estimators, simple random sampling",
-  DRAWS,
-  "Relative bias",
-  ylim = c(NA, 0.5),
-  xlim = c(NA, 24)
+  agg[(agg$N == 5000)&(agg$type != "Pseudolikelihood"),],
+  "lrel_rmse",
+  "log(Relative RMSE)",
+  ylim = c(NA, 2.5),
+  xlim = c(NA, NA)
   ) + 
-  geom_dl(
-    aes(label = type),
-    method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup",
-    cex = 0.8
-    )
-  )
+ # geom_dl(
+  #  aes(label = type),
+   # method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup",
+  #  cex = 0.8
+  #  )
+#  )
 ggsave(
   filename = paste(OUTPUT_FOLDER, "eqp/rel_bias.pdf", sep = ""),
   plot = p1,
@@ -160,403 +147,4 @@ ggsave(
   height = 210,
   units = "mm"
 )
-
-
-dat_name = "./_900_output/data/diffp/estimates_0.5.csv"
-dat = read.csv(dat_name) %>%
-  preprocess() %>%
-  drop_na()
-dat %>% plot_alpha_hat(
-  "Beta alpha = 0.5",
-  paste(OUTPUT_FOLDER, "diffp/gamma_alpha_estimates_0.5.pdf", sep = ""),
-  true_alpha = 0.5
-)
-agg = aggregate_data(dat, 1000)
-p1 = plot_aggregated_data(
-  agg,
-  "rel_bias",
-  "Relative bias of estimators, Beta alpha = 0.5",
-  DRAWS,
-  "Relative bias",
-  ylim = c(-0.8, 0.2),
-  xlim = c(NA, 25)
-) + 
-  geom_dl(
-    aes(label = type),
-    method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup", cex = 0.8)
-  )
-ggsave(
-  filename = paste(OUTPUT_FOLDER, "diffp/gamma_rel_bias_0.5.pdf", sep = ""),
-  plot = p1,
-  device = cairo_pdf,
-  width = 297,
-  height = 210,
-  units = "mm"
-)
-p2 = plot_aggregated_data(
-  agg[agg$type != "Pseudolikelihood",],
-  "log_rel_rmse",
-  "Relative RMSE of alternative estimators, Beta alpha = 0.5",
-  DRAWS,
-  "Log of relative RMSE",
-  ylim = c(-0.75, 1.0),
-  xlim = c(NA, 25)
-) + 
-  geom_dl(
-    aes(label = type),
-    method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup",
-                  cex = 0.8
-    )
-  )
-ggsave(
-  filename = paste(OUTPUT_FOLDER, "diffp/gamma_rel_rmse_0.5.pdf", sep = ""),
-  plot = p2,
-  device = cairo_pdf,
-  width = 297,
-  height = 210,
-  units = "mm"
-)
-p3 = plot_aggregated_data(
-  agg[agg$type != "Pseudolikelihood",],
-  "log_rel_var",
-  "Relative variance of alternative estimators, Beta alpha = 0.5",
-  DRAWS,
-  "Log of relative variance",
-  ylim = c(NA, 5),
-  xlim = c(NA, 25)
-) + 
-  geom_dl(
-    aes(label = type),
-    method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup",
-                  cex = 0.8
-    )
-  )
-ggsave(
-  filename = paste(OUTPUT_FOLDER, "diffp/gamma_rel_var_0.5.pdf", sep = ""),
-  plot = p3,
-  device = cairo_pdf,
-  width = 297,
-  height = 210,
-  units = "mm"
-)
-
-dat_name = "./_900_output/data/diffp/estimates_1.0.csv"
-dat = read.csv(dat_name) %>%
-  preprocess() %>%
-  drop_na()
-dat %>% plot_alpha_hat(
-  "Beta alpha = 1",
-  paste(OUTPUT_FOLDER, "diffp/alpha_estimates_1.0.pdf", sep = ""),
-  true_alpha = 1
-)
-agg = aggregate_data(dat, 1000)
-p1 = plot_aggregated_data(
-  agg,
-  "rel_bias",
-  "Relative bias of estimators, Beta alpha = 1",
-  DRAWS,
-  "Relative bias",
-  ylim = c(NA, 0.20),
-  xlim = c(NA, 24)
-) + 
-  geom_dl(
-    aes(label = type),
-    method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup", cex = 0.8)
-  )
-ggsave(
-  filename = paste(OUTPUT_FOLDER, "diffp/gamma_rel_bias_1.0.pdf", sep = ""),
-  plot = p1,
-  device = cairo_pdf,
-  width = 297,
-  height = 210,
-  units = "mm"
-)
-p2 = plot_aggregated_data(
-  agg[agg$type != "Pseudolikelihood",],
-  "log_rel_rmse",
-  "Relative RMSE of alternative estimators, Beta alpha = 1",
-  DRAWS,
-  "Log of relative RMSE",
-  ylim = c(NA, 2.0),
-  xlim = c(NA, 24)
-) + 
-  geom_dl(
-    aes(label = type),
-    method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup",
-                  cex = 0.8
-    )
-  )
-ggsave(
-  filename = paste(OUTPUT_FOLDER, "diffp/gamma_rel_rmse_1.0.pdf", sep = ""),
-  plot = p2,
-  device = cairo_pdf,
-  width = 297,
-  height = 210,
-  units = "mm"
-)
-p3 = plot_aggregated_data(
-  agg[agg$type != "Pseudolikelihood",],
-  "log_rel_var",
-  "Relative variance of alternative estimators, Beta alpha = 1",
-  DRAWS,
-  "Log of relative variance",
-  ylim = c(NA, 5),
-  xlim = c(NA, 24)
-) + 
-  geom_dl(
-    aes(label = type),
-    method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup",
-                  cex = 0.8
-    )
-  )
-ggsave(
-  filename = paste(OUTPUT_FOLDER, "diffp/gamma_rel_var_1.0.pdf", sep = ""),
-  plot = p3,
-  device = cairo_pdf,
-  width = 297,
-  height = 210,
-  units = "mm"
-)
-
-dat_name = "./_900_output/data/diffp/estimates_5.0.csv"
-dat = read.csv(dat_name) %>%
-  preprocess() %>%
-  drop_na()
-dat %>% plot_alpha_hat(
-  "Beta alpha = 5",
-  paste(OUTPUT_FOLDER, "diffp/alpha_estimates_5.0.pdf", sep = ""),
-  true_alpha = 5
-)
-agg = aggregate_data(dat, 1000)
-p1 = plot_aggregated_data(
-  agg,
-  "rel_bias",
-  "Relative bias of estimators, Beta alpha = 5",
-  DRAWS,
-  "Relative bias",
-  ylim = c(NA, 0.20),
-  xlim = c(NA, 24)
-) + 
-  geom_dl(
-    aes(label = type),
-    method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup", cex = 0.8)
-  )
-ggsave(
-  filename = paste(OUTPUT_FOLDER, "diffp/gamma_rel_bias_5.0.pdf", sep = ""),
-  plot = p1,
-  device = cairo_pdf,
-  width = 297,
-  height = 210,
-  units = "mm"
-)
-p2 = plot_aggregated_data(
-  agg[agg$type != "Pseudolikelihood",],
-  "log_rel_rmse",
-  "Relative RMSE of alternative estimators, Beta alpha = 5",
-  DRAWS,
-  "Log of relative RMSE",
-  ylim = c(NA, 5),
-  xlim = c(NA, 24)
-) + 
-  geom_dl(
-    aes(label = type),
-    method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup",
-                  cex = 0.8
-    )
-  )
-ggsave(
-  filename = paste(OUTPUT_FOLDER, "diffp/gamma_rel_rmse_5.0.pdf", sep = ""),
-  plot = p2,
-  device = cairo_pdf,
-  width = 297,
-  height = 210,
-  units = "mm"
-)
-p3 = plot_aggregated_data(
-  agg[agg$type != "Pseudolikelihood",],
-  "log_rel_var",
-  "Relative variance of alternative estimators, Beta alpha = 5",
-  DRAWS,
-  "Log of relative variance",
-  ylim = c(NA, 5),
-  xlim = c(NA, 24)
-) + 
-  geom_dl(
-    aes(label = type),
-    method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup",
-                  cex = 0.8
-    )
-  )
-ggsave(
-  filename = paste(OUTPUT_FOLDER, "diffp/gamma_rel_var_5.0.pdf", sep = ""),
-  plot = p3,
-  device = cairo_pdf,
-  width = 297,
-  height = 210,
-  units = "mm"
-)
-
-dat_name = "./_900_output/data/diffp/estimates_0.5.csv"
-dat = read.csv(dat_name) %>%
-  preprocess() %>%
-  drop_na()
-cut = read.csv(dat_name)
-for (true_N in unique(cut$N)){
-  dat = cut[cut$N == true_N,] %>%
-    preprocess() %>%
-    drop_na()
-  dat %>% plot_alpha_hat(
-    sprintf("Beta alpha = 0.5, N = %s", true_N),
-    paste(OUTPUT_FOLDER, sprintf("diffp/alpha_estimates_0.5_%s.pdf", true_N), sep = ""),
-    true_alpha = 0.5
-  )
-  agg = aggregate_data(dat, true_N = true_N)
-  p1 = plot_aggregated_data(
-    agg,
-    "rel_bias",
-    sprintf("Relative bias of estimators, Beta alpha = 0.5, N = %s", true_N),
-    DRAWS,
-    "Relative bias",
-    ylim = c(NA, 0.5),
-    xlim = c(NA, 24)
-  ) + 
-    geom_dl(
-      aes(label = type),
-      method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup", cex = 0.8)
-    )
-  ggsave(
-    filename = paste(OUTPUT_FOLDER, sprintf("diffp/gamma_rel_bias_0.5_%s.pdf", true_N), sep = ""),
-    plot = p1,
-    device = cairo_pdf,
-    width = 297,
-    height = 210,
-    units = "mm"
-  )
-  p2 = plot_aggregated_data(
-    agg[agg$type != "Pseudolikelihood",],
-    "log_rel_rmse",
-    sprintf("Relative RMSE of alternative estimators, Beta alpha = 0.5, N = %s", true_N),
-    DRAWS,
-    "Log of relative RMSE",
-    ylim = c(NA, 2.5),
-    xlim = c(NA, 24)
-  ) + 
-    geom_dl(
-      aes(label = type),
-      method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup",
-                    cex = 0.8
-      )
-    )
-  ggsave(
-    filename = paste(OUTPUT_FOLDER, sprintf("diffp/gamma_rel_rmse_0.5_%s.pdf", true_N), sep = ""),
-    plot = p2,
-    device = cairo_pdf,
-    width = 297,
-    height = 210,
-    units = "mm"
-  )
-  p3 = plot_aggregated_data(
-    agg[agg$type != "Pseudolikelihood",],
-    "log_rel_var",
-    sprintf("Relative variance of alternative estimators, Beta alpha = 0.5, N = %s", true_N),
-    DRAWS,
-    "Log of relative variance",
-    ylim = c(NA, 5),
-    xlim = c(NA, 24)
-  ) + 
-    geom_dl(
-      aes(label = type),
-      method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup",
-                    cex = 0.8
-      )
-    )
-  ggsave(
-    filename = paste(OUTPUT_FOLDER, sprintf("diffp/gamma_rel_var_00.5_%s.pdf", true_N), sep = ""),
-    plot = p3,
-    device = cairo_pdf,
-    width = 297,
-    height = 210,
-    units = "mm"
-  )
-}
-dat_name = "./_900_output/data/graphs/nodes_estimates_1.csv"
-cut = read.csv(dat_name)
-for (true_N in unique(cut$N)){
-    dat = cut[cut$N == true_N,] %>%
-    preprocess() %>%
-    drop_na()
-  dat %>% plot_alpha_hat(
-    "1000 edges",
-    paste(OUTPUT_FOLDER, sprintf("graphs/alpha_estimates_%s.pdf", true_N), sep = ""),
-  )
-  agg = aggregate_data(dat, true_N = true_N)
-  p1 = plot_aggregated_data(
-    agg,
-    "rel_bias",
-    sprintf("Relative bias of estimators, 1000 edges, %s nodes", true_N),
-    DRAWS,
-    "Relative bias",
-    ylim = c(NA, 5),
-    xlim = c(NA, 24)
-  ) + 
-    geom_dl(
-      aes(label = type),
-      method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup", cex = 0.8)
-    )
-  ggsave(
-    filename = paste(OUTPUT_FOLDER, sprintf("graphs/rel_bias_%s.pdf", true_N), sep = ""),
-    plot = p1,
-    device = cairo_pdf,
-    width = 297,
-    height = 210,
-    units = "mm"
-  )
-  p2 = plot_aggregated_data(
-    agg[agg$type != "Pseudolikelihood",],
-    "log_rel_rmse",
-    sprintf("Relative RMSE of alternative estimators, 1000 edges, %s nodes", true_N),
-    DRAWS,
-    "Log of relative RMSE",
-    ylim = c(NA, 2.5),
-    xlim = c(NA, 24)
-  ) + 
-    geom_dl(
-      aes(label = type),
-      method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup",
-                    cex = 0.8
-      )
-    )
-  ggsave(
-    filename = paste(OUTPUT_FOLDER, sprintf("graphs/rel_rmse_%s.pdf", true_N), sep = ""),
-    plot = p2,
-    device = cairo_pdf,
-    width = 297,
-    height = 210,
-    units = "mm"
-  )
-  p3 = plot_aggregated_data(
-    agg[agg$type != "Pseudolikelihood",],
-    "log_rel_var",
-    sprintf("Relative variance of alternative estimators, 1000 edges, %s nodes", true_N),
-    DRAWS,
-    "Log of relative variance",
-    ylim = c(NA, 5),
-    xlim = c(NA, 24)
-  ) + 
-    geom_dl(
-      aes(label = type),
-      method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup",
-                    cex = 0.8
-      )
-    )
-  ggsave(
-    filename = paste(OUTPUT_FOLDER, sprintf("graphs/rel_var_%s.pdf", true_N), sep = ""),
-    plot = p3,
-    device = cairo_pdf,
-    width = 297,
-    height = 210,
-    units = "mm"
-  )
-}
-# ggplot(data = legit, mapping = aes(x = N_hat)) + geom_histogram() + facet_wrap(vars(T), labeller = "label_both") + geom_vline(data = means, aes(xintercept = mean, color = "Mean")) + geom_vline(data = means, aes(xintercept = true, color = "True")) +   scale_color_manual(values = c(Mean = "red", True = "green"))
 
