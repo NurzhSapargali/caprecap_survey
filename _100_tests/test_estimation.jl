@@ -15,16 +15,16 @@ using StatsFuns
 
 import Random: seed!
 
-N = 10000
-a = 0.5
+N = 100
+a = 10000
 b = a * (N - 1.0)
-T = 50
-n = repeat([37, 2, 100, 17, 2, 75, 17, 44, 112, 3], 5)[1:T]
+T = 2
+n = repeat([37, 44, 100, 17, 2, 75, 17, 2, 112, 3], 5)[1:T]
 trials = 1
 d = truncated(Beta(a, b), upper = 1.0 / maximum(n))
 res = zeros(trials, 17)
 ngrid = 75
-seed!(7)
+#seed!(7)
 p = rand(d, N)
 S = [Utils.ar_pareto_sample(p, n[t]) for t in 1:T]
 K = Dict{Int, Int}()

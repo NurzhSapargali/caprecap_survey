@@ -1,9 +1,9 @@
 library(tidyverse)
 library(magrittr)
 library(directlabels)
+library(ggpubr)
 
 OUTPUT_FOLDER = "./_900_output/figures/"
-DRAWS = c(5, 10, 15, 20)
 
 preprocess = function(results){
   res = results[(results$N_hat != Inf)&(results$N_hat >= 0),]
@@ -31,120 +31,132 @@ aggregate_data = function(pr_results){
   agg
 }
 
-plot_alpha_hat = function(pr_results, title_ending, filename, true_alpha = NA){
-  header = "Distribution of alpha estimates"
-  full_title = paste(header, title_ending, sep = ", ")
-  p = ggplot(
-    data = pr_results[pr_results$type == "Pseudolikelihood",],
-    mapping = aes(y = a_hat, x = T, group = T)
-    ) +
-    geom_boxplot() +
-    stat_summary(fun=mean, colour="darkred", geom="point", shape=18, size=3, show.legend=FALSE) +
-    theme_minimal() +
-    coord_flip() +
-    xlab("T") +
-    ylab("Gamma alpha estimate") +
-    ggtitle(full_title)
-  if (!is.na(true_alpha)){
-    p = p + geom_hline(yintercept = true_alpha, colour = "red")
-  }
-  ggsave(filename, plot = p, device = cairo_pdf, width = 297, height = 210, units = "mm")
-}
-
-plot_aggregated_data = function(
-    agg,
-    y,
-#    plot_title,
-#    xaxis_breaks,
-    ylab,
-    xlim = c(NA, NA),
-    ylim = c(NA, NA)
-    ){
-  p = ggplot(agg, mapping = aes_string(x = "T", y = y, colour = "type", group = "type")) +
+plot_results = function(agg, pop, ylim_bias = c(-3.0, 3.0), ylim_rmse = c(-3.0, 3.0)){
+  p1 = ggplot(
+    agg[(agg$N == pop)&(agg$type != "Pseudolikelihood"),],
+    mapping = aes(x = T, y = lrel_rmse, colour = type, group = type)
+  ) +
     geom_line() +
     geom_point() +
-    geom_hline(yintercept = 0, colour = "black", alpha = 0.25) +
+    geom_hline(yintercept = 0, linetype = 2, colour = "black", alpha = 0.5) +
     theme_minimal() +
-#    scale_x_continuous(breaks = xaxis_breaks) +
-    coord_cartesian(ylim = ylim, xlim = xlim) +
+    coord_cartesian(ylim = ylim_rmse, xlim = c(NA, 15.0)) +
     guides(colour = "none") +
     xlab("T") +
-    ylab(ylab)
-#    ggtitle(plot_title)
-  p
+    theme_pubr() +
+    ylab("LogRelRMSE") + 
+    ggtitle(paste0("N = ", as.character(pop))) +
+    geom_dl(
+      aes(label = type),
+      method = list(
+        dl.trans(x = x * 1.025, y = y * 1.0), 
+        "last.points",
+        "bumpup",
+        cex = 0.8
+      )
+    )
+  p2 = ggplot(
+    agg[(agg$N == pop)&(agg$type != "Pseudolikelihood"),],
+    mapping = aes(x = T, y = lrel_bias, colour = type, group = type)
+  ) +
+    geom_line() +
+    geom_point() +
+    geom_hline(yintercept = 0, linetype = 2, colour = "black", alpha = 0.5) +
+    theme_minimal() +
+    coord_cartesian(ylim = ylim_bias, xlim = c(NA, 15.0)) +
+    guides(colour = "none") +
+    xlab("T") +
+    theme_pubr() +
+    ylab("LogRelAbsBias") +
+    ggtitle("") +
+    geom_dl(
+      aes(label = type),
+      method = list(
+        dl.trans(x = x * 1.025, y = y * 1.0), 
+        "last.points",
+        "bumpup",
+        cex = 0.8
+      )
+    )
+  list(p1, p2)
 }
 
-
-dat_name = "./_900_output/data/simulated/estimates_0.5.csv"
-dat = read.csv(dat_name) %>%
-  preprocess()
-agg = aggregate_data(dat)
-agg$lrel_rmse = log(agg$rel_rmse)
-p1 = plot_aggregated_data(
-  agg[(agg$N == 5000)&(agg$type != "Pseudolikelihood"),],
-  "lrel_rmse",
-  "log(Relative RMSE)",
-  ylim = c(NA, 2.5),
-  xlim = c(NA, NA)
-  ) + 
- # geom_dl(
-  #  aes(label = type),
-   # method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup",
-  #  cex = 0.8
-  #  )
-#  )
-ggsave(
-  filename = paste(OUTPUT_FOLDER, "eqp/rel_bias.pdf", sep = ""),
-  plot = p1,
-  device = cairo_pdf,
-  width = 297,
-  height = 210,
-  units = "mm"
-  )
-p2 = plot_aggregated_data(
-  agg[agg$type != "Pseudolikelihood",],
-  "log_rel_rmse",
-  "Relative RMSE of alternative estimators, simple random sampling",
-  DRAWS,
-  "Log of relative RMSE",
-  ylim = c(NA, 2.5),
-  xlim = c(NA, 24)
-) + 
-  geom_dl(
-    aes(label = type),
-    method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup",
-                  cex = 0.8
+for (het in c("0.5", "1.0", "5.0", "10.0", "Inf")){
+  dat_name = paste0("./_900_output/data/simulated/estimates_", het, ".csv")
+  dat = read.csv(dat_name) %>%
+    preprocess()
+  agg = aggregate_data(dat)
+  agg$lrel_rmse = log(agg$rel_rmse)
+  agg$lrel_bias = log(agg$rel_bias)
+  agg[agg$type == "Conway-Maxwell-Poisson",]$type = "LCMP"
+  ps = c()
+  for (N in c(1000, 5000, 10000)){
+    ylim_bias = c(-3.0, 3.0)
+    ylim_rmse = c(-3.0, 3.0)
+    if (het == "0.5"){
+      ylim_bias = c(-1.5, 4.5)
+      ylim_rmse = c(-1.5, 4.5)
+    }
+    else if (het == "1.0"){
+      if (N == 1000){
+        ylim_bias = c(-3.0, 4.0)
+        ylim_rmse = c(-3.0, 3.5)
+      }
+      else if (N == 5000){
+        ylim_bias = c(-0.25, 6.0)
+        ylim_rmse = c(-2.0, 3.0)
+      }
+      else{
+        ylim_bias = c(-1.0, 4.5)
+        ylim_rmse = c(-1.5, 3.0)
+      }
+    }
+    else if (het == "5.0"){
+      if (N == 1000){
+        ylim_bias = c(-2.0, 6.0)
+        ylim_rmse = c(-2.0, 4.5)
+      }
+      else if (N == 5000){
+        ylim_bias = c(-4.0, 7.0)
+      }
+      else{
+        ylim_bias = c(-3.0, 4.5)
+      }
+    }
+    else if (het == "10.0"){
+      if (N == 1000){
+        ylim_bias = c(-3.5, 10.0)
+        ylim_rmse = c(-2.0, 4.0)
+      }
+      else if (N == 5000){
+        ylim_bias = c(-5.0, 6.5)
+      }
+      else{
+        ylim_bias = c(-5.5, 5.5)
+      }
+    }
+    else{
+      if (N == 1000){
+        ylim_bias = c(-4.0, 3.0)
+        ylim_rmse = c(-2.0, 3.0)
+      }
+      else if (N == 5000){
+        ylim_bias = c(-3.5, 2.5)
+        ylim_rmse = c(-1.5, 1.5)
+      }
+      else{
+        ylim_bias = c(-5.0, 4.0)
+        ylim_rmse = c(-1.5, 2.0)
+      }
+    }    
+    ps = c(ps, plot_results(agg, N, ylim_bias = ylim_bias, ylim_rmse = ylim_rmse))
+  }
+  ggarrange(plotlist = ps, ncol = 2, nrow = 3)
+  ggsave(
+    paste0(OUTPUT_FOLDER, "estimates_", het, ".pdf"),
+    width = 210,
+    height = 297,
+    units = "mm"
     )
-  )
-ggsave(
-  filename = paste(OUTPUT_FOLDER, "eqp/rel_rmse.pdf", sep = ""),
-  plot = p2,
-  device = cairo_pdf,
-  width = 297,
-  height = 210,
-  units = "mm"
-)
-p3 = plot_aggregated_data(
-  agg[agg$type != "Pseudolikelihood",],
-  "log_rel_var",
-  "Relative variance of alternative estimators, simple random sampling",
-  DRAWS,
-  "Log of relative variance",
-  ylim = c(NA, 5),
-  xlim = c(NA, 24)
-) + 
-  geom_dl(
-    aes(label = type),
-    method = list(dl.trans(x = x * 1.025, y = y * 1.0),  "last.bumpup",
-                  cex = 0.8
-    )
-  )
-ggsave(
-  filename = paste(OUTPUT_FOLDER, "eqp/rel_var.pdf", sep = ""),
-  plot = p3,
-  device = cairo_pdf,
-  width = 297,
-  height = 210,
-  units = "mm"
-)
+}
 

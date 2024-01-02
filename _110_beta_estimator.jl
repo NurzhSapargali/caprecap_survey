@@ -151,7 +151,7 @@ function loglh(
             obs = [marginal(a, b, X[i], n, qs) for i in keys(X)]
             truncation = 1.0 - marginal(a, b, zeros(Bool, length(n)), n, qs)
         end
-            lh = -N_o * log(truncation) + sum(log.(obs))
+        lh = -N_o * log(truncation) + sum(log.(obs))
         if verbose
             println("a = $a, b = $b, N = $N, prior_int = $prior_integral, lh = $lh")
         end
