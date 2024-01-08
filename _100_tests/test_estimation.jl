@@ -15,17 +15,17 @@ using StatsFuns
 
 import Random: seed!
 
-N = 100
-a = 10000
-b = a * (N - 1.0)
-T = 2
+N = 1000
+a = 5.0
+T = 20
 n = repeat([37, 44, 100, 17, 2, 75, 17, 2, 112, 3], 5)[1:T]
+b = a * (N / maximum(n) - 1.0)
 trials = 1
-d = truncated(Beta(a, b), upper = 1.0 / maximum(n))
+d = Beta(a, b)
 res = zeros(trials, 17)
 ngrid = 75
 #seed!(7)
-p = rand(d, N)
+p = rand(d, N) / maximum(n)
 S = [Utils.ar_pareto_sample(p, n[t]) for t in 1:T]
 K = Dict{Int, Int}()
 for s in S
@@ -47,7 +47,6 @@ x_sums = Dict(i => sum(X[i]) for i in keys(X))
 )
 N_hat1 = length(X) + minx1[2]
 row = [N_hat1]
-# (minf2, minx2, ret2) = BetaEstimator.fit_Beta(X, n, ngrid, [5.0, Benchmarks.turing(length(O), f, T) - length(X)]; ftol = 1e-4, upper = [200, Inf])
 # N_hat2 = minx2[2] + length(X)
 # push!(row, N_hat2)
 benchmarks = Dict{}()
@@ -71,3 +70,9 @@ end
 push!(row, length(X))
 res[1,:] = row
 println(res[1,:])
+check = BetaEstimator.fit_Beta(
+    [5.0, benchmarks["Turing"] - length(X)],
+    X,
+    n,
+    100
+)
