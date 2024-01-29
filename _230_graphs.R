@@ -3,7 +3,7 @@ library(igraph)
 # Simulation constants
 set.seed(123)
 NODES = 10000
-EDGES = c(25000, 50000)
+EDGES = c(70000, 100000)
 SBM_BLOCK_SIZES = c(0.5 * NODES, 0.3 * NODES, 0.2 * NODES)
 # prob_mat = matrix(
 #   c(
@@ -39,20 +39,20 @@ SBM_BLOCK_SIZES = c(0.5 * NODES, 0.3 * NODES, 0.2 * NODES)
 # )
 SBM_BLOCK_MATRICES = list(
   matrix(
-    c(0.0007, 0.00035, 0.00035, 0.00035, 0.0007, 0.00035, 0.00035, 0.00035, 0.0007),
+    c(0.002, 0.001, 0.001, 0.001, 0.002, 0.001, 0.001, 0.001, 0.002),
     byrow = TRUE,
     nrow = 3,
     ncol = 3
   ),
   matrix(
-    c(0.0014, 0.0007, 0.0007, 0.0007, 0.0014, 0.0007, 0.0007, 0.0007, 0.0014),
+    c(0.0027, 0.0014, 0.0014, 0.0014, 0.0027, 0.0014, 0.0014, 0.0014, 0.0027),
     byrow = TRUE,
     nrow = 3,
     ncol = 3
   )
 )
 DRAWS = 50
-TRIALS = 50
+TRIALS = 500
 BA_FOLDER = "./_200_input/graphs/ba_%s/"
 SBM_FOLDER = "./_200_input/graphs/sbm_%s/"
 
@@ -126,7 +126,7 @@ for (e in EDGES) {
     filenames = c(
       sprintf(paste(BA_FOLDER, "graph_%s.csv", sep = ""), e / 1000, t)
     )
-    produce_samples(gpa, roots, 2, filenames)
+    produce_samples(gpa, roots, 1, filenames)
   }
 }
 # Simulate stochastic block model graphs
@@ -168,6 +168,7 @@ for (m in seq_along(SBM_BLOCK_MATRICES)) {
     filenames = c(
       sprintf(paste(SBM_FOLDER, "graph_%s.csv", sep = ""), EDGES[m] / 1000, t)
     )
-    produce_samples(gsbm, roots, 2, filenames)
+    produce_samples(gsbm, roots, 1, filenames)
   }
 }
+

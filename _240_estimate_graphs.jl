@@ -10,7 +10,12 @@ using StatsBase
 
 import Random: seed!
 
-GRAPHS::Vector{String} = ["ba_25", "ba_50", "sbm_25", "sbm_50"]
+GRAPHS::Vector{String} = [
+    #"ba_100",
+    "ba_70",
+    "sbm_100",
+    "sbm_70"
+    ]
 DATA_FOLDER::String = "./_200_input/graphs/"
 breaks_T::Vector{Int64} = collect(5:5:50)
 OUTPUT_FOLDER::String = "./_900_output/data/graphs/"
