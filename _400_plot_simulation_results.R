@@ -7,6 +7,7 @@ OUTPUT_FOLDER = "./_900_output/figures/"
 
 preprocess = function(results){
   res = results[(results$N_hat != Inf)&(results$N_hat >= 0),]
+  res = res[!is.na(res$N_hat),]
   res$sq_dev = (res$N_hat - res$N)^2
   res$T = as.factor(res$T)
   res

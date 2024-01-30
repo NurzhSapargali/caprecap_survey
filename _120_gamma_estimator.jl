@@ -2,7 +2,7 @@ module GammaEstimator
 
 using NLopt
 
-export loglh, gradient_a, gradient_Nu
+export loglh_redux, gradient_a_redux, gradient_Nu_redux
 
 function loglh(Nu, alpha, n, No, x_sums; verbose::Bool = true)
     N = Nu + No
@@ -102,7 +102,7 @@ function gradient_Nu(log_Nu, log_a, n, No, sum_x)
     return out
 end
 
-function fit_Gamma(theta0, n, No, x_sums; lower::Vector = [0.01, 0.1], upper::Vector = [1000, 100000], xtol = 1e-7)
+function fit_Gamma(theta0, n, No, x_sums; lower::Vector = [0.01, 0.1], upper::Vector = [1000, 100000], ftol = 1e-7)
     L(x) = -loglh_redux(x[1], x[2], n, No, x_sums)
     g_Nu(x)  = -gradient_Nu_redux(x[1], x[2], n, No)
     g_a(x) = -gradient_a_redux(x[1], x[2], n, No, x_sums)
@@ -115,7 +115,7 @@ function fit_Gamma(theta0, n, No, x_sums; lower::Vector = [0.01, 0.1], upper::Ve
     end
     opt = Opt(:LD_LBFGS, 2)
     opt.min_objective = objective
-    opt.xtol_rel = xtol
+    opt.ftol_abs = ftol
     opt.lower_bounds = lower
     opt.upper_bounds = upper
     opt.maxeval = 10000

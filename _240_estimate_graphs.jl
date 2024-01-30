@@ -12,9 +12,12 @@ import Random: seed!
 
 GRAPHS::Vector{String} = [
     #"ba_100",
-    "ba_70",
-    "sbm_100",
-    "sbm_70"
+    #"ba_70",
+    #"sbm_100",
+    #"sbm_70",
+    "ba_0.05",
+    "ba_0.1",
+    "ba_0.2"
     ]
 DATA_FOLDER::String = "./_200_input/graphs/"
 breaks_T::Vector{Int64} = collect(5:5:50)
@@ -44,6 +47,7 @@ for i in 1:length(GRAPHS)
             No = length(O)
             benchmarks = Dict{}()
             benchmarks["Turing"] = Benchmarks.turing(No, f, t)
+            benchmarks["Chao"] = Benchmarks.chao(No, f)
             (minf, minx, ret) = GammaEstimator.fit_Gamma(
                 [5.0, No],
                 n,
@@ -56,7 +60,6 @@ for i in 1:length(GRAPHS)
             draws[(j - 1) * 15 + counter] = [minx[1], minx[2], N_hat, No, trial_no, t, graph, TRUE_N, "Pseudolikelihood"]
             #push!(draws, [minx[1], minx[2], N_hat, No, trial_no, t, graph, TRUE_N, "Pseudolikelihood"])
             benchmarks["Schnabel"] = Benchmarks.schnabel(S, n)
-            benchmarks["Chao"] = Benchmarks.chao(No, f)
             benchmarks["Zelterman"] = Benchmarks.zelterman(No, f)
             benchmarks["Conway-Maxwell-Poisson"] = Benchmarks.conway_maxwell(No, f)
             benchmarks["Turing Geometric"] = Benchmarks.turing_geometric(No, f, t)
