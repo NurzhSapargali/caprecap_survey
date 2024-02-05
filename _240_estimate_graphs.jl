@@ -11,10 +11,6 @@ using StatsBase
 import Random: seed!
 
 GRAPHS::Vector{String} = [
-    #"ba_100",
-    #"ba_70",
-    #"sbm_100",
-    #"sbm_70",
     "ba_0.05",
     "ba_0.1",
     "ba_0.2"
