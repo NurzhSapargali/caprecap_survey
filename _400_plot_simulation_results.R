@@ -2,12 +2,12 @@ library(tidyverse)
 library(magrittr)
 library(directlabels)
 library(ggpubr)
-
+# TO DO: Filter out trials with Infs or completely ditch T values with Infs
 OUTPUT_FOLDER = "./_900_output/figures/"
 
 preprocess = function(results){
-  res = results[(results$N_hat != Inf)&(results$N_hat >= 0),]
-  res = res[!is.na(res$N_hat),]
+  res = results[(results$N_hat != Inf)&(results$N_hat >= 0)&(results$N_hat < 100000),]
+  res = res[(!is.na(res$N_hat))&(!is.nan(res$N_hat)),]
   res$sq_dev = (res$N_hat - res$N)^2
   res$T = as.factor(res$T)
   res
@@ -32,7 +32,12 @@ aggregate_data = function(pr_results){
   agg
 }
 
-plot_results = function(agg, pop, ylim_bias = c(-3.0, 3.0), ylim_rmse = c(-3.0, 3.0)){
+plot_results = function(agg, pop, ylim_bias = c(-3.0, 3.0), ylim_rmse = c(-3.0, 3.0), dense = NA){
+  if (is.na(dense)){
+    title = paste0("N = ", as.character(pop))
+  } else {
+    title = paste0("N = ", as.character(pop), ", graph density = ", as.character(dense))
+  }
   p1 = ggplot(
     agg[(agg$N == pop)&(agg$type != "Pseudolikelihood"),],
     mapping = aes(x = T, y = lrel_rmse, colour = type, group = type)
@@ -46,7 +51,7 @@ plot_results = function(agg, pop, ylim_bias = c(-3.0, 3.0), ylim_rmse = c(-3.0, 
     xlab("T") +
     theme_pubr() +
     ylab("LogRelRMSE") + 
-    ggtitle(paste0("N = ", as.character(pop))) +
+    ggtitle(title) +
     geom_dl(
       aes(label = type),
       method = list(
