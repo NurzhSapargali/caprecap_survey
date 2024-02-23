@@ -1,6 +1,6 @@
 import random
 
-from joblib import Parallel, delayed
+#from joblib import Parallel, delayed
 
 import igraph as ig 
 import numpy as np
@@ -9,10 +9,40 @@ N = 10000
 DENSITIES = [0.05, 0.1, 0.2]
 R = 1
 Q = 0.25
-TRIALS = 1000
-DRAWS = 50
+TRIALS = 1
+DRAWS = 1
 SEED = 777
 DATA_FOLDER = "./_200_input/graphs/ba_{}/graph_{}.csv"
+
+
+def pareto_sample(p, n, rng):
+    pr = p * n
+    N = len(pr)
+    u = rng.uniform(0, 1, N)
+    q = ( u / (1.0 - u) ) / ( pr / (1.0 - pr) )
+    return np.argsort(q)[:n]
+
+
+def ar_pareto_sample(p, n, rng):
+    pr = n * p
+    N = len(pr)
+    d = sum(pr * (1.0 - pr))
+    sigma2_k = 1.0 / (d + pr * (1.0 - pr))
+    ckc0 = (1.0 - pr) * sigma2_k**0.5 * np.exp(sigma2_k * pr**2 / 2)
+    ckc0 = ckc0 / sum((1.0 - pr) * sigma2_k**0.5 * np.exp(sigma2_k * pr**2 / 2))
+    ckc0 = (N - n) * ckc0
+    Jk = ckc0 / (1.0 - pr)
+    A = min(Jk)
+    accept = False
+    while not accept:
+        S = pareto_sample(p, n, rng)
+        pr_s = np.take(pr, S)
+        Jk_s = np.take(Jk, S)
+        car = sum(1.0 - pr_s) / sum(Jk_s / A * (1.0 - pr_s))
+        u = rng.uniform(0, 1)
+        if (u <= car):
+            accept = True
+    return S
 
 
 def degbias_ffs2(graph, q, r, root_name, rng):
@@ -63,34 +93,25 @@ def degbias_ffs2(graph, q, r, root_name, rng):
     # Calculate the degrees of the neighbors and sample based on degrees
     n = min([rng.negative_binomial(r, q) + 1, len(first_ngbhd)])
     first_degs = [graph.vs.find(i["name"]).degree() for i in first_ngbhd]
-    first_wave = set(rng.choice(
-        first_ngbhd,
-        size = n,
-        replace = False,
-        p = np.array(first_degs) / sum(first_degs),
-        shuffle = False
-    ))
+    p = np.array(first_degs) / sum(first_degs)
+    first_wave = set(np.take(first_ngbhd, ar_pareto_sample(p, n, rng)))
+
     # Initialize the sample with the first wave of neighbors and the root
-    first_wave.add(root)
-    sample = set(first_wave)
+    sample = first_wave.union({root})
 
     # Apply degree-based sampling for each of neighbours of nodes from first wave
     for v in first_wave:
         # Get the neighbors of the current vertex excluding those already in the first wave!
-        nghbd = set(v.neighbors()).difference(first_wave)
-        if len(nghbd) == 0 or v == root:
+        ngbhd = set(v.neighbors()).difference(first_wave.union({root})) #somwthing wrong here with difference
+        print([n["name"] for n in ngbhd][1:5])
+        if len(ngbhd) == 0:
             continue
-        degs = [graph.vs.find(i["name"]).degree() for i in nghbd]
-        n = min([rng.negative_binomial(r, q) + 1, len(nghbd)])
-        wave = rng.choice(
-            list(nghbd),
-            size = n,
-            replace = False,
-            p = np.array(degs) / sum(degs),
-            shuffle = False
-        )
+        degs = [graph.vs.find(i["name"]).degree() for i in ngbhd]
+        n = min([rng.negative_binomial(r, q) + 1, len(ngbhd)])
+        p = np.array(degs) / sum(degs)
+        wave = set(np.take(list(ngbhd), ar_pareto_sample(p, n, rng)))
         sample.update(wave)
-    return sorted(list(sample))
+    return sorted([i["name"] for i in sample])
 
 
 def write_samples(samples, filename):
@@ -133,25 +154,28 @@ def simulate_trial(h, t, seed):
     G = ig.Graph().Barabasi(N, m = round(Ne / N), directed = False)
     G.vs["name"] = [str(i) for i in range(1, G.vcount() + 1)]
     samples = []
-    root_names = rng.choice(
-        range(1, N + 1),
-        p = np.array(G.degree()) / sum(G.degree()),
-        size = DRAWS,
-        replace = False,
-        shuffle = False
-    )
-    for name in root_names:
-        S = degbias_ffs2(G, Q, R, str(name), rng)
-        samples.append([i["name"] for i in S])
+    p = np.array(G.degree()) / sum(G.degree())
+    root_names = np.take(G.vs, ar_pareto_sample(p, DRAWS, rng))
+    for name in [i["name"] for i in root_names]:
+        S = degbias_ffs2(G, Q, R, name, rng)
+        samples.append(S)
     dataset_name = DATA_FOLDER.format(h, t + 1)
     write_samples(samples, dataset_name)
     return None
 
 
-def main():
-    for h in DENSITIES:
-        Parallel(n_jobs=-1)(delayed(simulate_trial)(h, t, SEED) for t in range(TRIALS))
+Ne = 0.5 * 0.01 * N * (N - 1)
+rng = np.random.default_rng(seed=SEED)
+random.seed(SEED)
+G = ig.Graph().Barabasi(N, m = round(Ne / N), directed = False)
+G.vs["name"] = [str(i) for i in range(1, G.vcount() + 1)]
+name = "950"
+S = degbias_ffs2(G, Q, R, name, rng)
+#print(S)
+#def main():
+#    for h in DENSITIES:
+#        Parallel(n_jobs=-1)(delayed(simulate_trial)(h, t, SEED) for t in range(TRIALS))
 
 
-if __name__ == "__main__":
-    main()
+#if __name__ == "__main__":
+#    main()
