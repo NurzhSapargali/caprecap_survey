@@ -1,3 +1,17 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+File: 230_simulate_graphs.py
+---------------------------
+This script simulates a series of graph sampling experiments. It generates
+Barabasi-Albert graphs with specified densities and applies a degree-biased
+forest-fire sampling algorithm to sample vertices from the graph. The results
+of the sampling process are written to a file.
+
+Author: Nurzhan Sapargali
+Date created: 2024-02-24
+"""
+
 import random
 
 from joblib import Parallel, delayed
@@ -11,8 +25,8 @@ R = 1 # Number of trials for negative binomial distribution
 Q = 0.25 # Success probability for negative binomial distribution 
 TRIALS = 1000 # Number of simulations
 DRAWS = 50 # Number of sample draws for each simulation
-SEED = 777
-DATA_FOLDER = "./_200_input/graphs/ba_{}/graph_{}.csv" # Output file name template 
+DATA_FOLDER = "./_200_input/graphs/ba_{}/graph_{}.csv" # Output file name template for samples
+METADATA_FILE = "./_200_input/graphs/ba_{}/metadata.csv" # Output file name for metadata
 
 
 def pareto_sample(p, n, rng):
@@ -145,13 +159,14 @@ def degbias_ffs2(graph, q, r, root_name, rng):
 
     Example:
         >>> graph = igraph.Graph().Barabasi(100, m=5)
+        >>> graph.vs["name"] = [str(i) for i in range(1, graph.vcount() +  1)]
         >>> q =  0.5
         >>> r =  0.5
         >>> root_name = '1'
         >>> rng = numpy.random.default_rng(seed=42)
         >>> selected_vertices = degbias_ffs2(graph, q, r, root_name, rng)
         >>> print(selected_vertices)
-        ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+        ['1', '10', '15', '2', '24', '26', '29', '34', '41', '5', '6']
     """
     # Find the root vertex in the graph
     root = graph.vs.find(root_name)
@@ -176,12 +191,14 @@ def degbias_ffs2(graph, q, r, root_name, rng):
         ngbhd = sorted(ngbhd)
         if len(ngbhd) == 0:
             continue
+
         # Produce Sampford-Rao sample on the remaining neighbours based on their degrees
         degs = [graph.vs.find(i["name"]).degree() for i in ngbhd]
         n = min([rng.negative_binomial(r, q) + 1, len(ngbhd)])
         p = np.array(degs) / sum(degs)
         wave = np.take(ngbhd, ar_pareto_sample(p, n, rng))
         sample.update(set(wave))
+
     return sorted([i["name"] for i in sample])
 
 
@@ -218,7 +235,7 @@ def write_samples(samples, filename):
             f.write('\n')
 
 
-def simulate_trial(h, t, seed):
+def simulate_trial(h, t):
     """
     Simulate a single trial of a graph sampling experiment.
 
@@ -233,24 +250,33 @@ def simulate_trial(h, t, seed):
     Args:
         h (float): The density of the Barabasi-Albert graph to be generated.
 
-        t (int): The trial number, used for naming the output file.
-
-        seed (int): The seed for the random number generator used in the
-        simulation.
+        t (int): The trial number, used for naming the output file and seeding
+        the random number generator.
 
     Returns:
         None
     """
     # Calculate the number of edges for the Barabasi-Albert graph
     Ne =  0.5 * h * N * (N -  1)
+
+    # Set seed for the random number generator
+    random.seed(t + 1)
+    rng = np.random.default_rng(t + 1)
     
-    # Initialize the random number generator
-    rng = np.random.default_rng(seed=seed)
-    random.seed(seed)
-    
-    # Generate the Barabasi-Albert graph
+    # Generate the Barabasi-Albert graph and write it out some metadata
     G = ig.Graph().Barabasi(N, m = round(Ne / N), directed = False)
     G.vs["name"] = [str(i) for i in range(1, G.vcount() +  1)]
+    # Unique identifier for the graph as a sanity check of reproducibility
+    G["id"] = random.uniform(0, 1)
+
+    # Write the metadata to the file
+    meta = [
+        G["id"],
+        G.vcount(),
+        G.density(),
+        np.mean(G.degree())
+    ]
+    write_samples([[str(i) for i in meta]], METADATA_FILE.format(h))
     
     # Initialize the list to store the samples
     samples = []
@@ -277,7 +303,14 @@ def simulate_trial(h, t, seed):
 
 def main():
     for h in DENSITIES:
-        Parallel(n_jobs=-1)(delayed(simulate_trial)(h, t, SEED) for t in range(TRIALS))
+        cols = [
+            "id",
+            "N",
+            "density",
+            "avg_degree"
+        ]
+        write_samples([cols], METADATA_FILE.format(h))
+        Parallel(n_jobs=-1)(delayed(simulate_trial)(h, t) for t in range(TRIALS))
 
 
 if __name__ == "__main__":
