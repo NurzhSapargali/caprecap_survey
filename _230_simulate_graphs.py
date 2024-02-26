@@ -19,12 +19,13 @@ from joblib import Parallel, delayed
 import igraph as ig 
 import numpy as np
 
-N = 10000 # True population
-DENSITIES = [0.05, 0.1, 0.2] # Graph densities
+TRUE_N = 10000 # True population
+DENSITIES = [0.1, 0.05, 0.025] # Graph densities
 R = 1 # Number of trials for negative binomial distribution
 Q = 0.25 # Success probability for negative binomial distribution 
 TRIALS = 1000 # Number of simulations
 DRAWS = 50 # Number of sample draws for each simulation
+T_MIN = 5 # Minimum number of samples
 DATA_FOLDER = "./_200_input/graphs/ba_{}/graph_{}.csv" # Output file name template for samples
 METADATA_FILE = "./_200_input/graphs/ba_{}/metadata.csv" # Output file name for metadata
 
@@ -127,10 +128,10 @@ def ar_pareto_sample(p, n, rng):
 
 def degbias_ffs2(graph, q, r, root_name, rng):
     """
-    Perform a degree-biased forward-first sampling (FFS) starting from a root
+    Perform a degree-biased forest-fire sampling (FFS) starting from a root
     vertex.
 
-    This function implements a degree-biased forward-first sampling algorithm,
+    This function implements a degree-biased forest-fire sampling algorithm,
     where the sampling process starts from a specified root vertex and proceeds
     by selecting neighbors based on their degrees, with higher-degree vertices
     being more likely to be selected. The algorithm is applied in a two-wave
@@ -257,20 +258,21 @@ def simulate_trial(h, t):
         None
     """
     # Calculate the number of edges for the Barabasi-Albert graph
-    Ne =  0.5 * h * N * (N -  1)
+    Ne =  0.5 * h * TRUE_N * (TRUE_N -  1)
 
     # Set seed for the random number generator
     random.seed(t + 1)
     rng = np.random.default_rng(t + 1)
     
     # Generate the Barabasi-Albert graph and write it out some metadata
-    G = ig.Graph().Barabasi(N, m = round(Ne / N), directed = False)
+    G = ig.Graph().Barabasi(TRUE_N, m = round(Ne / TRUE_N), directed = False)
     G.vs["name"] = [str(i) for i in range(1, G.vcount() +  1)]
     # Unique identifier for the graph as a sanity check of reproducibility
     G["id"] = random.uniform(0, 1)
 
     # Write the metadata to the file
     meta = [
+        t,
         G["id"],
         G.vcount(),
         G.density(),
@@ -285,10 +287,37 @@ def simulate_trial(h, t):
     p = np.array(G.degree()) / sum(G.degree())
     
     # Sample the root vertices
-    root_names = np.take(G.vs, ar_pareto_sample(p, DRAWS, rng))
+    initial_total_size = 0
+    observed = set()
+    burned = set()
     
-    # Perform the degree-biased forest-fire sampling for each root vertex
-    for name in [i["name"] for i in root_names]:
+    # Perform the degree-biased forest-fire sampling for the first T_MIN samples
+    # Ensure that there are recaptures for the first T_MIN samples
+    while not len(observed) < initial_total_size:
+        samples = []
+        initial_roots = np.take(G.vs, ar_pareto_sample(p, T_MIN, rng))
+        initial_names = sorted([i["name"] for i in initial_roots])
+        # Skip if this root set was tried before
+        if tuple(initial_names) in burned:
+            continue
+        for name in initial_names:
+            S = degbias_ffs2(G, Q, R, name, rng)
+            samples.append(S)
+        # Check if there are any recaptures
+        initial_total_size = sum(len(i) for i in samples)
+        observed = set(i for j in samples for i in j)
+        burned.add(tuple(initial_names))
+    
+    # Sample the remaining roots
+    names = set(G.vs["name"])
+    names = names.difference(initial_names)
+    names = sorted(names)
+    p = np.array([G.vs.find(i).degree() for i in names])
+    p = p / sum(p)
+    names = np.take(names, ar_pareto_sample(p, DRAWS - T_MIN, rng))
+
+    # Perform the degree-biased forest-fire sampling for the remaining samples
+    for name in names:
         S = degbias_ffs2(G, Q, R, name, rng)
         samples.append(S)
     
@@ -304,6 +333,7 @@ def simulate_trial(h, t):
 def main():
     for h in DENSITIES:
         cols = [
+            "trial",
             "id",
             "N",
             "density",

@@ -1,20 +1,118 @@
+# File: 400_plot_simulation_results.R
+#---------------------------#
+# This script is designed to plot the results of capture-recapture simulations.
+# The script reads in the simulation results, preprocesses the data, aggregates
+# it, and then generates plots to visualize the performance of different
+# estimation methods under various conditions. The plots include metrics such as
+# root mean squared error relative to the baseline, relative absolute bias,
+# and log-transformed versions of these metrics
+
+# Author: Nurzhan Sapargali
+# Date created: 2024-02-26
+#---------------------------#
 library(tidyverse)
-library(magrittr)
 library(directlabels)
 library(ggpubr)
-# TO DO: Filter out trials with Infs or completely ditch T values with Infs
-OUTPUT_FOLDER = "./_900_output/figures/"
 
-preprocess = function(results){
-  res = results[(results$N_hat != Inf)&(results$N_hat >= 0)&(results$N_hat < 100000),]
-  res = res[(!is.na(res$N_hat))&(!is.nan(res$N_hat)),]
-  res$sq_dev = (res$N_hat - res$N)^2
-  res$T = as.factor(res$T)
-  res
+OUTPUT_FOLDER <- "./_900_output/figures/" # Folder to save the figures
+OLD_NAMES <- c(
+  "Chao Lee Jeng 0",
+  "Chao Lee Jeng 1",
+  "Chao Lee Jeng 2",
+  "Conway-Maxwell-Poisson",
+  "Jackknife k = 1",
+  "Jackknife k = 2",
+  "Jackknife k = 3",
+  "Jackknife k = 4",
+  "Jackknife k = 5",
+  "Turing",
+  "Turing Geometric"
+) # Names of the methods in the simulation results
+NEW_NAMES <- c(
+  "SC,0",
+  "SC,1",
+  "SC,2",
+  "LCMP",
+  "JK,1",
+  "JK,2",
+  "JK,3",
+  "JK,4",
+  "JK,5",
+  "TB",
+  "TG"
+) # New names for the methods in plots
+
+
+# 'preprocess' function for preprocessing the results data frame
+#
+# This function performs several preprocessing steps on the 'results' data
+# frame:
+# - Filters out rows where 'T' is less than 'minT'
+# - Filters out rows where 'N_hat' is NA, NaN, Inf, or less than 0
+# - Adds a new column 'sq_dev' which is the square of the difference between
+# 'N_hat' and 'N'.
+# - Converts 'T' to a factor
+# - Replaces the old names in the 'type' column with new names
+#
+# Args:
+#   results: A data frame containing the results to be preprocessed.
+#
+#   minT: The minimum value of 'T' to include in the results. Rows with 'T' less
+# than 'minT' are filtered out.
+#
+# Returns:
+#   The preprocessed 'results' data frame.
+
+preprocess <- function(results, minT = NA) {
+  # If 'minT' is not NA, filter out rows where 'T' is less than 'minT'
+  if (!is.na(minT)){
+    results <- results[results$T >= minT, ]
+  }
+
+  # Filter out rows where 'N_hat' is NA, NaN, Inf, or less than 0
+  results <- results[(!is.na(results$N_hat)) & (!is.nan(results$N_hat)), ]
+  results <- results[(results$N_hat != Inf) & (results$N_hat >= 0), ]
+
+  # Add a new column 'sq_dev' which is the square of the difference between
+  #'N_hat' and 'N'
+  results$sq_dev <- (results$N_hat - results$N)^2
+
+  # Convert 'T' to a factor
+  results$T <- as.factor(results$T)
+
+  # Create a named vector to map the old names to the new names
+  name_map <- setNames(NEW_NAMES, OLD_NAMES)
+
+  # Use the named vector to replace the old names with the new names in the
+  # 'type' column
+  names_to_replace <- results[results$type %in% OLD_NAMES, c("type")]
+  results[results$type %in% OLD_NAMES, c("type")] <- name_map[names_to_replace]
+
+  # Return the preprocessed 'results' data frame
+  results
 }
 
-aggregate_data = function(pr_results){
-  agg = pr_results %>%
+
+# 'aggregate_data' function for aggregating the simulation results
+#
+# This function performs several steps to aggregate the 'pr_results' data frame:
+# - Groups by 'type', 'T', and 'N' and calculates several summary statistics
+# - Calculates the root mean square error (RMSE) and bias
+# - Gets the baseline values for "Pseudolikelihood"
+# - Joins the baseline values with the other methods
+# - Calculates the relative metrics
+# - Checks if all trials are complete
+# - Removes the baseline columns
+#
+# Args:
+#   pr_results: A data frame containing the simulation results to be aggregated.
+#
+# Returns:
+#   The aggregated 'pr_results' data frame.
+
+aggregate_data <- function(pr_results) {
+  # Group by 'type', 'T', and 'N' and calculate several summary statistics
+  agg <- pr_results %>%
     group_by(type, T, N) %>%
     summarise(
       mse = mean(sq_dev),
@@ -22,36 +120,92 @@ aggregate_data = function(pr_results){
       trials = length(N_hat),
       hat_var = var(N_hat)
     )
-  agg$rmse = sqrt(agg$mse)
-  agg$bias = abs(agg$hat_mean - agg$N)
-  nexps = length(agg[agg$type == "Pseudolikelihood",]$rmse)
-  repeats = dim(agg)[1] / nexps
-  agg$rel_bias = agg$bias / rep(agg[agg$type == "Pseudolikelihood",]$bias, repeats)
-  agg$rel_var = agg$hat_var / rep(agg[agg$type == "Pseudolikelihood",]$hat_var, repeats)
-  agg$rel_rmse = agg$rmse / rep(agg[agg$type == "Pseudolikelihood",]$rmse, repeats)
+
+  # Calculate the root mean square error (RMSE) and bias
+  agg$rmse <- sqrt(agg$mse)
+  agg$bias <- abs(agg$hat_mean - agg$N)
+
+  # Get the baseline values for "Pseudolikelihood"
+  baseline <- agg[
+    agg$type == "Pseudolikelihood",
+    c("T", "N", "rmse", "bias", "hat_var")
+  ]
+
+  # Join the baseline values with the other methods
+  agg <- left_join(agg, baseline, by = c("T", "N"), suffix = c("", "_baseline"))
+
+  # Calculate the relative metrics
+  agg <- mutate(
+    agg,
+    rel_bias = bias / bias_baseline,
+    rel_var = hat_var / hat_var_baseline,
+    rel_rmse = rmse / rmse_baseline,
+  ) %>%
+    mutate(
+      lrel_bias = log(rel_bias),
+      lrel_rmse = log(rel_rmse),
+      lrel_var = log(rel_var)
+    )
+
+  # Remove the baseline columns
+  agg <- select(agg, -ends_with("_baseline"))
+
+  # Return the aggregated 'pr_results' data frame
   agg
 }
 
-plot_results = function(agg, pop, ylim_bias = c(-3.0, 3.0), ylim_rmse = c(-3.0, 3.0), dense = NA){
-  if (is.na(dense)){
-    title = paste0("N = ", as.character(pop))
-  } else {
-    title = paste0("N = ", as.character(pop), ", graph density = ", as.character(dense))
-  }
-  p1 = ggplot(
-    agg[(agg$N == pop)&(agg$type != "Pseudolikelihood"),],
-    mapping = aes(x = T, y = lrel_rmse, colour = type, group = type)
+
+# 'plot_lines' function for creating a line plot of the aggregated data
+#
+# This function creates a line plot of the aggregated data 'agg' for a specific
+# population 'pop'. The y-axis variable is specified by 'y', and the y-axis
+# limits are specified by 'ylim'. The x-axis limits are specified by 'xlim',
+# with a default range of NA to 15.0. The plot is labeled with 'ylab' on the
+# y-axis and 'title' as the title.
+#
+# Args:
+#   agg: A data frame containing the aggregated data to be plotted.
+#   pop: The population to be plotted.
+#   y: The variable to be plotted on the y-axis.
+#   ylim: The limits for the y-axis.
+#   ylab: The label for the y-axis.
+#   title: The title for the plot.
+#   xlim: The limits for the x-axis. Default is c(NA, 15.0).
+#
+# Returns:
+#   A ggplot object representing the line plot.
+
+plot_lines <- function(agg, pop, y, ylim, ylab, title, xlim = c(NA, 15.0)) {
+  # Convert the y variable to a symbol
+  y_col <- sym(y)
+
+  # Create the plot
+  ggplot(
+  # Filter the data for the specified population and exclude "Pseudolikelihood"
+    agg[(agg$N == pop) & (agg$type != "Pseudolikelihood"), ],
+    mapping = aes(
+      x = T,
+      y = !!y_col,
+      colour = type,
+      group = type,
+      linetype = complete
+    )
   ) +
     geom_line() +
     geom_point() +
-    geom_hline(yintercept = 0, linetype = 2, colour = "black", alpha = 0.5) +
+    # Add a horizontal line at y = 0
+    geom_hline(yintercept = 0, colour = "black", alpha = 0.35) +
     theme_minimal() +
-    coord_cartesian(ylim = ylim_rmse, xlim = c(NA, 15.0)) +
+    # Set the coordinate limits
+    coord_cartesian(ylim = ylim, xlim = xlim) +
+    # Remove the colour guide
     guides(colour = "none") +
     xlab("T") +
     theme_pubr() +
-    ylab("LogRelRMSE") + 
+    ylab(ylab) +
+    # Set the plot title
     ggtitle(title) +
+    # Add direct labels to the lines
     geom_dl(
       aes(label = type),
       method = list(
@@ -61,108 +215,153 @@ plot_results = function(agg, pop, ylim_bias = c(-3.0, 3.0), ylim_rmse = c(-3.0, 
         cex = 0.8
       )
     )
-  p2 = ggplot(
-    agg[(agg$N == pop)&(agg$type != "Pseudolikelihood"),],
-    mapping = aes(x = T, y = lrel_bias, colour = type, group = type)
-  ) +
-    geom_line() +
-    geom_point() +
-    geom_hline(yintercept = 0, linetype = 2, colour = "black", alpha = 0.5) +
-    theme_minimal() +
-    coord_cartesian(ylim = ylim_bias, xlim = c(NA, 15.0)) +
-    guides(colour = "none") +
-    xlab("T") +
-    theme_pubr() +
-    ylab("LogRelAbsBias") +
-    ggtitle("") +
-    geom_dl(
-      aes(label = type),
-      method = list(
-        dl.trans(x = x * 1.025, y = y * 1.0), 
-        "last.points",
-        "bumpup",
-        cex = 0.8
-      )
+}
+
+
+# 'plot_results' function for creating line plots of the aggregated data
+#
+# This function creates two line plots of the aggregated data 'agg' for specific
+# population 'pop'. The y-axis limits for the bias and RMSE plots are specified
+# by 'ylim_bias' and 'ylim_rmse', respectively. The x-axis limits are specified
+# by 'xlim', with a default range of NA to 15.0. The graph density is specified
+# by 'dense', with a default value of NA.
+#
+# Args:
+#   agg: A data frame containing the aggregated data to be plotted.
+#   pop: The population to be plotted.
+#   ylim_bias: The limits for the y-axis of the bias plot.
+# Default is c(-3.0, 3.0).
+#   ylim_rmse: The limits for the y-axis of the RMSE plot.
+# Default is c(-3.0, 3.0).
+#   xlim: The limits for the x-axis. Default is c(NA, 15.0).
+#   dense: The graph density. Default is NA.
+#
+# Returns:
+#   A list containing two ggplot objects representing the line plots.
+
+plot_results <- function(
+  agg,
+  pop,
+  ylim_bias = c(-3.0, 3.0),
+  ylim_rmse = c(-3.0, 3.0),
+  xlim = c(NA, 15.0),
+  dense = NA
+) {
+  # Create the plot title based on the population and graph density
+  if (is.na(dense)){
+    title <- paste0("N = ", as.character(pop))
+  } else {
+    title <- paste0(
+      "N = ", as.character(pop),
+      ", graph density = ",
+      as.character(dense)
     )
+  }
+
+  # Create the RMSE plot
+  p1 <- plot_lines(agg, pop, "lrel_rmse", ylim_rmse, "LogRelRMSE", title, xlim)
+  # Create the bias plot
+  p2 <- plot_lines(agg, pop, "lrel_bias", ylim_bias, "LogRelAbsBias", "", xlim)
+
+  # Return the plots as a list
   list(p1, p2)
 }
 
+# Plot the results for unequal probability capture-recapture
+# Define the lookup table for y-axis limits
+ylim_lookup <- list(
+  "0.5" = list(
+    "1000" = c(-1.5, 4.5),
+    "5000" = c(-1.5, 4.5),
+    "10000" = c(-1.5, 4.5)
+  ),
+  "1.0" = list(
+    "1000" = c(-3.0, 4.0),
+    "5000" = c(-0.25, 6.0),
+    "10000" = c(-1.0, 4.5)
+  ),
+  "5.0" = list(
+    "1000" = c(-2.0, 6.0),
+    "5000" = c(-4.0, 7.0),
+    "10000" = c(-3.0, 4.5)
+  ),
+  "10.0" = list(
+    "1000" = c(-3.5, 10.0),
+    "5000" = c(-5.0, 6.5),
+    "10000" = c(-5.5, 5.5)
+  ),
+  "Inf" = list(
+    "1000" = c(-4.0, 3.0),
+    "5000" = c(-3.5, 2.5),
+    "10000" = c(-5.0, 4.0)
+  )
+)
+
 for (het in c("0.5", "1.0", "5.0", "10.0", "Inf")){
-  dat_name = paste0("./_900_output/data/simulated/estimates_", het, ".csv")
-  dat = read.csv(dat_name) %>%
-    preprocess()
-  agg = aggregate_data(dat)
-  agg$lrel_rmse = log(agg$rel_rmse)
-  agg$lrel_bias = log(agg$rel_bias)
-  agg[agg$type == "Conway-Maxwell-Poisson",]$type = "LCMP"
-  ps = c()
-  for (N in c(1000, 5000, 10000)){
-    ylim_bias = c(-3.0, 3.0)
-    ylim_rmse = c(-3.0, 3.0)
-    if (het == "0.5"){
-      ylim_bias = c(-1.5, 4.5)
-      ylim_rmse = c(-1.5, 4.5)
-    }
-    else if (het == "1.0"){
-      if (N == 1000){
-        ylim_bias = c(-3.0, 4.0)
-        ylim_rmse = c(-3.0, 3.5)
-      }
-      else if (N == 5000){
-        ylim_bias = c(-0.25, 6.0)
-        ylim_rmse = c(-2.0, 3.0)
-      }
-      else{
-        ylim_bias = c(-1.0, 4.5)
-        ylim_rmse = c(-1.5, 3.0)
-      }
-    }
-    else if (het == "5.0"){
-      if (N == 1000){
-        ylim_bias = c(-2.0, 6.0)
-        ylim_rmse = c(-2.0, 4.5)
-      }
-      else if (N == 5000){
-        ylim_bias = c(-4.0, 7.0)
-      }
-      else{
-        ylim_bias = c(-3.0, 4.5)
-      }
-    }
-    else if (het == "10.0"){
-      if (N == 1000){
-        ylim_bias = c(-3.5, 10.0)
-        ylim_rmse = c(-2.0, 4.0)
-      }
-      else if (N == 5000){
-        ylim_bias = c(-5.0, 6.5)
-      }
-      else{
-        ylim_bias = c(-5.5, 5.5)
-      }
-    }
-    else{
-      if (N == 1000){
-        ylim_bias = c(-4.0, 3.0)
-        ylim_rmse = c(-2.0, 3.0)
-      }
-      else if (N == 5000){
-        ylim_bias = c(-3.5, 2.5)
-        ylim_rmse = c(-1.5, 1.5)
-      }
-      else{
-        ylim_bias = c(-5.0, 4.0)
-        ylim_rmse = c(-1.5, 2.0)
-      }
-    }    
-    ps = c(ps, plot_results(agg, N, ylim_bias = ylim_bias, ylim_rmse = ylim_rmse))
+  agg <- read.csv(
+    paste0("./_900_output/data/simulated/estimates_", het, ".csv")
+  ) %>%
+    preprocess() %>%
+    aggregate_data()
+
+  ps <- c()
+
+  for (N in c(1000, 5000, 10000)) {
+    ylim_bias <- ylim_lookup[[het]][[as.character(N)]]
+    ylim_rmse <- ylim_bias
+
+    ps <- c(
+      ps,
+      plot_results(agg, N, ylim_bias = ylim_bias, ylim_rmse = ylim_rmse)
+    )
   }
+
   ggarrange(plotlist = ps, ncol = 2, nrow = 3)
   ggsave(
-    paste0(OUTPUT_FOLDER, "estimates_", het, ".pdf"),
+    paste0(OUTPUT_FOLDER, "simulated/estimates_", het, ".pdf"),
     width = 210,
     height = 297,
     units = "mm"
-    )
+  )
+
 }
 
+# Plot the results for Barabasi-Albert graphs
+# Define the lookup table for y-axis limits
+ylim_lookup <- list(
+  "0.05" = c(NA, 5.25),
+  "0.1" = c(-3.5, 6.0),
+  "0.2" = c(-3.0, 5.0)
+)
+
+ps <- c()
+N <- 10000
+for (dense in c(0.05, 0.1, 0.2)) {
+  agg <- read.csv(
+    paste0("./_900_output/data/graphs/estimates_ba_", dense, ".csv")
+  ) %>%
+    preprocess() %>%
+    aggregate_data()
+
+  ylim_bias <- ylim_lookup[[as.character(dense)]]
+  ylim_rmse <- ylim_bias
+
+  ps <- c(
+    ps,
+    plot_results(
+      agg,
+      N,
+      dense = dense,
+      ylim_bias = ylim_bias,
+      ylim_rmse = ylim_rmse
+    )
+  )
+}
+
+ggarrange(plotlist = ps, ncol = 2, nrow = 3)
+ggsave(
+  paste0(OUTPUT_FOLDER, "graphs/estimates_ba.pdf"),
+  width = 210,
+  height = 297,
+  units = "mm"
+)

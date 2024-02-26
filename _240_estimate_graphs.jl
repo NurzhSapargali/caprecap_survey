@@ -22,7 +22,7 @@ import Random: seed!
 using StatsBase
 
 # Define constants
-const GRAPHS::Vector{String} = ["ba_0.05", "ba_0.1", "ba_0.2"] # Folder names containing the sampled graphs
+const GRAPHS::Vector{String} = ["ba_0.025", "ba_0.1", "ba_0.05"] # Folder names containing the sampled graphs
 const DATA_FOLDER::String = "./_200_input/graphs/" # Folder containing the sampled graphs
 const breaks_T::Vector{Int64} = collect(5:5:50) # Number of samples at which to estimate
 const OUTPUT_FOLDER::String = "./_900_output/data/graphs/" # Folder to save the results
