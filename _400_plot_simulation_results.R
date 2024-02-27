@@ -175,20 +175,19 @@ aggregate_data <- function(pr_results) {
 # Returns:
 #   A ggplot object representing the line plot.
 
-plot_lines <- function(agg, pop, y, ylim, ylab, title, xlim = c(NA, 15.0)) {
+plot_lines <- function(agg, pop, y, ylim, ylab, title, xlim) {
   # Convert the y variable to a symbol
   y_col <- sym(y)
 
   # Create the plot
   ggplot(
-  # Filter the data for the specified population and exclude "Pseudolikelihood"
+    # Get specified population and exclude "Pseudolikelihood"and "Morgan Ridout"
     agg[(agg$N == pop) & (agg$type != "Pseudolikelihood"), ],
     mapping = aes(
       x = T,
       y = !!y_col,
       colour = type,
-      group = type,
-      linetype = complete
+      group = type
     )
   ) +
     geom_line() +
@@ -244,7 +243,7 @@ plot_results <- function(
   pop,
   ylim_bias = c(-3.0, 3.0),
   ylim_rmse = c(-3.0, 3.0),
-  xlim = c(NA, 15.0),
+  xlim = c(NA, 12.0),
   dense = NA
 ) {
   # Create the plot title based on the population and graph density
@@ -271,29 +270,29 @@ plot_results <- function(
 # Define the lookup table for y-axis limits
 ylim_lookup <- list(
   "0.5" = list(
-    "1000" = c(-1.5, 4.5),
-    "5000" = c(-1.5, 4.5),
-    "10000" = c(-1.5, 4.5)
+    "1000" = list("rmse" = c(NA, 1.3), "bias" = c(NA, 5.8)),
+    "5000" = list("rmse" = c(NA, 2.0), "bias" = c(NA, 5.5)),
+    "10000" = list("rmse" = c(NA, 2.0), "bias" = c(NA, 5.0))
   ),
   "1.0" = list(
-    "1000" = c(-3.0, 4.0),
-    "5000" = c(-0.25, 6.0),
-    "10000" = c(-1.0, 4.5)
+    "1000" = list("rmse" = c(NA, 1.4), "bias" = c(NA, 3.0)),
+    "5000" = list("rmse" = c(NA, 1.8), "bias" = c(NA, 5.8)),
+    "10000" = list("rmse" = c(NA, 2.75), "bias" = c(NA, 6.5))
   ),
   "5.0" = list(
-    "1000" = c(-2.0, 6.0),
-    "5000" = c(-4.0, 7.0),
-    "10000" = c(-3.0, 4.5)
+    "1000" = list("rmse" = c(NA, 3.0), "bias" = c(NA, 6.5)),
+    "5000" = list("rmse" = c(NA, 1.25), "bias" = c(NA, 6.75)),
+    "10000" = list("rmse" = c(NA, 1.25), "bias" = c(NA, 5.0))
   ),
   "10.0" = list(
-    "1000" = c(-3.5, 10.0),
-    "5000" = c(-5.0, 6.5),
-    "10000" = c(-5.5, 5.5)
+    "1000" = list("rmse" = c(NA, 3.0), "bias" = c(NA, 10.0)),
+    "5000" = list("rmse" = c(NA, 1.5), "bias" = c(NA, 7.5)),
+    "10000" = list("rmse" = c(NA, 1.25), "bias" = c(NA, 7.5))
   ),
   "Inf" = list(
-    "1000" = c(-4.0, 3.0),
-    "5000" = c(-3.5, 2.5),
-    "10000" = c(-5.0, 4.0)
+    "1000" = list("rmse" = c(NA, 2.75), "bias" = c(NA, 3.0)),
+    "5000" = list("rmse" = c(NA, 1.5), "bias" = c(NA, 2.5)),
+    "10000" = list("rmse" = c(NA, 1.25), "bias" = c(NA, 2.75))
   )
 )
 
@@ -307,8 +306,8 @@ for (het in c("0.5", "1.0", "5.0", "10.0", "Inf")){
   ps <- c()
 
   for (N in c(1000, 5000, 10000)) {
-    ylim_bias <- ylim_lookup[[het]][[as.character(N)]]
-    ylim_rmse <- ylim_bias
+    ylim_bias <- ylim_lookup[[het]][[as.character(N)]][["bias"]]
+    ylim_rmse <- ylim_lookup[[het]][[as.character(N)]][["rmse"]]
 
     ps <- c(
       ps,
@@ -329,22 +328,22 @@ for (het in c("0.5", "1.0", "5.0", "10.0", "Inf")){
 # Plot the results for Barabasi-Albert graphs
 # Define the lookup table for y-axis limits
 ylim_lookup <- list(
-  "0.05" = c(NA, 5.25),
-  "0.1" = c(-3.5, 6.0),
-  "0.2" = c(-3.0, 5.0)
+  "0.025" = list("rmse" = c(NA, 2.0), "bias" = c(NA, 4.5)),
+  "0.05" = list("rmse" = c(NA, 2.5), "bias" = c(NA, 4.0)),
+  "0.1" = list("rmse" = c(NA, 1.75), "bias" = c(NA, 6.0))
 )
 
 ps <- c()
 N <- 10000
-for (dense in c(0.05, 0.1, 0.2)) {
+for (dense in c(0.025, 0.05, 0.1)) {
   agg <- read.csv(
     paste0("./_900_output/data/graphs/estimates_ba_", dense, ".csv")
   ) %>%
     preprocess() %>%
     aggregate_data()
 
-  ylim_bias <- ylim_lookup[[as.character(dense)]]
-  ylim_rmse <- ylim_bias
+  ylim_bias <- ylim_lookup[[as.character(dense)]][["bias"]]
+  ylim_rmse <- ylim_lookup[[as.character(dense)]][["rmse"]]
 
   ps <- c(
     ps,
