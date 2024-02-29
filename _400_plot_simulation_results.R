@@ -15,6 +15,7 @@ library(directlabels)
 library(ggpubr)
 
 OUTPUT_FOLDER <- "./_900_output/figures/" # Folder to save the figures
+TRIALS <- 1000 # Number of trials in the simulation
 OLD_NAMES <- c(
   "Chao Lee Jeng 0",
   "Chao Lee Jeng 1",
@@ -149,6 +150,9 @@ aggregate_data <- function(pr_results) {
 
   # Remove the baseline columns
   agg <- select(agg, -ends_with("_baseline"))
+  agg$incomplete <- agg$trials != TRIALS
+  agg$fill_col <- agg$type
+  agg$fill_col[agg$incomplete] <- NA
 
   # Return the aggregated 'pr_results' data frame
   agg
@@ -191,14 +195,19 @@ plot_lines <- function(agg, pop, y, ylim, ylab, title, xlim) {
     )
   ) +
     geom_line() +
-    geom_point() +
+    geom_point(
+      mapping = aes(colour = fill_col, shape = incomplete),
+      size = 2.6
+    ) +
     # Add a horizontal line at y = 0
     geom_hline(yintercept = 0, colour = "black", alpha = 0.35) +
     theme_minimal() +
     # Set the coordinate limits
     coord_cartesian(ylim = ylim, xlim = xlim) +
+    # Set the decimal places for the y-axis
+    scale_y_continuous(labels = scales::number_format(accuracy = 1)) +
     # Remove the colour guide
-    guides(colour = "none") +
+    guides(colour = "none", shape = "none") +
     xlab("T") +
     theme_pubr() +
     ylab(ylab) +
@@ -265,6 +274,7 @@ plot_results <- function(
   # Return the plots as a list
   list(p1, p2)
 }
+
 
 # Plot the results for unequal probability capture-recapture
 # Define the lookup table for y-axis limits
@@ -335,12 +345,14 @@ ylim_lookup <- list(
 
 ps <- c()
 N <- 10000
+pseudo <- list()
 for (dense in c(0.025, 0.05, 0.1)) {
-  agg <- read.csv(
+  estim_df <- read.csv(
     paste0("./_900_output/data/graphs/estimates_ba_", dense, ".csv")
   ) %>%
-    preprocess() %>%
-    aggregate_data()
+    preprocess()
+  pseudo[[as.character(dense)]] <- estim_df[estim_df$type == "Pseudolikelihood", ]
+  agg <- aggregate_data(estim_df)
 
   ylim_bias <- ylim_lookup[[as.character(dense)]][["bias"]]
   ylim_rmse <- ylim_lookup[[as.character(dense)]][["rmse"]]
@@ -362,5 +374,22 @@ ggsave(
   paste0(OUTPUT_FOLDER, "graphs/estimates_ba.pdf"),
   width = 210,
   height = 297,
+  units = "mm"
+)
+
+a_hats <- do.call(rbind.data.frame, pseudo)
+a_hats[a_hats$graph == "ba_0.025", "graph"] <- "0.025"
+a_hats[a_hats$graph == "ba_0.05", "graph"] <- "0.05"
+a_hats[a_hats$graph == "ba_0.1", "graph"] <- "0.1"
+colnames(a_hats)[colnames(a_hats) == "graph"] <- "Graph density"
+ggplot(a_hats, mapping = aes(x = T, y = log(a_hat), fill = `Graph density`)) +
+  geom_boxplot(outlier.alpha = 0.5) +
+  ylab("Log alpha estimate") +
+  theme_minimal() +
+  theme_pubr()
+ggsave(
+  paste0(OUTPUT_FOLDER, "graphs/alpha_estimates.pdf"),
+  width = 297,
+  height = 165,
   units = "mm"
 )
