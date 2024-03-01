@@ -205,7 +205,7 @@ plot_lines <- function(agg, pop, y, ylim, ylab, title, xlim) {
     # Set the coordinate limits
     coord_cartesian(ylim = ylim, xlim = xlim) +
     # Set the decimal places for the y-axis
-    scale_y_continuous(labels = scales::number_format(accuracy = 1)) +
+    scale_y_continuous(labels = scales::number_format(accuracy = 0.1)) +
     # Remove the colour guide
     guides(colour = "none", shape = "none") +
     xlab("T") +
@@ -386,7 +386,7 @@ ggplot(a_hats, mapping = aes(x = T, y = log(a_hat), fill = `Graph density`)) +
   geom_boxplot(outlier.alpha = 0.5) +
   ylab("Log alpha estimate") +
   theme_minimal() +
-  theme_pubr()
+  theme_pubr(base_size = 15)
 ggsave(
   paste0(OUTPUT_FOLDER, "graphs/alpha_estimates.pdf"),
   width = 297,
