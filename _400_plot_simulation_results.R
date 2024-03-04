@@ -382,14 +382,38 @@ a_hats[a_hats$graph == "ba_0.025", "graph"] <- "0.025"
 a_hats[a_hats$graph == "ba_0.05", "graph"] <- "0.05"
 a_hats[a_hats$graph == "ba_0.1", "graph"] <- "0.1"
 colnames(a_hats)[colnames(a_hats) == "graph"] <- "Graph density"
-ggplot(a_hats, mapping = aes(x = T, y = log(a_hat), fill = `Graph density`)) +
+a_hat_means <- group_by(a_hats, T, `Graph density`) %>%
+  summarise(hat_mean = log(mean(a_hat)))
+
+p1 <- ggplot(
+  a_hats,
+  mapping = aes(x = T, y = log(a_hat), fill = `Graph density`)
+) +
   geom_boxplot(outlier.alpha = 0.5) +
   ylab("Log alpha estimate") +
   theme_minimal() +
   theme_pubr(base_size = 15)
+
+p2 <- ggplot(
+  a_hat_means,
+  mapping = aes(
+    x = T,
+    y = hat_mean,
+    group = `Graph density`,
+    colour = `Graph density`
+  )
+) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  theme_pubr(base_size = 15) +
+  ylab("Log of mean of alpha estimates") +
+  xlab("T")
+
+ggarrange(plotlist = list(p1, p2), ncol = 1, nrow = 2)
 ggsave(
   paste0(OUTPUT_FOLDER, "graphs/alpha_estimates.pdf"),
-  width = 297,
-  height = 165,
+  width = 210,
+  height = 297,
   units = "mm"
 )
