@@ -8,7 +8,7 @@ Barabasi-Albert graphs with specified densities and applies a degree-biased
 forest-fire sampling algorithm to sample vertices from the graph. The results
 of the sampling process are written to a file.
 
-Author: Nurzhan Sapargali
+Author: Nurzhan Sapargali <nurzh.sapargali@gmail.com>
 Date created: 2024-02-24
 """
 

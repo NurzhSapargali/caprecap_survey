@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
-# Authors:   Nurzhan Sapargali <nurzh.sapargali@gmail.com>
-""" This script hydrates tweet IDs, i.e. it fetches the full data for each tweet
+# -*- coding: utf-8 -*-
+"""
+File: 500_hydrate_tweets.py
+---------------------------
+This script hydrates tweet IDs, i.e. it fetches the full data for each tweet
 ID. It reads tweet IDs from CSV files named "corona_tweets_<c>.csv", where <c> is
 a number. The data is fetched in batches of 100 IDs at a time, as this is the
 maximum allowed by the Twitter API. If the rate limit is reached, it waits for 15
 minutes (the standard rate limit window) before trying again. The hydrated tweet
-data is saved to a new CSV file named "hydrated_tweets_<c>.csv"""
+data is saved to a new CSV file named "hydrated_tweets_<c>.csv
+
+Author: Nurzhan Sapargali <nurzh.sapargali@gmail.com>
+Date created: 2024-02-24
+"""
 
 import tweepy
 import pandas as pd
