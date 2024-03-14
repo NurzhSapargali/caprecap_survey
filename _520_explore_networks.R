@@ -26,10 +26,11 @@ summarize_graph <- function(g) {
   n <- vcount(g)
   m <- ecount(g)
   clust_coef <- transitivity(g, type = "global")
-  w_comps <- count_components(g, mode = "weak")
-  s_comps <- count_components(g, mode = "strong")
+  comps <- components(g, mode = "weak")
+  w_comps <- comps$no
   avg_deg <- mean(degree(g, mode = "in"))
-  return(c(n, m, avg_deg, clust_coef, w_comps, s_comps))
+  rel_size <- max(comps$csize) / n
+  return(c(n, m, avg_deg, clust_coef, w_comps, rel_size))
 }
 
 degree_dist <- function(g, mode = "in") {
@@ -75,7 +76,13 @@ ggplot(degs, aes(x = log_degree, y = log_count, color = type)) +
   geom_point(size = 1.5, alpha = 0.5) +
   theme_minimal() +
   theme_pubr(base_size = 15) +
-  theme(legend.title = element_blank()) +
+  theme(
+    legend.title = element_blank(),
+    legend.text = element_text(size = 18),
+    text = element_text(size = 18),
+    strip.text = element_text(size = 17)
+  ) +
+  scale_x_continuous(labels = scales::number_format(accuracy = 1)) +
   xlab("Log degree") +
   ylab("Log count") +
   facet_wrap(
@@ -91,23 +98,31 @@ ggsave(
 )
 
 weights <- do.call(rbind, weights)
+weights$year <- substr(weights$date, 12, 16)
+weights$range <- substr(weights$date, 0, 11)
 
-ggplot(weights, aes(x = log_w, y = log_count)) +
-  geom_point(size = 1.5, alpha = 0.5) +
+ggplot(weights, aes(x = log_w, y = log_count, color = year)) +
+  geom_point(size = 1.5, alpha = 0.6) +
+  scale_color_brewer(palette = "Set1") +
   theme_minimal() +
   theme_pubr(base_size = 15) +
-  theme(legend.title = element_blank()) +
+  theme(
+    legend.title = element_blank(),
+    legend.text = element_text(size = 18),
+    text = element_text(size = 18),
+    strip.text = element_text(size = 17)
+  ) +
   xlab("Log mentions") +
   ylab("Log count") +
   facet_wrap(
-    vars(date),
+    vars(range),
     ncol = 3,
-    nrow = 2
+    nrow = 1
   )
 ggsave(
   paste(FIGURE_FOLDER, "weight_dist.pdf", sep = ""),
   width = 297,
-  height = 165,
+  height = 165 / 1.5,
   units = "mm"
 )
 
@@ -119,6 +134,6 @@ colnames(graph_summaries) <- c(
   "avg_deg",
   "clust_coef",
   "w_comps",
-  "s_comps"
+  "rel_size"
 )
 print(graph_summaries)

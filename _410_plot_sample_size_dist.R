@@ -42,6 +42,7 @@ ggplot(sizes_df, mapping = aes(x = sample_size)) +
   geom_histogram(fill = "gray", colour = "black", binwidth = 8) +
   theme_minimal() +
   theme_pubr(base_size = 17) +
+  theme(text = element_text(size = 18), strip.text = element_text(size = 17)) +
   xlab("Sample size") +
   ylab("Frequency") +
   facet_wrap(

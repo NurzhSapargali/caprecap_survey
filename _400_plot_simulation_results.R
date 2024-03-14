@@ -392,7 +392,8 @@ p1 <- ggplot(
   geom_boxplot(outlier.alpha = 0.5) +
   ylab("Log alpha estimate") +
   theme_minimal() +
-  theme_pubr(base_size = 15)
+  theme_pubr(base_size = 15) +
+  theme(text = element_text(size = 19), legend.text = element_text(size = 19)) +
 
 p2 <- ggplot(
   a_hat_means,
@@ -410,10 +411,11 @@ p2 <- ggplot(
   ylab("Log of mean of alpha estimates") +
   xlab("T")
 
-ggarrange(plotlist = list(p1, p2), ncol = 1, nrow = 2)
+# ggarrange(plotlist = list(p1, p2), ncol = 1, nrow = 2)
 ggsave(
   paste0(OUTPUT_FOLDER, "graphs/alpha_estimates.pdf"),
-  width = 210,
-  height = 297,
+  plot = p1,
+  width = 297,
+  height = 210,
   units = "mm"
 )
