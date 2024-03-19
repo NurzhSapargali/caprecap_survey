@@ -23,13 +23,15 @@ function loglh(Nu, alpha, n, No, x_sums; verbose::Bool = true)
     return lh
 end
     
-function loglh_redux(alpha, Nu, n, No, x_sums; verbose::Bool = true)
+function loglh_redux(log_alpha, log_Nu, n, No, ff; verbose::Bool = true)
+    alpha = exp(log_alpha)
+    Nu = exp(log_Nu)
     N = Nu + No
     fact_term = 0.0
-    for i in keys(x_sums)
-        incs = get(x_sums, i, 0)
-        range_inc = sum([log(alpha + incs - j) for j in 1:incs])
-        fact_term += range_inc
+    for i in keys(ff)
+        multiplier = get(ff, i, 0)
+        range_inc = sum([log(alpha + i - j) for j in 1:i])
+        fact_term += multiplier * range_inc
     end
     ratio = 1.0 + sum(n) / alpha / N
     lh = (- sum(n) * (log(alpha) + log(N))
@@ -60,15 +62,17 @@ function gradient_a(log_Nu, log_a, n, No, sum_x)
     return out
 end
 
-function gradient_a_redux(alpha, Nu, n, No, x_sums)
+function gradient_a_redux(log_alpha, log_Nu, n, No, ff)
+    Nu = exp(log_Nu)
+    alpha = exp(log_alpha)
     N = Nu + No
     log_aN = log(alpha) + log(N)
     ratio = 1.0 + sum(n) / alpha / N
     fact_term = 0.0
-    for i in keys(x_sums)
-        incs = get(x_sums, i, 0)
-        range_inc = sum([1.0 / (alpha + incs - j) for j in 1:incs])
-        fact_term += range_inc
+    for i in keys(ff)
+        multiplier = get(ff, i, 0)
+        range_inc = sum([1.0 / (alpha + i - j) for j in 1:i])
+        fact_term += range_inc * multiplier
     end
     inner_derivative = ( (ratio^alpha * (log_aN + log(ratio) + 1.0 / ratio) - (log_aN + 1.0) )
                         / (ratio^alpha - 1.0) )
@@ -76,15 +80,17 @@ function gradient_a_redux(alpha, Nu, n, No, x_sums)
            - No * inner_derivative
            + fact_term
            - sum(n) / alpha * 1.0 / ratio )
-    return out
+    return out * alpha
 end
 
-function gradient_Nu_redux(alpha, Nu, n, No)
+function gradient_Nu_redux(log_alpha, log_Nu, n, No)
+    alpha = exp(log_alpha)
+    Nu = exp(log_Nu)
     N = Nu + No
     ratio = 1.0 + sum(n) / alpha / N
     inner_derivative = (ratio^(alpha - 1.0)  - 1.0) / (ratio^alpha - 1.0) * alpha / N
     out = ( alpha * No / N - No * inner_derivative - sum(n) / N * 1.0 / ratio )
-    return out
+    return out * Nu
 end
 
 function gradient_Nu(log_Nu, log_a, n, No, sum_x)
@@ -102,10 +108,10 @@ function gradient_Nu(log_Nu, log_a, n, No, sum_x)
     return out
 end
 
-function fit_Gamma(theta0, n, No, x_sums; lower::Vector = [0.01, 0.1], upper::Vector = [1000, 100000], ftol = 1e-7)
-    L(x) = -loglh_redux(x[1], x[2], n, No, x_sums)
+function fit_Gamma(theta0, n, No, ff; lower::Vector = [-Inf, -Inf], upper::Vector = [10, 12], ftol = 1e-7)
+    L(x) = -loglh_redux(x[1], x[2], n, No, ff)
     g_Nu(x)  = -gradient_Nu_redux(x[1], x[2], n, No)
-    g_a(x) = -gradient_a_redux(x[1], x[2], n, No, x_sums)
+    g_a(x) = -gradient_a_redux(x[1], x[2], n, No, ff)
     function objective(x::Vector, grad::Vector)
         if length(grad) > 0
             grad[1] = g_a(x)

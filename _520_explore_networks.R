@@ -78,9 +78,9 @@ ggplot(degs, aes(x = log_degree, y = log_count, color = type)) +
   theme_pubr(base_size = 15) +
   theme(
     legend.title = element_blank(),
-    legend.text = element_text(size = 18),
-    text = element_text(size = 18),
-    strip.text = element_text(size = 17)
+    legend.text = element_text(size = 15),
+    text = element_text(size = 15),
+    strip.text = element_text(size = 15)
   ) +
   scale_x_continuous(labels = scales::number_format(accuracy = 1)) +
   xlab("Log degree") +
@@ -108,9 +108,9 @@ ggplot(weights, aes(x = log_w, y = log_count, color = year)) +
   theme_pubr(base_size = 15) +
   theme(
     legend.title = element_blank(),
-    legend.text = element_text(size = 18),
-    text = element_text(size = 18),
-    strip.text = element_text(size = 17)
+    legend.text = element_text(size = 15),
+    text = element_text(size = 15),
+    strip.text = element_text(size = 15)
   ) +
   xlab("Log mentions") +
   ylab("Log count") +

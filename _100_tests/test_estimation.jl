@@ -15,10 +15,10 @@ using StatsFuns
 
 import Random: seed!
 
-N = 1000
-a = 5.0
-T = 20
-n = repeat([37, 44, 100, 17, 2, 75, 17, 2, 112, 3], 5)[1:T]
+N = 800000
+a = 0.5
+T = 5
+n = repeat([37, 44, 100, 17, 2, 75, 17, 2, 112, 3] * 100, 100)[1:T]
 b = a * (N / maximum(n) - 1.0)
 trials = 1
 d = Beta(a, b)
@@ -33,19 +33,22 @@ for s in S
 end
 f = countmap(values(K))
 O = Set([i for j in S for i in j])
-X = Dict{Any, Any}()
-for i in O
-    X[i] = [i in s for s in S]
-end
-println("$(length(X))")
-x_sums = Dict(i => sum(X[i]) for i in keys(X))
+#X = Dict{Any, Any}()
+#for i in O
+#    X[i] = [i in s for s in S]
+#end
+#println("$(length(X))")
+#x_sums = Dict(i => sum(X[i]) for i in keys(X))
 (minf1, minx1, ret1) = GammaEstimator.fit_Gamma(
-    [5.0, Benchmarks.turing(length(O), f, T) - length(X)],
+    [log(1.0), log(1.0)],
     n,
-    length(X),
-    x_sums
+    length(K),
+    f,
+    ftol = 1e-15,
+    lower = [log(0.00001), -Inf],
+    upper = [10.0, 20.0]
 )
-N_hat1 = length(X) + minx1[2]
+N_hat1 = length(K) + exp(minx1[2])
 row = [N_hat1]
 # N_hat2 = minx2[2] + length(X)
 # push!(row, N_hat2)
@@ -64,15 +67,16 @@ for k in 1:5
     jk = Benchmarks.jackknife(length(O), T, f, k)
     benchmarks["Jackknife k = $(k)"] = jk
 end
+println(benchmarks)
 for b in keys(benchmarks)
     push!(row, benchmarks[b])
 end
 push!(row, length(X))
 res[1,:] = row
 println(res[1,:])
-check = BetaEstimator.fit_Beta(
-    [5.0, benchmarks["Turing"] - length(X)],
-    X,
-    n,
-    100
-)
+#check = BetaEstimator.fit_Beta(
+#    [5.0, benchmarks["Turing"] - length(X)],
+#    X,
+#    n,
+#   100
+#)
