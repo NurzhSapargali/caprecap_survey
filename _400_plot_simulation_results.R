@@ -393,7 +393,7 @@ p1 <- ggplot(
   ylab("Log alpha estimate") +
   theme_minimal() +
   theme_pubr(base_size = 15) +
-  theme(text = element_text(size = 19), legend.text = element_text(size = 19)) +
+  theme(text = element_text(size = 19), legend.text = element_text(size = 19))
 
 p2 <- ggplot(
   a_hat_means,

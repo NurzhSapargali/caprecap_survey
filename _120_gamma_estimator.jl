@@ -120,6 +120,7 @@ function fit_Gamma(theta0, n, No, ff; lower::Vector = [-Inf, -Inf], upper::Vecto
         return L(x)
     end
     opt = Opt(:LD_LBFGS, 2)
+    #opt = Opt(:LN_SBPLX, 2)
     opt.min_objective = objective
     opt.ftol_abs = ftol
     opt.lower_bounds = lower

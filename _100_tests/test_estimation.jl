@@ -27,29 +27,24 @@ ngrid = 75
 #seed!(7)
 p = rand(d, N) / maximum(n)
 S = [Utils.ar_pareto_sample(p, n[t]) for t in 1:T]
+n = [length(s) for s in S]
+T = length(n)
 K = Dict{Int, Int}()
 for s in S
     addcounts!(K, s)
 end
 f = countmap(values(K))
 O = Set([i for j in S for i in j])
-#X = Dict{Any, Any}()
-#for i in O
-#    X[i] = [i in s for s in S]
-#end
-#println("$(length(X))")
-#x_sums = Dict(i => sum(X[i]) for i in keys(X))
 (minf1, minx1, ret1) = GammaEstimator.fit_Gamma(
     [log(1.0), log(1.0)],
     n,
-    length(K),
+    sum(values(f)),
     f,
     ftol = 1e-15,
-    lower = [log(0.00001), -Inf],
-    upper = [10.0, 20.0]
+    lower = [log(0.0001), -Inf],
+    upper = [10.0, 30]
 )
 N_hat1 = length(K) + exp(minx1[2])
-row = [N_hat1]
 # N_hat2 = minx2[2] + length(X)
 # push!(row, N_hat2)
 benchmarks = Dict{}()
@@ -59,7 +54,7 @@ benchmarks["Zelterman"] = Benchmarks.zelterman(length(O), f)
 benchmarks["Conway-Maxwell-Poisson"] = Benchmarks.conway_maxwell(length(O), f)
 benchmarks["Turing Geometric"] = Benchmarks.turing_geometric(length(O), f, T)
 benchmarks["Turing"] = Benchmarks.turing(length(O), f, T)
-benchmarks["Morgan Ridout"] = Benchmarks.morgan_ridout(f, T, "../estimateN.R")
+benchmarks["Morgan Ridout"] = Benchmarks.morgan_ridout(f, T, "./estimateN.R")
 for b in 0:2
     benchmarks["Chao Lee Jeng $b"] = Benchmarks.chao_lee_jeng(length(O), f, T, n, b)
 end
@@ -68,10 +63,11 @@ for k in 1:5
     benchmarks["Jackknife k = $(k)"] = jk
 end
 println(benchmarks)
+row = [N_hat1]
 for b in keys(benchmarks)
     push!(row, benchmarks[b])
 end
-push!(row, length(X))
+push!(row, length(K))
 res[1,:] = row
 println(res[1,:])
 #check = BetaEstimator.fit_Beta(

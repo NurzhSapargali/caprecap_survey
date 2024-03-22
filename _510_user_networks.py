@@ -17,7 +17,7 @@ from collections import Counter
 import pandas as pd
 
 HYDRATED_TWEETS = "./_900_output/data/hydrated/hydrated_tweets_{}.csv"
-FILE_NUMBERS = [254, 255, 256, 984, 985, 986]
+FILE_NUMBERS = list(range(250, 257)) + list(range(980, 987))
 USER_NETS = "./_900_output/data/user_nets/user_net_{}.csv"
 
 
