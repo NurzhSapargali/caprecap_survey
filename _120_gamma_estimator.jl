@@ -66,7 +66,7 @@ function gradient_a_redux(log_alpha, log_Nu, n, No, ff)
     Nu = exp(log_Nu)
     alpha = exp(log_alpha)
     N = Nu + No
-    log_aN = log(alpha) + log(N)
+    log_aN = log_alpha + log(N)
     ratio = 1.0 + sum(n) / alpha / N
     fact_term = 0.0
     for i in keys(ff)
@@ -87,8 +87,9 @@ function gradient_Nu_redux(log_alpha, log_Nu, n, No)
     alpha = exp(log_alpha)
     Nu = exp(log_Nu)
     N = Nu + No
-    ratio = 1.0 + sum(n) / alpha / N
+    ratio = 1.0 + sum(n) / exp(log_alpha + log(N))
     inner_derivative = (ratio^(alpha - 1.0)  - 1.0) / (ratio^alpha - 1.0) * alpha / N
+    println(inner_derivative)
     out = ( alpha * No / N - No * inner_derivative - sum(n) / N * 1.0 / ratio )
     return out * Nu
 end
@@ -104,7 +105,6 @@ function gradient_Nu(log_Nu, log_a, n, No, sum_x)
     inner_del = inner_del_num / inner_del_denom
     inner_del += -alpha / N
     out = (-No * inner_del - alpha / beta_tilde * sum(sum_x)) * Nu
-    println(out)
     return out
 end
 
