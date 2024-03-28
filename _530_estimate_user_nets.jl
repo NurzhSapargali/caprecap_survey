@@ -17,7 +17,7 @@ function read_user_net(file)
 end
 
 S = []
-for number in 250:256
+for number in 980:986
     file = input * "user_net_$number.csv"
     capture = read_user_net(file)
     push!(S, capture)
