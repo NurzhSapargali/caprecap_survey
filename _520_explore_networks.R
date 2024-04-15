@@ -6,10 +6,14 @@ library(ggpubr)
 USER_NETS <- "./_900_output/data/user_nets/"
 FIGURE_FOLDER <- "./_900_output/figures/user_nets/"
 DATE_IDS <- list(
+  "250" = "23 - 24 Nov 2020",
+  "251" = "24 - 25 Nov 2020",
+  "252" = "25 - 26 Nov 2020",
+  "253" = "26 - 27 Nov 2020",
   "254" = "27 - 28 Nov 2020",
-  "255" = "28 - 29 Nov 2020",
-  "256" = "29 - 30 Nov 2020",
-  "984" = "27 - 28 Nov 2022",
+  "980" = "23 - 24 Nov 2022",
+  "981" = "24 - 25 Nov 2022",
+  "982" = "25 - 26 Nov 2022",
   "985" = "28 - 29 Nov 2022",
   "986" = "29 - 30 Nov 2022"
 )
@@ -28,7 +32,7 @@ summarize_graph <- function(g) {
   clust_coef <- transitivity(g, type = "global")
   comps <- components(g, mode = "weak")
   w_comps <- comps$no
-  avg_deg <- mean(degree(g, mode = "in"))
+  avg_deg <- mean(degree(g, mode = "total"))
   rel_size <- max(comps$csize) / n
   return(c(n, m, avg_deg, clust_coef, w_comps, rel_size))
 }
@@ -48,20 +52,12 @@ degree_dist <- function(g, mode = "in") {
 filenames <- list.files(USER_NETS, full.names = TRUE, pattern = "\\.csv$")
 degs <- list()
 graph_summaries <- list()
-weights <- list()
 for (i in seq_along(filenames)) {
   f <- filenames[i]
   adj_df <- read.csv(f, header = TRUE) %>% dplyr::filter(i != j)
   g <- graph_from_data_frame(adj_df)
 
   date_range <- retrieve_date(f, DATE_IDS)
-
-  weight_dist <- table(adj_df$w[adj_df$w > 0]) %>% as.data.frame()
-  colnames(weight_dist) <- c("w", "count")
-  weight_dist$w <- as.numeric(as.character(weight_dist$w))
-  weight_dist <- mutate(weight_dist, log_w = log(w), log_count = log(count))
-  weight_dist$date <- as.factor(date_range)
-  weights[[i]] <- weight_dist
 
   graph_attr(g, "name") <- date_range
   both_degs <- rbind(degree_dist(g, mode = "in"), degree_dist(g, mode = "out"))
@@ -94,35 +90,6 @@ ggsave(
   paste(FIGURE_FOLDER, "deg_dist.pdf", sep = ""),
   width = 297,
   height = 165,
-  units = "mm"
-)
-
-weights <- do.call(rbind, weights)
-weights$year <- substr(weights$date, 12, 16)
-weights$range <- substr(weights$date, 0, 11)
-
-ggplot(weights, aes(x = log_w, y = log_count, color = year)) +
-  geom_point(size = 1.5, alpha = 0.6) +
-  scale_color_brewer(palette = "Set1") +
-  theme_minimal() +
-  theme_pubr(base_size = 15) +
-  theme(
-    legend.title = element_blank(),
-    legend.text = element_text(size = 15),
-    text = element_text(size = 15),
-    strip.text = element_text(size = 15)
-  ) +
-  xlab("Log mentions") +
-  ylab("Log count") +
-  facet_wrap(
-    vars(range),
-    ncol = 3,
-    nrow = 1
-  )
-ggsave(
-  paste(FIGURE_FOLDER, "weight_dist.pdf", sep = ""),
-  width = 297,
-  height = 165 / 1.5,
   units = "mm"
 )
 
