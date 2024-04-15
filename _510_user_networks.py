@@ -43,11 +43,23 @@ def main():
             # Update the Counter with the new edges
             edges.update(neighbours)
             
-        # Create a new dataframe from the Counter
+        # Create unfiltered adjacency list from Counter
         adj_df = pd.DataFrame(
             [(i[0][0], i[0][1], i[1]) for i in edges.items()],
             columns = ["i", "j", "w"]
         )
+
+        # Filter out users with less than 3 total degree
+        out_deg = Counter(adj_df["i"])
+        total_deg = Counter(adj_df["j"])
+        total_deg.update(out_deg)
+
+        total_deg = pd.DataFrame(total_deg.items())
+        total_deg.columns = ["v", "total_deg"]
+        total_deg = total_deg[total_deg["total_deg"] > 2]
+
+        adj_df = adj_df[adj_df["i"].isin(total_deg["v"]) & adj_df["j"].isin(total_deg["v"])]
+        
         # Write the dataframe to a CSV file
         adj_df.to_csv(USER_NETS.format(file_no), index = False)
 

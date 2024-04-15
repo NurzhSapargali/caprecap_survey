@@ -32,7 +32,7 @@ summarize_graph <- function(g) {
   clust_coef <- transitivity(g, type = "global")
   comps <- components(g, mode = "weak")
   w_comps <- comps$no
-  avg_deg <- mean(degree(g, mode = "total"))
+  avg_deg <- m / n
   rel_size <- max(comps$csize) / n
   return(c(n, m, avg_deg, clust_coef, w_comps, rel_size))
 }
@@ -50,22 +50,55 @@ degree_dist <- function(g, mode = "in") {
 
 # Load the networks
 filenames <- list.files(USER_NETS, full.names = TRUE, pattern = "\\.csv$")
-degs <- list()
+nov_2020 <- list()
+nov_2022 <- list()
 graph_summaries <- list()
 for (i in seq_along(filenames)) {
   f <- filenames[i]
+  date_range <- retrieve_date(f, DATE_IDS)
+  if (is.null(date_range)) {
+    next
+  }
+
   adj_df <- read.csv(f, header = TRUE) %>% dplyr::filter(i != j)
   g <- graph_from_data_frame(adj_df)
 
-  date_range <- retrieve_date(f, DATE_IDS)
-
-  graph_attr(g, "name") <- date_range
-  both_degs <- rbind(degree_dist(g, mode = "in"), degree_dist(g, mode = "out"))
-  degs[[i]] <- both_degs
-
   graph_summaries[[date_range]] <- summarize_graph(g)
+  if (grepl("2020", date_range)) {
+    nov_2020[[date_range]] <- adj_df
+  } else {
+    nov_2022[[date_range]] <- adj_df
+  }
 }
 
+graph_summaries <- do.call(rbind, graph_summaries)
+graph_summaries <- as.data.frame(graph_summaries)
+colnames(graph_summaries) <- c(
+  "vertices",
+  "edges",
+  "avg_deg",
+  "clust_coef",
+  "w_comps",
+  "rel_size"
+)
+print(graph_summaries)
+
+nov_2020 <- do.call(rbind, nov_2020) %>%
+  distinct(i, j, .keep_all = TRUE) %>%
+  graph_from_data_frame()
+graph_attr(nov_2020, "name") <- "Nov 2020"
+
+nov_2022 <- do.call(rbind, nov_2022) %>%
+  distinct(i, j, .keep_all = TRUE) %>%
+  graph_from_data_frame()
+graph_attr(nov_2022, "name") <- "Nov 2022"
+
+degs <- list(
+  degree_dist(nov_2020, mode = "in"),
+  degree_dist(nov_2020, mode = "out"),
+  degree_dist(nov_2022, mode = "in"),
+  degree_dist(nov_2022, mode = "out")
+)
 degs <- do.call(rbind, degs)
 
 ggplot(degs, aes(x = log_degree, y = log_count, color = type)) +
@@ -93,14 +126,10 @@ ggsave(
   units = "mm"
 )
 
-graph_summaries <- do.call(rbind, graph_summaries)
-graph_summaries <- as.data.frame(graph_summaries)
-colnames(graph_summaries) <- c(
-  "vertices",
-  "edges",
-  "avg_deg",
-  "clust_coef",
-  "w_comps",
-  "rel_size"
-)
-print(graph_summaries)
+merged_summary <- rbind(
+  summarize_graph(nov_2020),
+  summarize_graph(nov_2022)
+) %>%
+  as.data.frame()
+colnames(merged_summary) <- colnames(graph_summaries)
+print(merged_summary)
