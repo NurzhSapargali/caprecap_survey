@@ -14,7 +14,7 @@ const DATA_FOLDER = "./_900_output/data/user_nets/"
 const INDICES = [250, 251, 252, 253, 254, 980, 981, 982, 985, 986]
 
 const SAMPLE_SIZES = [233747, 226059, 212918, 192053, 169079]
-const PSEUDO = 1.03429e7
+const PSEUDO = 1378000
 
 function read_user_net(file)
     df = DataFrame(CSV.File(file))
@@ -36,16 +36,18 @@ unique!(nov_2020)
 S = []
 for i in 1:5
     draw = Set()
-    row_inds = collect(1:size(nov_2020, 1))
-    n = SAMPLE_SIZES[i] / PSEUDO * size(nov_2020, 1)
+    nov_2020[:, :u] = rand(size(nov_2020, 1))
+    sort!(nov_2020, :u, rev = true)
+    n = SAMPLE_SIZES[i] / PSEUDO * 609133
     n = round(Int, n)
+    current = round(Int, n / 2)
+    union!(draw, nov_2020[1:current, :i])
+    union!(draw, nov_2020[1:current, :j])
     remainder = n - length(draw)
-    while remainder > 1
-        n_edges = Int(round(remainder / 2))
-        idx = sample(row_inds, n_edges, replace = false)
-        row_inds = setdiff(row_inds, idx)
-        union!(draw, nov_2020[idx, :i])
-        union!(draw, nov_2020[idx, :j])
+    while remainder > 0
+        current += 1
+        push!(draw, nov_2020[current, :i])
+        push!(draw, nov_2020[current, :j])
         remainder = n - length(draw)
         println(remainder)
     end
