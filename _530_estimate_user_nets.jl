@@ -14,7 +14,7 @@ const INDICES = [250, 251, 252, 253, 254, 980, 981, 982, 985, 986]
 
 function read_user_net(file)
     df = DataFrame(CSV.File(file))
-    df = df[df[:, :i] .!= df[:, :j], :]
+    #df = df[df[:, :i] .!= df[:, :j], :]
     return Set(vcat(df[:, :i], df[:, :j]))
 end
 

@@ -168,7 +168,11 @@ p1 <- ggplot(
     scale = "free",
     labeller = label_parsed
   ) +
-  theme(legend.title = element_blank(), legend.position = "right") +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "right",
+    strip.text = element_text(size = 14)
+  ) +
   ggtitle("Turing Poisson")
 
 p2 <- ggplot(
@@ -192,8 +196,19 @@ p2 <- ggplot(
     scale = "free",
     labeller = label_parsed
   ) +
-  theme(legend.title = element_blank(), legend.position = "right") +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "right",
+    strip.text = element_text(size = 14)
+  ) +
   ggtitle("Chao")
 
 p <- ggarrange(p1, p2, ncol = 1, nrow = 2)
-annotate_figure(p, top = text_grob("N = 1000 and 1000 replications"))
+annotate_figure(p, top = text_grob("N = 1000 and 1000 replications", size = 16))
+
+ggsave(
+  paste0(OUTPUT_FOLDER, "appendix/compare_chao_poisson.pdf"),
+  width = 297,
+  height = 2 * 175,
+  units = "mm"
+)
