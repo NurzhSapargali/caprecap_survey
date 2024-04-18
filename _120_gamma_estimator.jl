@@ -26,60 +26,90 @@ function loglh_redux(log_alpha, log_Nu, n, No, ff; verbose::Bool = true)
     return lh
 end
 
-function gradient_a_redux(log_alpha, log_Nu, n, No, ff)
-    Nu = exp(log_Nu)
-    alpha = exp(log_alpha)
+function inner_del_a(alpha, Nu, n, ff)
+    N = Nu + sum(values(ff))
+    g_a = 1.0 + sum(n) / alpha / N
+    del_g_a = -sum(n) / N / alpha^2
+    return (log(alpha)
+            + log(N) + 1.0
+            + (g_a^alpha * (log(g_a) + alpha / g_a * del_g_a) / (g_a^alpha - 1.0)) )
+end
+
+function inner_del2_a(alpha, Nu, n, ff)
+    N = Nu + sum(values(ff))
+    g_a = 1.0 + sum(n) / alpha / N
+    del_g_a = -sum(n) / N / alpha^2
+    del_g_a_a_log = (g_a^alpha * (log(g_a) + alpha / g_a * del_g_a) * log(g_a)
+                     + g_a^(alpha - 1) * del_g_a)
+    del_g_a_a = g_a^alpha * (log(g_a) + alpha / g_a * del_g_a)
+    del_g_a_a_1 = g_a^(alpha - 1.0) * (log(g_a) + (alpha - 1.0) / g_a * del_g_a)
+    del_g_a_a_a_1 = g_a^alpha + alpha * del_g_a_a - 1.0
+    return (1.0 / alpha
+            + (del_g_a_a_log * (g_a^alpha - 1.0) - g_a^alpha * log(g_a) * del_g_a_a)
+            / (g_a^alpha - 1.0)^2
+            - sum(n) / N
+            * (del_g_a_a_1 * alpha * (g_a^alpha - 1.0) - g_a^(alpha - 1.0) * del_g_a_a_a_1)
+            / (alpha * (g_a^alpha - 1.0))^2 )
+end
+
+function gradient_a(alpha, Nu, n, ff)
+    No = sum(values(ff))
     N = Nu + No
-    log_aN = log_alpha + log(N)
-    ratio = 1.0 + sum(n) / alpha / N
+    g_a = 1.0 + sum(n) / alpha / N
     fact_term = 0.0
     for i in keys(ff)
         multiplier = get(ff, i, 0)
         range_inc = sum([1.0 / (alpha + i - j) for j in 1:i])
-        fact_term += range_inc * multiplier
-    end
-    inner_derivative = ( (ratio^alpha * (log_aN + log(ratio) + 1.0 / ratio) - (log_aN + 1.0) )
-                        / (ratio^alpha - 1.0) )
-    out = ( No * (log_aN + 1.0)
-           - No * inner_derivative
-           + fact_term
-           - sum(n) / alpha * 1.0 / ratio )
-    return out * alpha
+        fact_term += multiplier * range_inc
+    end 
+    return (No * (log(alpha) + log(N) - inner_del_a(alpha, Nu, n, ff))
+            + fact_term
+            - sum(n) / alpha / g_a)
 end
 
-function gradient_Nu_redux(log_alpha, log_Nu, n, No)
-    alpha = exp(log_alpha)
-    Nu = exp(log_Nu)
+function del2_a(alpha, Nu, n, ff)
+    No = sum(values(ff))
     N = Nu + No
-    ratio = 1.0 + sum(n) / exp(log_alpha + log(N))
-    inner_derivative = (ratio^(alpha - 1.0)  - 1.0) / (ratio^alpha - 1.0) * alpha / N
-    out = ( alpha * No / N - No * inner_derivative - sum(n) / N * 1.0 / ratio )
-    return out * Nu
+    g_a = 1.0 + sum(n) / alpha / N
+    fact_term = 0.0
+    for i in keys(ff)
+        multiplier = get(ff, i, 0)
+        range_inc = sum([1.0 / (alpha + i - j)^2 for j in 1:i])
+        fact_term += multiplier * range_inc
+    end 
+    return (No * (1.0 / alpha - inner_del2_a(alpha, Nu, n, ff))
+            - fact_term
+            + sum(n) / alpha / alpha / N / g_a^2)
 end
 
-function fit_Gamma(theta0, n, No, ff; lower::Vector = [-Inf, -Inf], upper::Vector = [10, 12], ftol = 1e-7)
-    L(x) = -loglh_redux(x[1], x[2], n, No, ff)
-    g_Nu(x)  = -gradient_Nu_redux(x[1], x[2], n, No)
-    g_a(x) = -gradient_a_redux(x[1], x[2], n, No, ff)
-    function objective(x::Vector, grad::Vector)
-        if length(grad) > 0
-            grad[1] = g_a(x)
-            grad[2] = g_Nu(x)
-        end
-        return L(x)
-    end
-    opt = Opt(:LD_LBFGS, 2)
-    #opt = Opt(:LN_SBPLX, 2)
-    opt.min_objective = objective
-    opt.ftol_abs = ftol
-    opt.lower_bounds = lower
-    opt.upper_bounds = upper
-    opt.maxeval = 10000
-    #opt.vector_storage = 10
-    (minf,minx,ret) = optimize(opt, theta0)
-    return (minf, minx, ret)
+function inner_del_N(alpha, Nu, n, ff)
+    N = Nu + sum(values(ff))
+    g_a = 1.0 + sum(n) / alpha / N
+    return ( alpha / N - sum(n) / N / N * g_a^(alpha - 1.0) / (g_a^alpha - 1.0) )
 end
 
+function inner_del2_N(alpha, Nu, n, ff)
+    N = Nu + sum(values(ff))
+    g_a = 1.0 + sum(n) / alpha / N
+    return ( alpha / N * (alpha - 1.0) / N * (g_a^(alpha - 2.0) - 1.0) / (g_a^alpha - 1.0)
+            - (alpha / N * (g_a^(alpha - 1.0) - 1.0) / (g_a^alpha - 1.0))^2 )
+end
+
+function gradient_Nu(alpha, Nu, n, ff)
+    No = sum(values(ff))
+    N = Nu + No
+    g_a = 1.0 + sum(n) / alpha / N
+    return (No * (alpha / N - inner_del_N(alpha, Nu, n, ff)) - sum(n) / N  / g_a)
+end
+
+function del2_Nu(alpha, Nu, n, ff)
+    No = sum(values(ff))
+    N = Nu + No
+    g_a = 1.0 + sum(n) / alpha / N
+    return (No * (-alpha / N / N - inner_del2_N(alpha, Nu, n, ff))
+            + sum(n) / N / N / g_a^2)
+end
+            
 #= function loglh_oi(log_alpha, log_Nu, log_w, n, ff, nn; verbose::Bool = true)
     w = exp(log_w)
     alpha = exp(log_alpha)
