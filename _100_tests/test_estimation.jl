@@ -15,10 +15,11 @@ using StatsFuns
 
 import Random: seed!
 
-N = 800000
-a = 0.5
-T = 5
-n = repeat([37, 44, 100, 17, 2, 75, 17, 2, 112, 3] * 100, 100)[1:T]
+
+N = 10000
+a = 0.01
+T = 1000
+n = repeat([37, 44, 100, 17, 2, 75, 17, 2, 112, 3], 100)[1:T]
 b = a * (N / maximum(n) - 1.0)
 trials = 1
 d = Beta(a, b)
@@ -33,17 +34,23 @@ K = Dict{Int, Int}()
 for s in S
     addcounts!(K, s)
 end
+f = Dict(5 => 6, 4 => 21, 6 => 3, 2 => 243, 3 => 58, 1 => 1253) # At T = 50 causes error
 f = countmap(values(K))
 O = Set([i for j in S for i in j])
 (minf1, minx1, ret1) = GammaEstimator.fit_Gamma(
-    [log(1.0), log(1.0)],
+    [log(5.0), log(2.0)],
     n,
-    sum(values(f)),
     f,
-    ftol = 1e-15,
-    lower = [log(0.0001), -Inf],
-    upper = [10.0, 30]
+    ftol = 1e-7
 )
+
+x = [1.0, 2.0]
+for i in 1:20
+    score_a = -GammaEstimator.gradient_a(x[1], x[2], n, f)
+    score_Nu = -GammaEstimator.gradient_Nu(x[1], x[2], n, f)
+    hess = -GammaEstimator.hessian(x[1], x[2], n, f)
+    x = x - inv(hess) * [score_a, score_Nu]
+end
 N_hat1 = length(K) + exp(minx1[2])
 # N_hat2 = minx2[2] + length(X)
 # push!(row, N_hat2)
