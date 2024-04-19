@@ -5,9 +5,10 @@ using NLopt
 export loglh_redux, gradient_a_redux, gradient_Nu_redux
 
 
-function loglh_redux(log_alpha, log_Nu, n, No, ff; verbose::Bool = true)
+function loglh_redux(log_alpha, log_Nu, n, ff; verbose::Bool = true)
     alpha = exp(log_alpha)
     Nu = exp(log_Nu)
+    No = sum(values(ff))
     N = Nu + No
     fact_term = 0.0
     for i in keys(ff)
@@ -109,7 +110,35 @@ function del2_Nu(alpha, Nu, n, ff)
     return (No * (-alpha / N / N - inner_del2_N(alpha, Nu, n, ff))
             + sum(n) / N / N / g_a^2)
 end
-            
+
+function fit_Gamma(
+    theta0,
+    n,
+    ff;
+    lower::Vector = [-Inf, -Inf], upper::Vector = [10, 12], ftol = 1e-7
+)
+    L(x) = -loglh_redux(x[1], x[2], n, ff)
+    score_Nu(x)  = -gradient_Nu(exp(x[1]), exp(x[2]), n, ff) * exp(x[2])
+    score_a(x) = -gradient_a(exp(x[1]), exp(x[2]), n, ff) * exp(x[1])
+    function objective(x::Vector, grad::Vector)
+        if length(grad) > 0
+            grad[1] = score_a(x)
+            grad[2] = score_Nu(x)
+        end
+        return L(x)
+    end
+    #opt = Opt(:LD_LBFGS, 2)
+    opt = Opt(:LN_SBPLX, 2)
+    opt.min_objective = objective
+    opt.ftol_abs = ftol
+    opt.lower_bounds = lower
+    opt.upper_bounds = upper
+    opt.maxeval = 10000
+    #opt.vector_storage = 10
+    (minf,minx,ret) = optimize(opt, theta0)
+    return (minf, minx, ret)
+end
+
 #= function loglh_oi(log_alpha, log_Nu, log_w, n, ff, nn; verbose::Bool = true)
     w = exp(log_w)
     alpha = exp(log_alpha)
