@@ -1,11 +1,12 @@
 module GammaEstimator
 
 using NLopt
+using LinearAlgebra
 
 export loglh_redux, gradient_a_redux, gradient_Nu_redux
 
 
-function loglh_redux(log_alpha, log_Nu, n, ff; verbose::Bool = true)
+function loglh_redux(log_alpha, log_Nu, n, ff; lamb::Real = 0.0, verbose::Bool = true)
     alpha = exp(log_alpha)
     Nu = exp(log_Nu)
     No = sum(values(ff))
@@ -21,10 +22,21 @@ function loglh_redux(log_alpha, log_Nu, n, ff; verbose::Bool = true)
           - No * log(1.0 - 1.0 / (ratio^alpha))
           + fact_term
           - (No * alpha + sum(n)) * log(ratio) )
+    if lamb > 0
+        lh += log(lamb) - 2.0 * log(alpha) - lamb / alpha
+    end
     if verbose
-        println("a = $alpha, b = $(N * alpha), N = $N, lh = $lh")
+        println("a = $alpha, b = $(N * alpha), N = $N, lamb = $lamb, lh = $lh")
     end
     return lh
+end
+
+function gradient_prior(alpha, lamb)
+    return -2.0 / alpha +  lamb / alpha^2
+end
+
+function del2_prior(alpha, lamb)
+    return 2.0 / alpha^2 - 2.0 *  lamb / alpha^3
 end
 
 function inner_del_a(alpha, Nu, n, ff)
@@ -53,7 +65,7 @@ function inner_del2_a(alpha, Nu, n, ff)
             / (alpha * (g_a^alpha - 1.0))^2 )
 end
 
-function gradient_a(alpha, Nu, n, ff)
+function gradient_a(alpha, Nu, n, ff; lamb::Real = 0.0)
     No = sum(values(ff))
     N = Nu + No
     g_a = 1.0 + sum(n) / alpha / N
@@ -66,14 +78,17 @@ function gradient_a(alpha, Nu, n, ff)
     gradient = (No * (log(alpha) + log(N) + 1.0 - inner_del_a(alpha, Nu, n, ff))
                 + fact_term
                 - sum(n) / alpha / g_a)
-    println("....a = $alpha, b = $(N * alpha), N = $N, grad_a = $gradient")
+    if lamb > 0
+        gradient += gradient_prior(alpha, lamb)
+    end
+    #println("....a = $alpha, b = $(N * alpha), N = $N, grad_a = $gradient")
     return gradient
 end
 
-function gradient_log_a(log_alpha, log_Nu, n, ff)
+function gradient_log_a(log_alpha, log_Nu, n, ff; lamb::Real = 0.0)
     alpha = exp(log_alpha)
     Nu = exp(log_Nu)
-    return gradient_a(alpha, Nu, n, ff) * alpha
+    return gradient_a(alpha, Nu, n, ff, lamb = lamb) * alpha
 end
 
 function del2_a(alpha, Nu, n, ff)
@@ -110,7 +125,7 @@ function gradient_Nu(alpha, Nu, n, ff)
     g_a = 1.0 + sum(n) / alpha / N
     gradient = (No * (alpha / N - inner_del_N(alpha, Nu, n, ff))
                 - sum(n) / N / g_a)
-    println("....a = $alpha, b = $(N * alpha), N = $N, grad_Nu = $gradient")
+    #println("....a = $alpha, b = $(N * alpha), N = $N, grad_Nu = $gradient")
     return gradient
 end
 
@@ -149,19 +164,49 @@ function cross_del_a_Nu(alpha, Nu, n, ff)
             + sum(n) / N / g_a^2 * del_g_a)
 end
 
-function hessian(alpha, Nu, n, ff)
+function hessian(alpha, Nu, n, ff; lamb::Real = 0.0)
     hess = zeros(2, 2)
     hess[1, 1] = del2_a(alpha, Nu, n, ff)
+    if lamb > 0
+        hess[1, 1] += del2_prior(alpha, lamb)
+    end
     hess[2, 2] = del2_Nu(alpha, Nu, n, ff)
     hess[1, 2] = cross_del_a_Nu(alpha, Nu, n, ff)
     hess[2, 1] = hess[1, 2]
     return hess
 end
 
-function fit_Gamma(theta0, n, ff; lower::Vector = [-Inf, -Inf], upper::Vector = [10, 12], ftol = 1e-7)
-    L(x) = -loglh_redux(x[1], x[2], n, ff)
+function hessian_log(log_alpha, log_Nu, n, ff)
+    alpha = exp(log_alpha)
+    Nu = exp(log_Nu)
+    H = hessian(alpha, Nu, n, ff)
+    score_a = gradient_log_a(log_alpha, log_Nu, n, ff)
+    score_Nu = gradient_log_Nu(log_alpha, log_Nu, n, ff)
+    hess_log = zeros(2, 2)
+    hess_log[1, 1] =  alpha^2 * H[1, 1] + score_a
+    hess_log[2, 2] =  Nu^2 * H[2, 2] + score_Nu
+    hess_log[1, 2] =  Nu * alpha * H[1, 2]
+    hess_log[2, 1] =  hess_log[1, 2]
+    return hess_log
+end
+
+function log_laplace(lamb, log_alpha, log_Nu, n, ff)
+    alpha = exp(log_alpha)
+    Nu = exp(log_Nu)
+    H = hessian(alpha, Nu, n, ff, lamb = lamb)
+    Hbar = det(H)
+    if abs(0.5 * Hbar) < 1e-4
+        Hbar  = 1e-4
+    end
+    ll = loglh_redux(log_alpha, log_Nu, n, ff, lamb = lamb, verbose = false) - 0.5 * log(Hbar)
+    println("....a = $alpha, N = $(Nu + sum(values(ff))), lamb = $lamb, ll = $ll")
+    return ll
+end
+
+function fit_Gamma(theta0, lamb, n, ff; lower::Vector = [-Inf, -Inf], upper::Vector = [10, 12], ftol = 1e-7)
+    L(x) = -loglh_redux(x[1], x[2], n, ff, lamb = lamb)
     g_Nu(x)  = -gradient_log_Nu(x[1], x[2], n, ff)
-    g_a(x) = -gradient_log_a(x[1], x[2], n, ff)
+    g_a(x) = -gradient_log_a(x[1], x[2], n, ff, lamb = lamb)
     function objective(x::Vector, grad::Vector)
         if length(grad) > 0
             grad[1] = g_a(x)
@@ -169,8 +214,8 @@ function fit_Gamma(theta0, n, ff; lower::Vector = [-Inf, -Inf], upper::Vector = 
         end
         return L(x)
     end
-    opt = Opt(:LD_LBFGS, 2)
-    #opt = Opt(:LN_SBPLX, 2)
+    #opt = Opt(:LD_LBFGS, 2)
+    opt = Opt(:LN_SBPLX, 2)
     opt.min_objective = objective
     opt.ftol_abs = ftol
     opt.lower_bounds = lower
@@ -178,6 +223,18 @@ function fit_Gamma(theta0, n, ff; lower::Vector = [-Inf, -Inf], upper::Vector = 
     opt.maxeval = 10000
     #opt.vector_storage = 10
     (minf,minx,ret) = optimize(opt, theta0)
+    return (minf, minx, ret)
+end
+
+function fit_Laplace(lamb0, log_alpha, log_Nu, n, ff)
+    L(x, grad) = -log_laplace(x[1], log_alpha, log_Nu, n, ff)
+    opt = Opt(:LN_SBPLX, 1)
+    opt.min_objective = L
+    opt.ftol_abs = 1e-7
+    opt.lower_bounds = [0.15]
+    opt.upper_bounds = [Inf]
+    opt.maxeval = 10000
+    (minf,minx,ret) = optimize(opt, [lamb0])
     return (minf, minx, ret)
 end
 
