@@ -6,12 +6,13 @@ using LinearAlgebra
 export loglh_redux, gradient_a_redux, gradient_Nu_redux
 
 
-function loglh_redux(log_alpha, log_Nu, n, ff; lamb::Real = 0.0, verbose::Bool = true)
+function loglh_redux(log_alpha, log_Nu, n, ff; verbose::Bool = true, penalized::Bool = false)
     alpha = exp(log_alpha)
     Nu = exp(log_Nu)
     No = sum(values(ff))
     N = Nu + No
     fact_term = 0.0
+    upper_N = 2 * No - get(ff, maximum(keys(ff)), 0)
     for i in keys(ff)
         multiplier = get(ff, i, 0)
         range_inc = sum([log(alpha + i - j) for j in 1:i])
@@ -22,11 +23,13 @@ function loglh_redux(log_alpha, log_Nu, n, ff; lamb::Real = 0.0, verbose::Bool =
           - No * log(1.0 - 1.0 / (ratio^alpha))
           + fact_term
           - (No * alpha + sum(n)) * log(ratio) )
-    if lamb > 0
-        lh += log(lamb) - 2.0 * log(alpha) - lamb / alpha
+    if (N > upper_N)&(penalized)
+        lamb = 1.0 / (upper_N - No)^2 / 2
+        penalty = -lamb * (N - upper_N)^2
+        lh += penalty
     end
     if verbose
-        println("a = $alpha, b = $(N * alpha), N = $N, lamb = $lamb, lh = $lh")
+        println("a = $alpha, b = $(N * alpha), N = $N, lh = $lh")
     end
     return lh
 end
@@ -65,7 +68,7 @@ function inner_del2_a(alpha, Nu, n, ff)
             / (alpha * (g_a^alpha - 1.0))^2 )
 end
 
-function gradient_a(alpha, Nu, n, ff; lamb::Real = 0.0)
+function gradient_a(alpha, Nu, n, ff)
     No = sum(values(ff))
     N = Nu + No
     g_a = 1.0 + sum(n) / alpha / N
@@ -78,17 +81,14 @@ function gradient_a(alpha, Nu, n, ff; lamb::Real = 0.0)
     gradient = (No * (log(alpha) + log(N) + 1.0 - inner_del_a(alpha, Nu, n, ff))
                 + fact_term
                 - sum(n) / alpha / g_a)
-    if lamb > 0
-        gradient += gradient_prior(alpha, lamb)
-    end
     #println("....a = $alpha, b = $(N * alpha), N = $N, grad_a = $gradient")
     return gradient
 end
 
-function gradient_log_a(log_alpha, log_Nu, n, ff; lamb::Real = 0.0)
+function gradient_log_a(log_alpha, log_Nu, n, ff)
     alpha = exp(log_alpha)
     Nu = exp(log_Nu)
-    return gradient_a(alpha, Nu, n, ff, lamb = lamb) * alpha
+    return gradient_a(alpha, Nu, n, ff) * alpha
 end
 
 function del2_a(alpha, Nu, n, ff)
@@ -190,23 +190,10 @@ function hessian_log(log_alpha, log_Nu, n, ff)
     return hess_log
 end
 
-function log_laplace(lamb, log_alpha, log_Nu, n, ff)
-    alpha = exp(log_alpha)
-    Nu = exp(log_Nu)
-    H = hessian(alpha, Nu, n, ff, lamb = lamb)
-    Hbar = det(H)
-    if abs(0.5 * Hbar) < 1e-4
-        Hbar  = 1e-4
-    end
-    ll = loglh_redux(log_alpha, log_Nu, n, ff, lamb = lamb, verbose = false) - 0.5 * log(Hbar)
-    println("....a = $alpha, N = $(Nu + sum(values(ff))), lamb = $lamb, ll = $ll")
-    return ll
-end
-
-function fit_Gamma(theta0, lamb, n, ff; lower::Vector = [-Inf, -Inf], upper::Vector = [10, 12], ftol = 1e-7)
-    L(x) = -loglh_redux(x[1], x[2], n, ff, lamb = lamb)
+function fit_Gamma(theta0, n, ff; lower::Vector = [-Inf, -Inf], upper::Vector = [10, 12], ftol = 1e-7, penalized::Bool = false)
+    L(x) = -loglh_redux(x[1], x[2], n, ff, penalized = penalized)
     g_Nu(x)  = -gradient_log_Nu(x[1], x[2], n, ff)
-    g_a(x) = -gradient_log_a(x[1], x[2], n, ff, lamb = lamb)
+    g_a(x) = -gradient_log_a(x[1], x[2], n, ff)
     function objective(x::Vector, grad::Vector)
         if length(grad) > 0
             grad[1] = g_a(x)
@@ -225,19 +212,6 @@ function fit_Gamma(theta0, lamb, n, ff; lower::Vector = [-Inf, -Inf], upper::Vec
     (minf,minx,ret) = optimize(opt, theta0)
     return (minf, minx, ret)
 end
-
-function fit_Laplace(lamb0, log_alpha, log_Nu, n, ff)
-    L(x, grad) = -log_laplace(x[1], log_alpha, log_Nu, n, ff)
-    opt = Opt(:LN_SBPLX, 1)
-    opt.min_objective = L
-    opt.ftol_abs = 1e-7
-    opt.lower_bounds = [0.15]
-    opt.upper_bounds = [Inf]
-    opt.maxeval = 10000
-    (minf,minx,ret) = optimize(opt, [lamb0])
-    return (minf, minx, ret)
-end
-
 
 #= function loglh_oi(log_alpha, log_Nu, log_w, n, ff, nn; verbose::Bool = true)
     w = exp(log_w)
@@ -287,6 +261,5 @@ function fit_Gamma_oi(theta0, n, ff, nn; lower::Vector = [-Inf, -Inf, -Inf], upp
     (minf,minx,ret) = optimize(opt, theta0)
     return (minf, minx, ret)
 end =#
-
 
 end
