@@ -15,16 +15,18 @@ using StatsFuns
 
 import Random: seed!
 
-N = 800000
-a = 0.5
-T = 5
-n = repeat([37, 44, 100, 17, 2, 75, 17, 2, 112, 3] * 100, 100)[1:T]
+
+N = 1000000
+a = 0.05
+T = 50
+n = repeat([37, 44, 100, 17, 2, 75, 17, 2, 112, 3] * 1000, 100)[1:T]
+n = repeat([2] * 100000, T)
 b = a * (N / maximum(n) - 1.0)
 trials = 1
 d = Beta(a, b)
 res = zeros(trials, 17)
 ngrid = 75
-#seed!(7)
+seed!(7)
 p = rand(d, N) / maximum(n)
 S = [Utils.ar_pareto_sample(p, n[t]) for t in 1:T]
 n = [length(s) for s in S]
@@ -33,16 +35,17 @@ K = Dict{Int, Int}()
 for s in S
     addcounts!(K, s)
 end
+f = Dict(5 => 6, 4 => 21, 6 => 3, 2 => 243, 3 => 58, 1 => 1253) # At T = 50 causes error
 f = countmap(values(K))
 O = Set([i for j in S for i in j])
+converged = false
+theta = [log(5.0), log(2.0)]
 (minf1, minx1, ret1) = GammaEstimator.fit_Gamma(
-    [log(1.0), log(1.0)],
+    theta,
     n,
-    sum(values(f)),
     f,
-    ftol = 1e-15,
-    lower = [log(0.0001), -Inf],
-    upper = [10.0, 30]
+    ftol = 1e-7,
+    upper = [10, 20]
 )
 N_hat1 = length(K) + exp(minx1[2])
 # N_hat2 = minx2[2] + length(X)

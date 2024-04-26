@@ -8,14 +8,27 @@ import .Utils
 
 using DataFrames
 using CSV
+using StatsBase
 
 const DATA_FOLDER = "./_900_output/data/user_nets/"
 const INDICES = [250, 251, 252, 253, 254, 980, 981, 982, 985, 986]
+#[250, 251, 252, 253, 254, 255, 256, 980, 981, 982, 983, 984, 985, 986]
 
 function read_user_net(file)
     df = DataFrame(CSV.File(file))
     #df = df[df[:, :i] .!= df[:, :j], :]
     return Set(vcat(df[:, :i], df[:, :j]))
+end
+
+function day_sample(df, day)
+    cut = df[df[:, :day] .== day, :]
+    return Set(vcat(cut[:, :i], cut[:, :j]))
+end
+
+function sample_rows(df, n)
+    inds = sample(1:nrow(df), n, replace = false)
+    cut = df[inds, :]
+    return Set(vcat(cut[:, :i], cut[:, :j]))
 end
 
 nov_2020 = []
@@ -32,7 +45,9 @@ end
 
 estimates = DataFrame(
     "a_hat" => Float64[],
+    "a_hat_penalized" => Float64[],
     "pseudo" => Float64[],
+    "pseudo_penalized" => Float64[],
     "schnabel" => Float64[],
     "chao" => Float64[],
     "zelterman" => Float64[],
@@ -48,10 +63,17 @@ estimates = DataFrame(
     "jackknife_3" => Float64[],
     "jackknife_4" => Float64[],
     "jackknife_5" => Float64[],
-    "observed" => Int[]
+    "observed" => Int[],
+    "draws" => Int[]
 )
 
-for S in [nov_2020, nov_2022]
+inc_prob(Ne, n, d) = 1.0 - exp(sum([log(Ne - n - d + i) for i in 1:d]) - sum([log(Ne - d + i) for i in 1:d]))
+
+#for S in [nov_2020, nov_2022]
+days = [day_sample(df, i) for i in unique(df[:,:day])]
+days = [sample_rows(df, 50000) for i in 1:50]
+for t in 2:50
+    S = days[1:t]
     T = length(S)
     n = [length(s) for s in S]
     f = Utils.freq_of_freq(Utils.cap_freq(S))
@@ -59,15 +81,26 @@ for S in [nov_2020, nov_2022]
     (minf, minx, ret) = GammaEstimator.fit_Gamma(
         [log(1.0), log(1.0)],
         n,
-        No,
         f,
         ftol = 1e-15,
         lower = [log(0.0001), -Inf],
-        upper = [10.0, 30]
+        upper = [10.0, 30],
+        penalized = false
+    )
+    (minf1, minx1, ret1) = GammaEstimator.fit_Gamma(
+        [log(1.0), log(1.0)],
+        n,
+        f,
+        ftol = 1e-15,
+        lower = [log(0.0001), -Inf],
+        upper = [10.0, 30],
+        penalized = true
     )
     row = [
         exp(minx[1]),
+        exp(minx1[1]),
         exp(minx[2]) + sum(values(f)),
+        exp(minx1[2]) + sum(values(f)),
         Benchmarks.schnabel(S, n),
         Benchmarks.chao(No, f),
         Benchmarks.zelterman(No, f),
@@ -84,8 +117,9 @@ for S in [nov_2020, nov_2022]
         push!(row, jk)
     end
     push!(row, sum(values(f)))
+    push!(row, t)
     push!(estimates, row)
 end
 
 estimates[!, :date] = ["Nov 2020", "Nov 2022"]
-CSV.write("./_900_output/data/user_nets/estimates.csv", estimates)
+CSV.write("./_900_output/data/user_nets/stack_estimates_random.csv", estimates)
