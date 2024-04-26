@@ -16,10 +16,11 @@ using StatsFuns
 import Random: seed!
 
 
-N = 1000
-a = 0.5
+N = 1000000
+a = 0.05
 T = 50
-n = repeat([37, 44, 100, 17, 2, 75, 17, 2, 112, 3], 100)[1:T]
+n = repeat([37, 44, 100, 17, 2, 75, 17, 2, 112, 3] * 1000, 100)[1:T]
+n = repeat([2] * 100000, T)
 b = a * (N / maximum(n) - 1.0)
 trials = 1
 d = Beta(a, b)
@@ -39,27 +40,13 @@ f = countmap(values(K))
 O = Set([i for j in S for i in j])
 converged = false
 theta = [log(5.0), log(2.0)]
-lamb = 10.0
-while !converged
-    (minf1, minx1, ret1) = GammaEstimator.fit_Gamma(
-        theta,
-        lamb,
-        n,
-        f,
-        ftol = 1e-7,
-        upper = [10, 20]
-    )
-    (minf2, minx2, ret2) = GammaEstimator.fit_Laplace(
-        lamb,
-        minx1[1],
-        minx1[2],
-        n,
-        f
-    )
-    converged = max(max(abs(minx1) .- theta ./ theta), abs(minx2[1] - lamb) / lamb) < 1e-4
-    lamb = minx2[1]
-    theta = minx1
-end
+(minf1, minx1, ret1) = GammaEstimator.fit_Gamma(
+    theta,
+    n,
+    f,
+    ftol = 1e-7,
+    upper = [10, 20]
+)
 N_hat1 = length(K) + exp(minx1[2])
 # N_hat2 = minx2[2] + length(X)
 # push!(row, N_hat2)
