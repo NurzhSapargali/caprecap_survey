@@ -2,6 +2,7 @@ module GammaEstimator
 
 using NLopt
 using LinearAlgebra
+using SpecialFunctions
 
 export loglh
 export gradient_a, gradient_log_a, gradient_Nu, gradient_log_Nu
@@ -14,18 +15,19 @@ function loglh(log_alpha, log_Nu, ff; verbose::Bool = true)
     Nu = exp(log_Nu)
     No = sum(values(ff))
     N = Nu + No
+    beta = N * alpha
     fact_term = 0.0
     sum_n = sum([get(ff, i, 0) * i for i in keys(ff)])
-    ratio = 1.0 + sum_n / alpha / N
+    ratio = beta / (beta + sum_n)
     # upper_N = 2 * No - get(ff, maximum(keys(ff)), 0)
     for i in keys(ff)
         multiplier = get(ff, i, 0)
-        range_inc = sum([log(alpha + i - j) for j in 1:i])
+        range_inc = loggamma(alpha + i) 
         fact_term += multiplier * range_inc
     end
-    lh = ( -No * log(ratio^alpha - 1.0)
-           - sum_n * (log(alpha) + log(N) + log(ratio))
-           + fact_term )
+    lh = ( No * (alpha * (log(beta) - log(beta + sum_n)) - loggamma(alpha)) 
+           - No * log(1.0 - ratio^alpha)
+           - sum_n * log(beta + sum_n) + fact_term )
     if verbose
         println("a = $alpha, b = $(N * alpha), N = $N, lh = $lh")
     end
@@ -186,25 +188,44 @@ function hessian_log(log_alpha, log_Nu, ff)
 end
 
 
+# function fit_Gamma(theta0,
+#     ff;
+#     lower::Vector = [-Inf, -Inf],
+#     upper::Vector = [10, 12],
+#     ftol = 1e-7
+# )
+#     L(x) = -loglh(x[1], x[2], ff)
+#     g_Nu(x)  = -gradient_log_Nu(x[1], x[2], ff)
+#     g_a(x) = -gradient_log_a(x[1], x[2], ff)
+#     function objective(x::Vector, grad::Vector)
+#         if length(grad) > 0
+#             grad[1] = g_a(x)
+#             grad[2] = g_Nu(x)
+#         end
+#         return L(x)
+#     end
+#     opt = Opt(:LD_LBFGS, 2)
+#     #opt = Opt(:LN_SBPLX, 2)
+#     opt.min_objective = objective
+#     opt.ftol_abs = ftol
+#     opt.lower_bounds = lower
+#     opt.upper_bounds = upper
+#     opt.maxeval = 10000
+#     #opt.vector_storage = 10
+#     (minf,minx,ret) = optimize(opt, theta0)
+#     return (minf, minx, ret)
+# end
+
 function fit_Gamma(theta0,
     ff;
     lower::Vector = [-Inf, -Inf],
     upper::Vector = [10, 12],
     ftol = 1e-7
 )
-    L(x) = -loglh(x[1], x[2], ff)
-    g_Nu(x)  = -gradient_log_Nu(x[1], x[2], ff)
-    g_a(x) = -gradient_log_a(x[1], x[2], ff)
-    function objective(x::Vector, grad::Vector)
-        if length(grad) > 0
-            grad[1] = g_a(x)
-            grad[2] = g_Nu(x)
-        end
-        return L(x)
-    end
-    opt = Opt(:LD_LBFGS, 2)
-    #opt = Opt(:LN_SBPLX, 2)
-    opt.min_objective = objective
+    L(x, grad) = -loglh(x[1], x[2], ff)
+    #opt = Opt(:LD_LBFGS, 2)
+    opt = Opt(:LN_SBPLX, 2)
+    opt.min_objective = L
     opt.ftol_abs = ftol
     opt.lower_bounds = lower
     opt.upper_bounds = upper
@@ -213,5 +234,7 @@ function fit_Gamma(theta0,
     (minf,minx,ret) = optimize(opt, theta0)
     return (minf, minx, ret)
 end
+
+
 
 end

@@ -35,7 +35,6 @@ for s in S
     addcounts!(K, s)
 end
 f = Dict(5 => 6, 4 => 21, 6 => 3, 2 => 243, 3 => 58, 1 => 1253) # At T = 50 causes error
-f = Dict(1 => 48, 2 => 9, 3 => 6, 4 => 2, 5 => 0, 6 => 2, 7 => 0, 8 => 2, 9 => 1, 10 => 1, 12 => 1, 13 => 1, 16 => 1, 17 => 2, 18 => 1, 20 => 1, 29 => 1, 42 => 1, 53 => 1)
 f = countmap(values(K))
 O = Set([i for j in S for i in j])
 converged = false
@@ -44,8 +43,8 @@ theta = [log(1.0), log(1.0)]
     theta,
     f,
     ftol = 1e-7,
-    upper = [10, 20],
-    lower = [-30, -30],
+    upper = [Inf, Inf],
+    lower = [-Inf, -Inf],
 )
 N_hat1 = length(K) + exp(minx1[2])
 # N_hat2 = minx2[2] + length(X)
