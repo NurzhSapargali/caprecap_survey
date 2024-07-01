@@ -21,10 +21,15 @@ seed!(SEED)
 for i in eachindex(ALPHAS)
     alpha = ALPHAS[i]
     output_file = OUTPUT_FOLDER * "estimates_$(alpha).csv"
-    Utils.write_row(output_file, ["w_hat", "a_hat", "Nu_hat", "N_hat", "No", "trial", "T", "alpha", "N", "type"])
+    if alpha != 0.5
+        Utils.write_row(output_file, ["w_hat", "a_hat", "Nu_hat", "N_hat", "No", "trial", "T", "alpha", "N", "type"])
+    end
     for N in pops
         data_folder = DATA_FOLDER * "alpha_$(alpha)/"
         data_files = [file for file in readdir(data_folder) if occursin("sample", file) && occursin("$(N).csv", file)]
+        if alpha == 0.5
+            data_files = data_files[232:lastindex(data_files)]
+        end
         for file in data_files
             trial_no = parse(Int, split(split(file, "_")[2], ".")[1])
             samples = Utils.read_captures(data_folder * file)
