@@ -3,7 +3,7 @@ module OneNbin
 using Distributions
 using StatsBase
 using SpecialFunctions
-using NLopt
+using Optim
 
 export log_nbin_trunc, log_likelihood, fit_oi_nbin_trunc, fit_oi_geom_trunc
 
@@ -17,11 +17,11 @@ function log_nbin_trunc(y, a, N, sum_n)
             )
 end
 
-function log_likelihood(w, log_a, log_Nu, f; verbose = true)
+function log_likelihood(logit_w, log_a, log_Nu, f; verbose = true)
     No = sum(values(f))
     N = exp(log_Nu) + No
     a = exp(log_a)
-    #w = 1.0 / (1.0 + exp(-logit_w))
+    w = 1.0 / (1.0 + exp(-logit_w))
     sum_n = sum([get(f, i, 0) * i for i in keys(f)])
     singles = f[1]
     single_prob = exp(log_nbin_trunc(1, a, N, sum_n))
@@ -35,11 +35,11 @@ function log_likelihood(w, log_a, log_Nu, f; verbose = true)
     return lh
 end
 
-function gradient_w(w, log_a, log_Nu, f)
+function gradient_w(logit_w, log_a, log_Nu, f)
     No = sum(values(f))
     N = exp(log_Nu) + No
     a = exp(log_a)
-    #w = 1.0 / (1.0 + exp(-logit_w))
+    w = 1.0 / (1.0 + exp(-logit_w))
     sum_n = sum([get(f, i, 0) * i for i in keys(f)])
     singles = f[1]
     single_prob = exp(log_nbin_trunc(1, a, N, sum_n))
@@ -47,7 +47,7 @@ function gradient_w(w, log_a, log_Nu, f)
                 * (1.0 - single_prob)
                 - (No - singles) / (1.0 - w)
                )
-    return score_w #* w * (1.0 - w)
+    return score_w * w * (1.0 - w)
 end
 
 
@@ -61,11 +61,11 @@ function log_nbin_gradient_a(y, a, N, sum_n)
 end
 
 
-function gradient_log_a(w, log_a, log_Nu, f)
+function gradient_log_a(logit_w, log_a, log_Nu, f)
     No = sum(values(f))
     N = exp(log_Nu) + No
     a = exp(log_a)
-    #w = 1.0 / (1.0 + exp(-logit_w))
+    w = 1.0 / (1.0 + exp(-logit_w))
     sum_n = sum([get(f, i, 0) * i for i in keys(f)])
     singles = f[1]
     single_prob = exp(log_nbin_trunc(1, a, N, sum_n))
@@ -85,11 +85,11 @@ function log_nbin_gradient_Nu(y, a, N, sum_n)
 end
 
 
-function gradient_log_Nu(w, log_a, log_Nu, f)
+function gradient_log_Nu(logit_w, log_a, log_Nu, f)
     No = sum(values(f))
     N = exp(log_Nu) + No
     a = exp(log_a)
-    #w = 1.0 / (1.0 + exp(-logit_w))
+    w = 1.0 / (1.0 + exp(-logit_w))
     sum_n = sum([get(f, i, 0) * i for i in keys(f)])
     singles = f[1]
     single_prob = exp(log_nbin_trunc(1, a, N, sum_n))
@@ -107,44 +107,32 @@ end
 
 function fit_oi_nbin_trunc(
     theta, f;
-    ftol = 1e-6, lower = [0, -Inf, -Inf], upper = [1.0, 9.9, 23.0]
+    ftol = 1e-5, lower = [-Inf, -Inf, -Inf], upper = [Inf, 10.0, 23.0]
 )
-    function objective(x::Vector, grad::Vector)
-        if length(grad) > 0
-            grad[1] = -gradient_w(x[1], x[2], x[3], f)
-            grad[2] = -gradient_log_a(x[1], x[2], x[3], f)
-            grad[3] = -gradient_log_Nu(x[1], x[2], x[3], f)
-        end
-        return -log_likelihood(x[1], x[2], x[3], f)
+    L(x) = -log_likelihood(x[1], x[2], x[3], f)
+    function g!(G::Vector, x::Vector)
+        G[1] = -gradient_w(x[1], x[2], x[3], f)
+        G[2] = -gradient_log_a(x[1], x[2], x[3], f)
+        G[3] = -gradient_log_Nu(x[1], x[2], x[3], f)
     end
-    opt = Opt(:LD_LBFGS, 3)
-    opt.lower_bounds = lower
-    opt.upper_bounds = upper
-    opt.min_objective = objective
-    opt.ftol_rel = ftol
-    (minf, minx, ret) = optimize(opt, theta)
-    return (minf, minx, ret)
+    res = optimize(L, g!, lower, upper, theta, Fminbox(GradientDescent()), Optim.Options(iterations = 50, f_tol = ftol))
+    (minf, minx) = (Optim.minimum(res), Optim.minimizer(res))
+    return (minf, minx)
 end
 
 
 function fit_oi_geom_trunc(
     theta, f;
-    ftol = 1e-6, lower = [0.0, -Inf], upper = [1.0, 23.0]
+    ftol = 1e-5, lower = [-Inf, -Inf], upper = [Inf, 23.0]
 )
-    function objective(x::Vector, grad::Vector)
-        if length(grad) > 0
-            grad[1] = -gradient_w(x[1], log(1.0), x[2], f)
-            grad[2] = -gradient_log_Nu(x[1], log(1.0), x[2], f)
-        end
-        return -log_likelihood(x[1], log(1.0), x[2], f)
+    L(x) = -log_likelihood(x[1], log(1.0), x[2], f)
+    function g!(G::Vector, x::Vector)
+        G[1] = -gradient_w(x[1], log(1.0), x[2], f)
+        G[2] = -gradient_log_Nu(x[1], log(1.0), x[2], f)
     end
-    opt = Opt(:LD_LBFGS, 2)
-    opt.lower_bounds = lower
-    opt.upper_bounds = upper
-    opt.min_objective = objective
-    opt.ftol_rel = ftol
-    (minf, minx, ret) = optimize(opt, theta)
-    return (minf, minx, ret)
+    res = optimize(L, g!, lower, upper, theta, Fminbox(GradientDescent()), Optim.Options(iterations = 50, f_tol = ftol))
+    (minf, minx) = (Optim.minimum(res), Optim.minimizer(res))
+    return (minf, minx)
 end
 
 end
