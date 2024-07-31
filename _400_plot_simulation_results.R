@@ -14,8 +14,11 @@ library(tidyverse)
 library(directlabels)
 library(ggpubr)
 
-OUTPUT_FOLDER <- "./_900_output/figures/" # Folder to save the figures
+RESULTS_FOLDER <- "./_900_output/data/simulated/" # Folder containing the simulation results
+OUTPUT_FOLDER <- "./_900_output/figures/simulated/" # Folder to save the figures
 TRIALS <- 1000 # Number of trials in the simulation
+ALPHAS <- c(0.5, 2.0, 10.0) # Different values of alpha in the simulation
+POP_SIZES <- c(1000, 5000, 10000) # Different population sizes in the simulation
 OLD_NAMES <- c(
   "Chao Lee Jeng 0",
   "Chao Lee Jeng 1",
@@ -27,7 +30,8 @@ OLD_NAMES <- c(
   "Jackknife k = 4",
   "Jackknife k = 5",
   "Turing",
-  "Turing Geometric"
+  "Turing Geometric",
+  "MPLE-G"
 ) # Names of the methods in the simulation results
 NEW_NAMES <- c(
   "SC,0",
@@ -40,7 +44,8 @@ NEW_NAMES <- c(
   "JK,4",
   "JK,5",
   "TB",
-  "TG"
+  "TG",
+  "MPLE-G"
 ) # New names for the methods in plots
 
 
@@ -99,7 +104,7 @@ preprocess <- function(results, minT = NA) {
 # This function performs several steps to aggregate the 'pr_results' data frame:
 # - Groups by 'type', 'T', and 'N' and calculates several summary statistics
 # - Calculates the root mean square error (RMSE) and bias
-# - Gets the baseline values for "Pseudolikelihood"
+# - Gets the baseline values for "MPLE-NB"
 # - Joins the baseline values with the other methods
 # - Calculates the relative metrics
 # - Checks if all trials are complete
@@ -126,9 +131,9 @@ aggregate_data <- function(pr_results) {
   agg$rmse <- sqrt(agg$mse)
   agg$bias <- abs(agg$hat_mean - agg$N)
 
-  # Get the baseline values for "Pseudolikelihood"
+  # Get the baseline values for "MPLE-NB"
   baseline <- agg[
-    agg$type == "Pseudolikelihood",
+    agg$type == "MPLE-NB",
     c("T", "N", "rmse", "bias", "hat_var")
   ]
 
@@ -150,9 +155,17 @@ aggregate_data <- function(pr_results) {
 
   # Remove the baseline columns
   agg <- select(agg, -ends_with("_baseline"))
-  agg$incomplete <- agg$trials != TRIALS
-  agg$fill_col <- agg$type
-  agg$fill_col[agg$incomplete] <- NA
+
+  # Mark incomplete estimates
+  agg$incomplete <- (agg$trials < TRIALS)
+  incomp_by_pop <- agg[agg$incomplete,][c("type", "N")] %>%
+    distinct(type, N)
+
+  for (i in 1:nrow(incomp_by_pop)){
+    estimator <- incomp_by_pop$type[i]
+    pop <- incomp_by_pop$N[i]
+    agg$type[agg$type == estimator & agg$N == pop] <- paste0(estimator, "*")
+  }
 
   # Return the aggregated 'pr_results' data frame
   agg
@@ -183,10 +196,13 @@ plot_lines <- function(agg, pop, y, ylim, ylab, title, xlim) {
   # Convert the y variable to a symbol
   y_col <- sym(y)
 
+  # Vector of types to exclude
+  exclude_types <- c("MPLE-NB", "Morgan-Ridout", "Morgan-Ridout*")
+
   # Create the plot
   ggplot(
-    # Get specified population and exclude "Pseudolikelihood"and "Morgan Ridout"
-    agg[(agg$N == pop) & (agg$type != "Pseudolikelihood"), ],
+    # Get specified population and exclude "MPLE-NB" and "Morgan Ridout"
+    agg[(agg$N == pop) & !(agg$type %in% exclude_types), ],
     mapping = aes(
       x = T,
       y = !!y_col,
@@ -194,10 +210,10 @@ plot_lines <- function(agg, pop, y, ylim, ylab, title, xlim) {
       group = type
     )
   ) +
-    geom_line() +
+    geom_line(alpha = 0.9) +
     geom_point(
-      mapping = aes(colour = fill_col, shape = incomplete),
-      size = 2.6
+      mapping = aes(colour = ifelse(incomplete, NA, type), shape = incomplete),
+      size = 1.3
     ) +
     # Add a horizontal line at y = 0
     geom_hline(yintercept = 0, colour = "black", alpha = 0.35) +
@@ -252,19 +268,11 @@ plot_results <- function(
   pop,
   ylim_bias = c(-3.0, 3.0),
   ylim_rmse = c(-3.0, 3.0),
-  xlim = c(NA, 12.0),
+  xlim = c(NA, 12.2),
   dense = NA
 ) {
   # Create the plot title based on the population and graph density
-  if (is.na(dense)){
-    title <- paste0("N = ", as.character(pop))
-  } else {
-    title <- paste0(
-      "N = ", as.character(pop),
-      ", graph density = ",
-      as.character(dense)
-    )
-  }
+  title <- paste0("N = ", as.character(pop))
 
   # Create the RMSE plot
   p1 <- plot_lines(agg, pop, "lrel_rmse", ylim_rmse, "LogRelRMSE", title, xlim)
@@ -280,44 +288,36 @@ plot_results <- function(
 # Define the lookup table for y-axis limits
 ylim_lookup <- list(
   "0.5" = list(
-    "1000" = list("rmse" = c(NA, 1.3), "bias" = c(NA, 5.8)),
-    "5000" = list("rmse" = c(NA, 2.0), "bias" = c(NA, 5.5)),
-    "10000" = list("rmse" = c(NA, 2.0), "bias" = c(NA, 5.0))
+    "1000" = list("rmse" = c(NA, 8.0), "bias" = c(-1.5, 2.0)),
+    "5000" = list("rmse" = c(NA, 2.0), "bias" = c(-2.0, 3.0)),
+    "10000" = list("rmse" = c(NA, 3.5), "bias" = c(-2.5, 5.0))
   ),
-  "1.0" = list(
-    "1000" = list("rmse" = c(NA, 1.4), "bias" = c(NA, 3.0)),
-    "5000" = list("rmse" = c(NA, 1.8), "bias" = c(NA, 5.8)),
-    "10000" = list("rmse" = c(NA, 2.75), "bias" = c(NA, 6.5))
-  ),
-  "5.0" = list(
-    "1000" = list("rmse" = c(NA, 3.0), "bias" = c(NA, 6.5)),
-    "5000" = list("rmse" = c(NA, 1.25), "bias" = c(NA, 6.75)),
-    "10000" = list("rmse" = c(NA, 1.25), "bias" = c(NA, 5.0))
+  "2.0" = list(
+    "1000" = list("rmse" = c(NA, 3.0), "bias" = c(-2.5, 3.0)),
+    "5000" = list("rmse" = c(NA, NA), "bias" = c(NA, NA)),
+    "10000" = list("rmse" = c(NA, NA), "bias" = c(NA, NA))
   ),
   "10.0" = list(
-    "1000" = list("rmse" = c(NA, 3.0), "bias" = c(NA, 10.0)),
-    "5000" = list("rmse" = c(NA, 1.5), "bias" = c(NA, 7.5)),
-    "10000" = list("rmse" = c(NA, 1.25), "bias" = c(NA, 7.5))
-  ),
-  "Inf" = list(
-    "1000" = list("rmse" = c(NA, 2.75), "bias" = c(NA, 3.0)),
-    "5000" = list("rmse" = c(NA, 1.5), "bias" = c(NA, 2.5)),
-    "10000" = list("rmse" = c(NA, 1.25), "bias" = c(NA, 2.75))
+    "1000" = list("rmse" = c(NA, NA), "bias" = c(NA, NA)),
+    "5000" = list("rmse" = c(NA, NA), "bias" = c(NA, NA)),
+    "10000" = list("rmse" = c(NA, NA), "bias" = c(NA, NA))
   )
 )
 
-for (het in c("0.5", "1.0", "5.0", "10.0", "Inf")){
+for (het in ALPHAS){
+  het_str <- format(het, nsmall = 1)
   agg <- read.csv(
-    paste0("./_900_output/data/simulated/estimates_", het, ".csv")
+    paste0(RESULTS_FOLDER, "estimates_", het_str, ".csv")
   ) %>%
     preprocess() %>%
     aggregate_data()
 
   ps <- c()
 
-  for (N in c(1000, 5000, 10000)) {
-    ylim_bias <- ylim_lookup[[het]][[as.character(N)]][["bias"]]
-    ylim_rmse <- ylim_lookup[[het]][[as.character(N)]][["rmse"]]
+  for (N in POP_SIZES) {
+    N_str <- as.character(N)
+    ylim_bias <- ylim_lookup[[het_str]][[N_str]][["bias"]]
+    ylim_rmse <- ylim_lookup[[het_str]][[N_str]][["rmse"]]
 
     ps <- c(
       ps,
@@ -327,95 +327,9 @@ for (het in c("0.5", "1.0", "5.0", "10.0", "Inf")){
 
   ggarrange(plotlist = ps, ncol = 2, nrow = 3)
   ggsave(
-    paste0(OUTPUT_FOLDER, "simulated/estimates_", het, ".pdf"),
+    paste0(OUTPUT_FOLDER, "estimates_", het_str, ".pdf"),
     width = 210,
     height = 297,
     units = "mm"
   )
-
 }
-
-# Plot the results for Barabasi-Albert graphs
-# Define the lookup table for y-axis limits
-ylim_lookup <- list(
-  "0.025" = list("rmse" = c(NA, 2.0), "bias" = c(NA, 4.5)),
-  "0.05" = list("rmse" = c(NA, 2.5), "bias" = c(NA, 4.0)),
-  "0.1" = list("rmse" = c(NA, 1.75), "bias" = c(NA, 6.0))
-)
-
-ps <- c()
-N <- 10000
-pseudo <- list()
-for (dense in c(0.025, 0.05, 0.1)) {
-  estim_df <- read.csv(
-    paste0("./_900_output/data/graphs/estimates_ba_", dense, ".csv")
-  ) %>%
-    preprocess()
-  pseudo[[as.character(dense)]] <- estim_df[estim_df$type == "Pseudolikelihood", ]
-  agg <- aggregate_data(estim_df)
-
-  ylim_bias <- ylim_lookup[[as.character(dense)]][["bias"]]
-  ylim_rmse <- ylim_lookup[[as.character(dense)]][["rmse"]]
-
-  ps <- c(
-    ps,
-    plot_results(
-      agg,
-      N,
-      dense = dense,
-      ylim_bias = ylim_bias,
-      ylim_rmse = ylim_rmse
-    )
-  )
-}
-
-ggarrange(plotlist = ps, ncol = 2, nrow = 3)
-ggsave(
-  paste0(OUTPUT_FOLDER, "graphs/estimates_ba.pdf"),
-  width = 210,
-  height = 297,
-  units = "mm"
-)
-
-a_hats <- do.call(rbind.data.frame, pseudo)
-a_hats[a_hats$graph == "ba_0.025", "graph"] <- "0.025"
-a_hats[a_hats$graph == "ba_0.05", "graph"] <- "0.05"
-a_hats[a_hats$graph == "ba_0.1", "graph"] <- "0.1"
-colnames(a_hats)[colnames(a_hats) == "graph"] <- "Graph density"
-a_hat_means <- group_by(a_hats, T, `Graph density`) %>%
-  summarise(hat_mean = log(mean(a_hat)))
-
-p1 <- ggplot(
-  a_hats,
-  mapping = aes(x = T, y = log(a_hat), fill = `Graph density`)
-) +
-  geom_boxplot(outlier.alpha = 0.5) +
-  ylab("Log alpha estimate") +
-  theme_minimal() +
-  theme_pubr(base_size = 15) +
-  theme(text = element_text(size = 19), legend.text = element_text(size = 19))
-
-p2 <- ggplot(
-  a_hat_means,
-  mapping = aes(
-    x = T,
-    y = hat_mean,
-    group = `Graph density`,
-    colour = `Graph density`
-  )
-) +
-  geom_line() +
-  geom_point() +
-  theme_minimal() +
-  theme_pubr(base_size = 15) +
-  ylab("Log of mean of alpha estimates") +
-  xlab("T")
-
-# ggarrange(plotlist = list(p1, p2), ncol = 1, nrow = 2)
-ggsave(
-  paste0(OUTPUT_FOLDER, "graphs/alpha_estimates.pdf"),
-  plot = p1,
-  width = 297,
-  height = 210,
-  units = "mm"
-)

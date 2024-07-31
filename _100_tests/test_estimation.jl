@@ -16,7 +16,7 @@ using StatsFuns
 import Random: seed!
 
 
-N = 10000
+N = 5000
 a = 0.5
 T = 200
 n = repeat([37, 44, 100, 17, 2, 75, 17, 2, 112, 3], 100)[1:T]
