@@ -242,7 +242,7 @@ plot_lines <- function(agg, pop, y, ylim, ylab, title, xlim) {
 }
 
 
-# 'plot_results' function for creating line plots of the aggregated data
+# 'comparison_plots' function for creating line plots of the aggregated data
 #
 # This function creates two line plots of the aggregated data 'agg' for specific
 # population 'pop'. The y-axis limits for the bias and RMSE plots are specified
@@ -263,7 +263,7 @@ plot_lines <- function(agg, pop, y, ylim, ylab, title, xlim) {
 # Returns:
 #   A list containing two ggplot objects representing the line plots.
 
-plot_results <- function(
+comparison_plots <- function(
   agg,
   pop,
   ylim_bias = c(-3.0, 3.0),
@@ -281,6 +281,28 @@ plot_results <- function(
 
   # Return the plots as a list
   list(p1, p2)
+}
+
+
+estimates_boxplot <- function(
+  pr_results,
+  pop,
+  true_val,
+  ylab,
+  to_plot = "N_hat"
+) {
+
+  pr_results %>%
+    filter(N == pop) %>%
+    ggplot(mapping = aes(x = T, y = !!sym(to_plot), fill = type)) +
+      geom_boxplot() +
+      geom_hline(yintercept = true_val, linetype = "dashed") +
+      scale_y_continuous(breaks = scales::pretty_breaks(n = 15)) +
+      theme_minimal() +
+      theme_pubr() +
+      guides(fill = "none") +
+      xlab("T") +
+      ylab(ylab)
 }
 
 
@@ -321,7 +343,7 @@ for (het in ALPHAS){
 
     ps <- c(
       ps,
-      plot_results(agg, N, ylim_bias = ylim_bias, ylim_rmse = ylim_rmse)
+      comparison_plots(agg, N, ylim_bias = ylim_bias, ylim_rmse = ylim_rmse)
     )
   }
 
@@ -333,3 +355,8 @@ for (het in ALPHAS){
     units = "mm"
   )
 }
+
+
+ggplot(data = agg, mapping = aes(x = T, y = log(N_hat), colour = type)) +
+  geom_boxplot() +
+  geom_hline(yintercept = log(1000), linetype = "dashed")
