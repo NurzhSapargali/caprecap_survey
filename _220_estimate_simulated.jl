@@ -84,15 +84,15 @@ for i in eachindex(ALPHAS)
                     j += 1
                 end
             end
-            #for t in breaks_T
-            #    S = samples[1:t]
-            #    K = Utils.cap_freq(S)
-            #    f = Utils.freq_of_freq(K)
-            #    n = [length(s) for s in S]
-            #    No = sum(values(f))
-            #    mr_hat = Benchmarks.morgan_ridout(f, t, "./estimateN.R")
-            #    push!(draws, [-999.0, -999.0, mr_hat - No, mr_hat, No, trial_no, t, alpha, N, "Morgan-Ridout"])
-            #end
+            for t in breaks_T
+                S = samples[1:t]
+                K = Utils.cap_freq(S)
+                f = Utils.freq_of_freq(K)
+                n = [length(s) for s in S]
+                No = sum(values(f))
+                mr_hat = Benchmarks.morgan_ridout(f, t, "./estimateN.R")
+                push!(draws, [-999.0, -999.0, mr_hat - No, mr_hat, No, trial_no, t, alpha, N, "Morgan-Ridout"])
+            end
             for d in draws
                 Utils.write_row(output_file, d)
             end

@@ -17,7 +17,7 @@ library(ggpubr)
 RESULTS_FOLDER <- "./_900_output/data/simulated/" # Folder containing the simulation results
 OUTPUT_FOLDER <- "./_900_output/figures/simulated/" # Folder to save the figures
 TRIALS <- 1000 # Number of trials in the simulation
-ALPHAS <- c(0.5, 2.0, 10.0) # Different values of alpha in the simulation
+ALPHAS <- c(0.5, 2.0) # Different values of alpha in the simulation
 POP_SIZES <- c(1000, 5000, 10000) # Different population sizes in the simulation
 OLD_NAMES <- c(
   "Chao Lee Jeng 0",
@@ -297,7 +297,7 @@ estimates_boxplot <- function(
     ggplot(mapping = aes(x = T, y = !!sym(to_plot), fill = type)) +
       geom_boxplot() +
       geom_hline(yintercept = true_val, linetype = "dashed") +
-      scale_y_continuous(breaks = scales::pretty_breaks(n = 15)) +
+      scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
       theme_minimal() +
       theme_pubr() +
       guides(fill = "none") +
@@ -328,35 +328,55 @@ ylim_lookup <- list(
 
 for (het in ALPHAS){
   het_str <- format(het, nsmall = 1)
-  agg <- read.csv(
+  prep <- read.csv(
     paste0(RESULTS_FOLDER, "estimates_", het_str, ".csv")
   ) %>%
-    preprocess() %>%
-    aggregate_data()
+    preprocess()
+  agg <- aggregate_data(prep)
 
-  ps <- c()
+  comp_ps <- c()
+  box_ps <- list()
+  prep$logN_hat <- log(prep$N_hat)
 
-  for (N in POP_SIZES) {
+  for (i in seq_along(POP_SIZES)) {
+    N <- POP_SIZES[i]
     N_str <- as.character(N)
     ylim_bias <- ylim_lookup[[het_str]][[N_str]][["bias"]]
     ylim_rmse <- ylim_lookup[[het_str]][[N_str]][["rmse"]]
 
-    ps <- c(
-      ps,
+    comp_ps <- c(
+      comp_ps,
       comparison_plots(agg, N, ylim_bias = ylim_bias, ylim_rmse = ylim_rmse)
     )
+
+    box_plot <- estimates_boxplot(
+      prep[prep$type %in% c("MPLE-G", "MPLE-NB"),],
+      N,
+      log(N),
+      "Log population estimate",
+      "logN_hat"
+    ) + ggtitle(paste0("N = ", N)) + guides(fill = "none")
+    if (N == 1000){
+      box_plot <- box_plot +
+        guides(fill = "legend") +
+        theme(legend.title = element_blank(), legend.position = c(0.9, 0.9))
+    }
+    box_ps[[i]] <- box_plot
   }
 
-  ggarrange(plotlist = ps, ncol = 2, nrow = 3)
+  ggarrange(plotlist = comp_ps, ncol = 2, nrow = 3)
   ggsave(
     paste0(OUTPUT_FOLDER, "estimates_", het_str, ".pdf"),
     width = 210,
     height = 297,
     units = "mm"
   )
+
+  ggarrange(plotlist = box_ps, ncol = 1, nrow = 3)
+  ggsave(
+    paste0(OUTPUT_FOLDER, "estimates_box_", het_str, ".pdf"),
+    width = 210,
+    height = 297,
+    units = "mm"
+  )
 }
-
-
-ggplot(data = agg, mapping = aes(x = T, y = log(N_hat), colour = type)) +
-  geom_boxplot() +
-  geom_hline(yintercept = log(1000), linetype = "dashed")
