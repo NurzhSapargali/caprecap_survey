@@ -213,7 +213,7 @@ plot_lines <- function(agg, pop, y, ylim, ylab, title, xlim) {
     geom_line(alpha = 0.9) +
     geom_point(
       mapping = aes(colour = ifelse(incomplete, NA, type), shape = incomplete),
-      size = 1.3
+      size = 2.0
     ) +
     # Add a horizontal line at y = 0
     geom_hline(yintercept = 0, colour = "black", alpha = 0.35) +
@@ -233,7 +233,7 @@ plot_lines <- function(agg, pop, y, ylim, ylab, title, xlim) {
     geom_dl(
       aes(label = type),
       method = list(
-        dl.trans(x = x * 1.025, y = y * 1.0), 
+        dl.trans(x = x * 1.025, y = y * 1.0),
         "last.points",
         "bumpup",
         cex = 0.8
@@ -311,16 +311,11 @@ estimates_boxplot <- function(
 ylim_lookup <- list(
   "0.5" = list(
     "1000" = list("rmse" = c(NA, 8.0), "bias" = c(-1.5, 2.0)),
-    "5000" = list("rmse" = c(NA, 2.0), "bias" = c(-2.0, 3.0)),
+    "5000" = list("rmse" = c(NA, 2.5), "bias" = c(-2.0, 3.0)),
     "10000" = list("rmse" = c(NA, 3.5), "bias" = c(-2.5, 5.0))
   ),
   "2.0" = list(
-    "1000" = list("rmse" = c(NA, 3.0), "bias" = c(-2.5, 3.0)),
-    "5000" = list("rmse" = c(NA, NA), "bias" = c(NA, NA)),
-    "10000" = list("rmse" = c(NA, NA), "bias" = c(NA, NA))
-  ),
-  "10.0" = list(
-    "1000" = list("rmse" = c(NA, NA), "bias" = c(NA, NA)),
+    "1000" = list("rmse" = c(NA, 4.0), "bias" = c(-2.5, 3.5)),
     "5000" = list("rmse" = c(NA, NA), "bias" = c(NA, NA)),
     "10000" = list("rmse" = c(NA, NA), "bias" = c(NA, NA))
   )
