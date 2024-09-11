@@ -1,3 +1,9 @@
+function print_dict(f::Dict)
+    for key in sort(collect(keys(f)))
+        println("$key,$(f[key])")
+    end
+end
+
 # Root EST data, N ~ 27000 - very bad, long tails?
 # Wang, J.-P. Z., & Lindsay, B. G. (2005). A Penalized Nonparametric Maximum Likelihood Approach to Species Richness Estimation. Journal of the American Statistical Association, 100(471), 942–959. http://www.jstor.org/stable/27590625
 f = Dict(
@@ -262,6 +268,7 @@ f = Dict(
     4 => 4,
     5 => 4
 )
+
 # Gotland Deep data N = ? - awful, long tails
 f = Dict(
     1 => 48,
@@ -282,6 +289,7 @@ f = Dict(
     42 => 1,
     53 => 1
 )
+
 # Shakespeare data, N = ? - absolutely awful, long tails
 f = Dict(
     5 => 1043,

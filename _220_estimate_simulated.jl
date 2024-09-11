@@ -50,7 +50,7 @@ for i in eachindex(ALPHAS)
                     )
                     nb_cands[-minf] = minx
                     (minf, minx) = OneNbin.fit_oi_geom_trunc(
-                        [0.0, log(initial)],
+                        [0.0, initial],
                         f,
                         upper = [Inf, 23.0]
                     )

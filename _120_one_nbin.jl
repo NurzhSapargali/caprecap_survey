@@ -107,9 +107,12 @@ end
 
 function fit_oi_nbin_trunc(
     theta, f;
-    ftol = 1e-5, lower = [-Inf, -Inf, -Inf], upper = [Inf, 10.0, 23.0]
+    ftol = 1e-5,
+    lower = [-Inf, -Inf, -Inf],
+    upper = [Inf, 10.0, 23.0],
+    verbose = true
 )
-    L(x) = -log_likelihood(x[1], x[2], x[3], f)
+    L(x) = -log_likelihood(x[1], x[2], x[3], f; verbose = verbose)
     function g!(G::Vector, x::Vector)
         G[1] = -gradient_w(x[1], x[2], x[3], f)
         G[2] = -gradient_log_a(x[1], x[2], x[3], f)
@@ -123,9 +126,12 @@ end
 
 function fit_oi_geom_trunc(
     theta, f;
-    ftol = 1e-5, lower = [-Inf, -Inf], upper = [Inf, 23.0]
+    ftol = 1e-5,
+    lower = [-Inf, -Inf],
+    upper = [Inf, 23.0],
+    verbose = true
 )
-    L(x) = -log_likelihood(x[1], log(1.0), x[2], f)
+    L(x) = -log_likelihood(x[1], log(1.0), x[2], f; verbose = verbose)
     function g!(G::Vector, x::Vector)
         G[1] = -gradient_w(x[1], log(1.0), x[2], f)
         G[2] = -gradient_log_Nu(x[1], log(1.0), x[2], f)

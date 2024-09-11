@@ -1,22 +1,17 @@
-include("../_120_gamma_estimator.jl")
-include("../_110_beta_estimator.jl")
-include("../_130_benchmarks.jl")
 include("../_100_utils.jl")
+include("../_120_one_nbin.jl")
+include("../_130_benchmarks.jl")
 
-import .GammaEstimator
-import .BetaEstimator
-import .Benchmarks
+import .OneNbin
 import .Utils
+import .Benchmarks
 
-using Distributions
 using StatsBase
-using Plots
-using StatsFuns
 
 import Random: seed!
 
 
-N = 5000
+N = 1000
 a = 0.5
 T = 200
 n = repeat([37, 44, 100, 17, 2, 75, 17, 2, 112, 3], 100)[1:T]
@@ -39,14 +34,17 @@ f = countmap(values(K))
 O = Set([i for j in S for i in j])
 converged = false
 theta = [log(1.0), log(1.0)]
-(minf1, minx1, ret1) = GammaEstimator.fit_Gamma(
-    theta,
+(minf, minx) = OneNbin.fit_oi_nbin_trunc(
+    [0.0, log(1.0), log(2.0)],
     f,
-    ftol = 1e-7,
-    upper = [Inf, Inf],
-    lower = [-Inf, -Inf],
+    upper = [Inf, 20.0, 23.0]
 )
 N_hat1 = length(K) + exp(minx1[2])
+(minf, minx) = OneNbin.fit_oi_geom_trunc(
+        [0.0, log(2.0)],
+        f,
+        upper = [Inf, 23.0]
+)
 # N_hat2 = minx2[2] + length(X)
 # push!(row, N_hat2)
 benchmarks = Dict{}()
