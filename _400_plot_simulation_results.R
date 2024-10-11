@@ -296,6 +296,15 @@ estimates_boxplot <- function(
     filter(N == pop) %>%
     ggplot(mapping = aes(x = T, y = !!sym(to_plot), fill = type)) +
       geom_boxplot() +
+      stat_summary(
+        fun = mean,
+        color = "gold",
+        position = position_dodge(0.75),
+        geom = "point",
+        shape = 17,
+        size = 2.75,
+        show.legend = FALSE,
+      ) +
       geom_hline(yintercept = true_val, linetype = "dashed") +
       scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
       theme_minimal() +
