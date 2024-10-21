@@ -83,8 +83,14 @@ plt = plot(
     xlabel = "T",
     ylabel = "Mean difference",
     size = (1280 / 1.5, 720 / 1.5),
-    leftmargin = 5Plots.mm
+    leftmargin = 5Plots.mm,
+    xtickfontsize = 12,
+    ytickfontsize = 12,
+    xguidefontsize = 12,
+    yguidefontsize = 12,
+    legendfontsize = 12
 )
+
 color_map = Dict(
     100 => "#003f5c",
     200 => "#bc5090",
@@ -97,7 +103,8 @@ for n in n_sim
         df_n.t,
         df_n.delta_mean,
         label = "n = $n",
-        color = color_map[n]
+        color = color_map[n],
+        linewidth = 2
     )
 end
 savefig(
