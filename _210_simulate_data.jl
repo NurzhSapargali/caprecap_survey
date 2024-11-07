@@ -16,7 +16,7 @@ ALPHAS::Vector{Float64} = [0.5, 2.0, 10.0]
 Q::Float64 = 0.03
 R::Int = 1
 SEED::Int = 777
-DATA_FOLDER::String = "./_200_input/caprecap_data/"
+DATA_FOLDER::String = "./_100_input/simulated/"
 
 seed!(SEED)
 for pop in N
