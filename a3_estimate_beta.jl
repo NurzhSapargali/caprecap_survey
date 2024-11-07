@@ -11,7 +11,7 @@ using StatsBase
 import Random: seed!
 
 ALPHAS::Vector{Float64} = [0.5, 2.0]
-DATA_FOLDER::String = "./_200_input/simulated/"
+DATA_FOLDER::String = "./_100_input/simulated/"
 breaks_T::Vector{Int64} = collect(5:5:50)
 OUTPUT_FOLDER::String = "./_900_output/data/appendix/"
 pops::Vector{Int64} = [1000, 5000, 10000]

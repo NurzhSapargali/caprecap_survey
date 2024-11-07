@@ -12,7 +12,7 @@ using DataFrames
 
 import Random: seed!
 
-INPUT_FOLDER::String = "./_200_input/datasets/"
+INPUT_FOLDER::String = "./_100_input/datasets/"
 OUTPUT_FOLDER::String = "./_900_output/data/datasets/"
 SEED::Int = 777
 
