@@ -1,20 +1,41 @@
+"""
+Utility functions for capture–recapture simulations and sampling.
+"""
 module Utils
 
 using StatsBase
+using Distributions
 
 export ar_pareto_sample, write_row, freq_of_freq,
-       cap_freq, read_captures, lower_pr
+       cap_freq, read_captures, lower_pr, simulate_samples,
+       create_folder_if_not_exists
 
+"""
+    write_row(filename::String, row::Vector)
 
-function write_row(filename::String, row)
+Append `row` as a comma-separated line to `filename`.
+If the file does not exist, it will be created.
+"""
+function write_row(filename::String, row::Vector)
     open(filename, "a") do io
         for (i,j) in enumerate(row)
             if i != length(row)
-                print(io, j, ",");
+                print(io, j, ",")
             else
-                print(io, j, "\n");
+                print(io, j, "\n")
             end
         end
+    end
+end
+
+"""
+    create_folder_if_not_exists(folder::String)
+
+Create the folder if it does not already exist.
+"""
+function create_folder_if_not_exists(folder::String)
+    if !isdir(folder)
+        mkpath(folder)
     end
 end
 
@@ -29,48 +50,45 @@ function read_captures(filename::String)
     return out;
 end
 
-function sampford_sample(p::Vector{Float64}, n::Int64)
-    pr = n * p;
-    pr = Dict(enumerate(pr));
-    s = Set();
-    while length(s) != n
-        key = sample(1:length(p), Weights(p));
-        val = pop!(pr, key);
-        new_pr = collect(values(pr));
-        new_pr = new_pr ./ (1.0 .- new_pr);
-        new_pr = new_pr ./ sum(new_pr);
-        s = Set(sample(collect(keys(pr)), Weights(new_pr), n));
-        pr[key] = val;
-    end
-    #println("Generated")
-    return collect(s);
-end
+"""
+    pareto_sample(p::Vector{Float64}, n::Int64)
 
+Draw `n` indices from a population with size probabilities `p` using Pareto sampling.
+"""
 function pareto_sample(p::Vector{Float64}, n::Int64)
-    pr = n * p
+    pr = n * p # Inclusion probabilities
     N = length(pr)
     U = rand(N)
-    Q = ( U ./ (1.0 .- U) ) ./ ( pr ./ (1.0 .- pr) )
-    return sortperm(Q)[1:n]
+    Q = (U ./ (1.0 .- U)) ./ (pr ./ (1.0 .- pr)) # Transformed uniform variables
+    return sortperm(Q)[1:n] # Return indices of the smallest n Q values
 end
 
+"""
+    ar_pareto_sample(p::Vector{Float64}, n::Int64)
+
+Draw `n` indices from a population with unequal inclusion probabilities `p`
+using the acceptance–rejection Pareto sampling algorithm (Bondesson et. al, 2006).
+
+References
+----------
+Bondesson, L., Traat, I. and Lundqvist, A. (2006), Pareto Sampling versus
+Sampford and Conditional Poisson Sampling. Scandinavian Journal of Statistics,
+33: 699-720. https://doi.org/10.1111/j.1467-9469.2006.00497.x
+"""
 function ar_pareto_sample(p::Vector{Float64}, n::Int64)
     pr = n * p
     N = length(pr)
-    d = sum(pr .* (1.0 .- pr))
-    sigma2_k = 1.0 ./ (d .+ pr .* (1.0 .- pr))
-    ckc0 = (1.0 .- pr) .* sigma2_k.^0.5 .* exp.(sigma2_k .* pr.^2 / 2)
-    ckc0 = ckc0 / sum((1.0 .- pr) .* sigma2_k.^0.5 .* exp.(sigma2_k .* pr.^2 / 2))
-    ckc0 = (N - n) * ckc0
-    Jk = ckc0 ./ (1.0 .- pr)
-    A = minimum(Jk)
+    d = sum(pr .* (1.0 .- pr)) # page 701
+    Jk = 1.0 .+ pr .* (pr .- 0.5) / d # Approximation 1 on page 702
+    A = minimum(Jk) # Algorithm 1 on page 709
+
     S = []
     accept = false
     while (!accept)
         S = pareto_sample(p, n)
-        car = sum(1.0 .- pr[S]) / sum(Jk[S] / A .* (1.0 .- pr[S]))
-        #println(car)
+        car = sum(1.0 .- pr[S]) / sum(Jk[S] / A .* (1.0 .- pr[S])) # Equation (22) on page 710
         U = rand()
+        #println("car = $car, U = $U")
         if (U <= car)
             accept = true
         end
@@ -78,7 +96,42 @@ function ar_pareto_sample(p::Vector{Float64}, n::Int64)
     return S
 end
 
+"""
+    simulate_samples(pop::Int64, T::Int64, alpha::Float64, r::Float64, q::Float64)
 
+Simulate capture–recapture samples for a population of size `pop` over `T` occasions
+with heterogeneity parameter `alpha` and Negative Binomial sample size parameters `r` and `
+q`.
+"""
+function simulate_samples(pop::Int64, T::Int64, alpha::Float64, r::Float64, q::Float64, T_min::Int64 = 5)
+    n = rand(Distributions.NegativeBinomial(r, q), T) .+ 1 # Sample sizes for T occasions
+
+    # Generate proportional to size probabilities from truncated Beta distribution
+    b = alpha * (pop - 1.0)
+    d = Distributions.truncated(Distributions.Beta(alpha, b), upper = 1.0 / maximum(n))
+    p = rand(d, pop)
+
+    # Generate samples using adaptive rejection Pareto sampling
+    sum_n_T_min = 0
+    samples = []
+    O = Set{Int64}()
+
+    # Ensure that there is non-zero recaptures in the first T_min samples
+    while !(length(O) < sum_n_T_min)
+        samples = [ar_pareto_sample(p, i) for i in n]
+        O = Set([i for j in samples[1:T_min] for i in j])
+        sum_n_T_min = sum([length(s) for s in samples[1:T_min]])
+    end
+
+    return samples
+end
+
+"""
+    cap_freq(S::Vector)
+
+Compute the capture frequencies of individuals in the list of samples `S`.
+Returns a dictionary mapping individual IDs to their capture counts.
+"""
 function cap_freq(S::Vector)
     K = Dict{Int, Int}();
     for s in S
@@ -87,6 +140,12 @@ function cap_freq(S::Vector)
     return K;
 end
 
+"""
+    freq_of_freq(K::Dict)
+
+Compute the frequency of frequencies from the capture frequency dictionary `K`.
+Returns a dictionary mapping capture counts to the number of individuals with that count.
+"""
 function freq_of_freq(K::Dict)
     return countmap(values(K));
 end

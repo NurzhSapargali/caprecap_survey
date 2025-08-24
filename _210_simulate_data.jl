@@ -2,55 +2,49 @@ include("_100_utils.jl")
 
 using .Utils
 
-using StatsBase
-
-import Distributions: NegativeBinomial, Beta, truncated
-
 import Random: seed!
 
-N::Vector{Int64} = [1000, 5000, 10000]
-T::Int = 50
-T_min::Int = 5
-TRIALS::Int = 1000
-ALPHAS::Vector{Float64} = [0.5, 2.0, 10.0]
-Q::Float64 = 0.03
-R::Int = 1
-SEED::Int = 777
-DATA_FOLDER::String = "./_100_input/simulated/"
+N::Vector{Int64} = [1000, 5000, 10000] # Population sizes
+T::Int = 50 # Number of capture occasions
+T_min::Int = 5 # Minimum number of capture occasions with non-zero recaptures
+TRIALS::Int = 1000 # Number of trials per setting
+ALPHAS::Vector{Float64} = [0.5, 2.0] # Heterogeneity parameters
+NEG_BIN_PARAMS::Vector{Float64} = [1.0, 0.03] # (r, q) pairs for Negative Binomial distribution of sample sizes
+SEED::Int = 777 # Random seed for reproducibility
+DATA_FOLDER::String = "./_100_input/simulated/" # Folder to save simulated data
 
+# Set random seed
 seed!(SEED)
+
+# Create data folder and subfolders for different alpha values
+Utils.create_folder_if_not_exists(DATA_FOLDER)
+for alpha in ALPHAS
+    Utils.create_folder_if_not_exists(DATA_FOLDER * "alpha_$(alpha)/")
+end
+
+
+# Loop over population sizes, heterogeneity parameters, and sample size parameters
 for pop in N
     for alpha in ALPHAS
+        r = NEG_BIN_PARAMS[1]
+        q = NEG_BIN_PARAMS[2]
+            
+        # Write to metadata file current setting parameters
         metafile = DATA_FOLDER * "alpha_$(alpha)/metadata_$(pop).csv"
-        write_row(metafile, ["N", "T", "alpha"])
-        write_row(metafile, [pop, T, alpha])
+        write_row(metafile, ["N", "T", "alpha", "r", "q"])
+        write_row(metafile, [pop, T, alpha, r, q])
+
+        # Repeatedly simulate data and save to files
         for trial in 1:TRIALS
-            n = rand(NegativeBinomial(R, Q), T) .+ 1
-            b = alpha * (pop - 1.0)
-            d = truncated(Beta(alpha, b), upper = 1.0 / maximum(n))
-            p = rand(d, pop)
-            println("Generating samples for $n")
-            sum_n_T_min = 0
-            samples = []
-            O = Set{Int64}()
-            if (alpha != Inf)
-                # Ensure that there is non-zero recaptures in the first 5 samples
-                while !(length(O) < sum_n_T_min)
-                    samples = [ar_pareto_sample(p, i) for i in n]
-                    O = Set([i for j in samples[1:T_min] for i in j])
-                    sum_n_T_min = sum([length(s) for s in samples[1:T_min]])
-                end
-            else
-                # Ensure that there is non-zero recaptures in the first 5 samples
-                while !(length(O) < sum_n_T_min)
-                    samples = [sample(1:pop, i, replace=false) for i in n]
-                    O = Set([i for j in samples[1:T_min] for i in j])
-                    sum_n_T_min = sum([length(s) for s in samples[1:T_min]])
-                end
-            end
+            println("Simulating data for N=$pop, alpha=$alpha, r=$r, q=$q, trial=$trial")
+            samples = Utils.simulate_samples(pop, T, alpha, r, q)
+            println("Unique captured individuals: ", length(Set([i for s in samples for i in s])))
+            println("-----")
+
+            # Save sample lists to file
             file = DATA_FOLDER * "alpha_$(alpha)/sample_$(trial)_$(pop).csv"
             for s in samples
-                write_row(file, s)
+                Utils.write_row(file, s)
             end
         end
     end
