@@ -31,8 +31,8 @@ for pop in N
             
         # Write to metadata file current setting parameters
         metafile = DATA_FOLDER * "alpha_$(alpha)/metadata_$(pop).csv"
-        write_row(metafile, ["N", "T", "alpha", "r", "q"])
-        write_row(metafile, [pop, T, alpha, r, q])
+        Utils.write_row(metafile, ["N", "T", "alpha", "r", "q"])
+        Utils.write_row(metafile, [pop, T, alpha, r, q])
 
         # Repeatedly simulate data and save to files
         for trial in 1:TRIALS

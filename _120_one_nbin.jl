@@ -10,7 +10,7 @@ using Optim
 
 import LogExpFunctions: logistic, logit
 
-export fit_oi_nbin_trunc, fit_oi_geom_trunc
+export fit_oi_nbin_trunc, fit_oi_geom_trunc, w_hat
 
 """
     log_nbin_trunc(y, a, N, sum_n)
@@ -53,6 +53,19 @@ function log_likelihood(logit_w, log_a, log_Nu, f; verbose = true)
     return lh
 end
 
+function w_hat(log_a, log_Nu, f)
+    No = sum(values(f)) # Number of observed individuals across all capture occasions
+    N = exp(log_Nu) + No
+    a = exp(log_a)
+
+    sum_n = sum([get(f, i, 0) * i for i in keys(f)])
+    singles = f[1]
+    single_prob = exp(log_nbin_trunc(1, a, N, sum_n))
+
+    w_hat = (singles - single_prob * No) / (No - No * single_prob)
+    return clamp(w_hat, 1e-6, 1.0 - 1e-6)
+end
+
 """
     profile_log_likelihood(log_a, log_Nu, f; verbose = true)
 
@@ -66,14 +79,9 @@ function profile_log_likelihood(log_a, log_Nu, f; verbose = true)
     N = exp(log_Nu) + No
     a = exp(log_a)
 
-    sum_n = sum([get(f, i, 0) * i for i in keys(f)])
-    singles = f[1]
-    single_prob = exp(log_nbin_trunc(1, a, N, sum_n))
+    w = w_hat(log_a, log_Nu, f)
 
-    w_hat = (singles - single_prob * No) / (No - No * single_prob)
-    w_hat = clamp(w_hat, 1e-6, 1.0 - 1e-6)
-
-    lh = log_likelihood(logit(w_hat), log_a, log_Nu, f; verbose = verbose)
+    lh = log_likelihood(logit(w), log_a, log_Nu, f; verbose = verbose)
     if verbose
         println("w = $w_hat, a = $a, N = $N, lh = $lh")
     end
@@ -236,7 +244,7 @@ function fit_oi_nbin_trunc(
         Optim.Fminbox(method),
         Optim.Options(f_reltol = f_reltol, iterations = iterations)
     )
-    println("Optimization result: ", res)
+    #println("Optimization result: ", res)
     (minf, minx) = (Optim.minimum(res), Optim.minimizer(res))
 
     return (minf, minx)
@@ -294,7 +302,7 @@ function fit_oi_geom_trunc(
         Optim.Fminbox(method),
         Optim.Options(f_reltol = f_reltol, iterations = iterations)
     )
-    println("Optimization result: ", res)
+    #println("Optimization result: ", res)
     (minf, minx) = (Optim.minimum(res), Optim.minimizer(res))
 
     return (minf, minx)

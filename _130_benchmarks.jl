@@ -32,7 +32,6 @@ function schnabel(S::Vector, n::Vector{Int})
         denom += m
         num += length(pool) * n[t] 
         union!(pool, Set(S[t])) # Update pool with individuals from sample t
-        println("t = $t, n = $(n[t]), m = $m, pool size = $(length(pool)), N = $N")
     end
     return num / denom
 end
