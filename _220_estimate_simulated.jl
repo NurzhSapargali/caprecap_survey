@@ -1,6 +1,7 @@
 """
 Run estimation methods on simulated data and save results to CSV files.
 """
+
 include("_100_utils.jl")
 include("_120_one_nbin.jl")
 include("_130_benchmarks.jl")
@@ -18,10 +19,11 @@ DATA_FOLDER::String = "./_100_input/simulated/" # Folder with simulated data
 breaks_T::Vector{Int64} = collect(5:5:50) # Number of capture occasions to use for estimation
 OUTPUT_FOLDER::String = "./_900_output/data/simulated/" # Folder to save estimation results
 pops::Vector{Int64} = [1000, 5000, 10000] # Population sizes
-N_BENCHMARKS::Int = 14 # Number of benchmark methods: Schnabel, Chao, Zelterman, CMP, Turing, Turing-G, Chao Lee Jeng (3), Jackknife (5)
+N_BENCHMARKS::Int = 14 # Number of benchmark methods (excluding Morgan): Schnabel, Chao, Zelterman, CMP, Turing, Turing-G, Chao Lee Jeng (3), Jackknife (5)
 SEED::Int = 777
 
 seed!(SEED) # Set random seed for reproducibility
+total_estimators = N_BENCHMARKS + 2 # +2 for MPLE-NB and MPLE-G
 
 for alpha in ALPHAS
     # Create output folder and write header to output file
@@ -29,7 +31,7 @@ for alpha in ALPHAS
     Utils.create_folder_if_not_exists(OUTPUT_FOLDER)
 
     io = open(output_file, "w")
-    println(io, "w_hat,a_hat,Nu_hat,N_hat,No,trial,T,alpha,N,type\n")
+    println(io, "w_hat,a_hat,Nu_hat,N_hat,No,trial,T,alpha,N,type")
     close(io)
 
     # Read data files for given alpha value 
@@ -44,9 +46,8 @@ for alpha in ALPHAS
             trial_no = parse(Int, split(split(file, "_")[2], ".")[1])
             samples = Utils.read_captures(data_folder * file)
 
-            # Initialize array to store results from different methods
-            total_estimators = N_BENCHMARKS + 2 # +2 for MPLE-NB and MPLE-G
-            draws = Array{Any}(undef, total_estimators) # +2 for MPLE-NB and MPLE-G
+            # Initialize array to store results from different methods and numbers of capture occasions
+            draws = Array{Any}(nothing, total_estimators * length(breaks_T))
 
             # Run estimation methods for different numbers of capture occasions
             Threads.@threads for i in eachindex(breaks_T)
