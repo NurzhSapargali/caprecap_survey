@@ -2,6 +2,9 @@
 Run estimation methods on simulated data and save results to CSV files.
 """
 
+import Pkg
+Pkg.build("RCall")
+
 include("_100_utils.jl")
 include("_120_one_nbin.jl")
 include("_130_benchmarks.jl")
@@ -27,9 +30,10 @@ total_estimators = N_BENCHMARKS + 2 # +2 for MPLE-NB and MPLE-G
 
 for alpha in ALPHAS
     # Create output folder and write header to output file
-    output_file = OUTPUT_FOLDER * "estimates_$(alpha).csv"
+    output_file = OUTPUT_FOLDER * "estimates_$(alpha).csv" 
+    
     Utils.create_folder_if_not_exists(OUTPUT_FOLDER)
-
+    
     io = open(output_file, "w")
     println(io, "w_hat,a_hat,Nu_hat,N_hat,No,trial,T,alpha,N,type")
     close(io)
@@ -68,9 +72,10 @@ for alpha in ALPHAS
                 benchmarks = Dict{}()
                 benchmarks["Chao"] = Benchmarks.chao(f) # Chao estimator first to use in MPLE initial value
 
+		initial_N = benchmarks["Chao"] < Inf ? benchmarks["Chao"] : 2 * No
                 # Fit MPLE-NB model and store results
                 (minf, minx) = OneNbin.fit_oi_nbin_trunc(
-                    [log(1.0), log(benchmarks["Chao"] - No)],
+                    [log(1.0), log(initial_N - No)],
                     f;
                     upper = [20.0, 23.0],
                     verbose = false
@@ -87,7 +92,7 @@ for alpha in ALPHAS
 
                 # Fit MPLE-G model and store results
                 (minf, minx) = OneNbin.fit_oi_geom_trunc(
-                    [log(benchmarks["Chao"] - No)],
+                    [log(initial_N - No)],
                     f,
                     upper = [23.0],
                     verbose = false
