@@ -40,7 +40,7 @@ function log_likelihood(logit_w, log_a, log_Nu, f; verbose = true)
     w = logistic(logit_w)
 
     sum_n = sum([get(f, i, 0) * i for i in keys(f)])
-    singles = f[1]
+    singles = get(f, 1, 0)
     single_prob = exp(log_nbin_trunc(1, a, N, sum_n))
 
     lh = ( singles * log(w + (1.0 - w) * single_prob)
@@ -59,7 +59,7 @@ function w_hat(log_a, log_Nu, f)
     a = exp(log_a)
 
     sum_n = sum([get(f, i, 0) * i for i in keys(f)])
-    singles = f[1]
+    singles = get(f, 1, 0)
     single_prob = exp(log_nbin_trunc(1, a, N, sum_n))
 
     w_hat = (singles - single_prob * No) / (No - No * single_prob)
@@ -81,9 +81,9 @@ function profile_log_likelihood(log_a, log_Nu, f; verbose = true)
 
     w = w_hat(log_a, log_Nu, f)
 
-    lh = log_likelihood(logit(w), log_a, log_Nu, f; verbose = verbose)
+    lh = log_likelihood(logit(w), log_a, log_Nu, f; verbose = false)
     if verbose
-        println("w = $w_hat, a = $a, N = $N, lh = $lh")
+        println("w = $w, log_a = $log_a, log_Nu = $log_Nu, N = $N, lh = $lh")
     end
     return lh
 end
@@ -100,7 +100,7 @@ function gradient_w(logit_w, log_a, log_Nu, f)
     w = logistic(logit_w)
 
     sum_n = sum([get(f, i, 0) * i for i in keys(f)])
-    singles = f[1]
+    singles = get(f, 1, 0)
     single_prob = exp(log_nbin_trunc(1, a, N, sum_n))
 
     score_w = ( singles / (w + (1.0 - w) * single_prob)
@@ -144,7 +144,7 @@ function gradient_log_a(log_a, log_Nu, f)
     a = exp(log_a)
     
     sum_n = sum([get(f, i, 0) * i for i in keys(f)])
-    singles = f[1]
+    singles = get(f, 1, 0)
     single_prob = exp(log_nbin_trunc(1, a, N, sum_n))
 
     w_hat = (singles - single_prob * No) / (No - No * single_prob)
@@ -179,7 +179,7 @@ function gradient_log_Nu(log_a, log_Nu, f)
     a = exp(log_a)
 
     sum_n = sum([get(f, i, 0) * i for i in keys(f)])
-    singles = f[1]
+    singles = get(f, 1, 0)
     single_prob = exp(log_nbin_trunc(1, a, N, sum_n))
 
     w_hat = (singles - single_prob * No) / (No - No * single_prob)
@@ -195,10 +195,9 @@ end
     fit_oi_nbin_trunc(
         theta, f;
         frel_tol = 0.0,
-        lower = [-Inf, -Inf],
+        lower = [-1e3, -1e3],
         upper = [10.0, 23.0],
         verbose = true,
-        iterations = 1000,
         method = Optim.LBFGS()
     )
 
@@ -207,10 +206,9 @@ using initial parameter estimates `theta` (a vector of `[log_a, log_Nu]`).
 
 Optional arguments:
 - `f_reltol`: function tolerance for optimization (default: 0.0)
-- `lower`: lower bounds for parameters (default: `[-Inf, -Inf]`)
+- `lower`: lower bounds for parameters (default: `[-1e3, -1e3]`)
 - `upper`: upper bounds for parameters (default: `[10.0, 23.0]`)
 - `verbose`: if true, prints parameter values and log-likelihood during optimization (default: true)
-- `iterations`: maximum number of iterations for optimization (default: 1000)
 - `method`: optimization method from Optim.jl (default: Optim.LBFGS())
 
 Returns a tuple `(minf, minx)` where `minf` is the minimum negative log-likelihood
@@ -218,11 +216,10 @@ and `minx` is the vector of estimated parameters.
 """
 function fit_oi_nbin_trunc(
     theta, f;
-    f_reltol = 0.0,
-    lower = [-Inf, -Inf],
+    f_reltol = 1e-5,
+    lower = [-Inf, -750.0],
     upper = [10.0, 23.0],
     verbose = true,
-    iterations = 1000,
     method = Optim.LBFGS()
 )
     # Objective function
@@ -242,7 +239,7 @@ function fit_oi_nbin_trunc(
         upper,
         theta,
         Optim.Fminbox(method),
-        Optim.Options(f_reltol = f_reltol, iterations = iterations)
+        Optim.Options(f_reltol = f_reltol)
     )
     #println("Optimization result: ", res)
     (minf, minx) = (Optim.minimum(res), Optim.minimizer(res))
@@ -253,11 +250,10 @@ end
 """
     fit_oi_geom_trunc(
         theta, f;
-        f_reltol = 0.0,
+        f_reltol = 1e-5,
         lower = [-Inf],
         upper = [23.0],
         verbose = true,
-        iterations = 1000,
         method = Optim.LBFGS()
     )
 
@@ -265,11 +261,10 @@ Fit the zero-truncated one-inflated Geometric model to frequency of frequencies 
 using initial parameter estimate `theta` (a vector of `[log_Nu]`).
 
 Optional arguments:
-- `f_reltol`: function tolerance for optimization (default: 0.0)
+- `f_reltol`: function tolerance for optimization (default: 1e-5)
 - `lower`: lower bounds for parameters (default: `[-Inf]`)
 - `upper`: upper bounds for parameters (default: `[23.0]`)
 - `verbose`: if true, prints parameter values and log-likelihood during optimization (default: true)
-- `iterations`: maximum number of iterations for optimization (default: 1000)
 - `method`: optimization method from Optim.jl (default: Optim.LBFGS())
 
 Returns a tuple `(minf, minx)` where `minf` is the minimum negative log-likelihood
@@ -277,11 +272,10 @@ and `minx` is the vector of estimated parameters.
 """
 function fit_oi_geom_trunc(
     theta, f;
-    f_reltol = 0.0,
-    lower = [-Inf],
+    f_reltol = 1e-5,
+    lower = [-750.0],
     upper = [23.0],
     verbose = true,
-    iterations = 1000,
     method = Optim.LBFGS()
 )
     # Objective function
@@ -300,7 +294,7 @@ function fit_oi_geom_trunc(
         upper,
         theta,
         Optim.Fminbox(method),
-        Optim.Options(f_reltol = f_reltol, iterations = iterations)
+        Optim.Options(f_reltol = f_reltol)
     )
     #println("Optimization result: ", res)
     (minf, minx) = (Optim.minimum(res), Optim.minimizer(res))

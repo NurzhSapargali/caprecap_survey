@@ -150,6 +150,32 @@ function freq_of_freq(K::Dict)
     return countmap(values(K));
 end
 
+"""
+    resample_f(f::Dict, N_hat, B::Int)
+
+Resample the frequency of frequencies `f` using a multinomial distribution
+with estimated population size `N_hat` for `B` bootstrap samples.
+Returns a vector of `B` resampled frequency of frequencies dictionaries.
+"""
+function resample_f(f::Dict, N_hat, B::Int)
+    No = sum(values(f))
+    vals_f = collect(values(f))
+    
+    p_hat = vals_f / N_hat
+    push!(p_hat, (N_hat - No) / N_hat) # Probability of unobserved individuals
+
+    out = Vector{Dict{Int, Int}}(undef, B)
+    for b in 1:B
+        res = rand(Distributions.Multinomial(Int(round(N_hat)), p_hat))
+        fb = Dict(
+            collect(keys(f))[i] => res[i] for i in 1:length(vals_f) if res[i] > 0
+        )
+        out[b] = fb
+    end
+    return out
+end
+
+
 function lower_pr(N, n, q)
     return exp((n - 1) * ( log(N * (1.0 - q) - 1.0) - log(N) - log(1.0 - q) ) + log(n - 1.0 + N * (1.0 - q)) - log(N) - log(1.0 - q))
 end
