@@ -1,5 +1,5 @@
 """
-Run estimation methods on simulated data and save results to CSV files.
+Run estimation methods on simulated low population data and save results to CSV files.
 """
 
 import Pkg

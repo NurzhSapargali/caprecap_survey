@@ -22,12 +22,11 @@ for alpha in ALPHAS
     Utils.create_folder_if_not_exists(DATA_FOLDER * "alpha_$(alpha)_low_pop/")
 end
 
-
+r = NEG_BIN_PARAMS[1]
+q = NEG_BIN_PARAMS[2]
 # Loop over population sizes, heterogeneity parameters, and sample size parameters
 for pop in N
     for alpha in ALPHAS
-        r = NEG_BIN_PARAMS[1]
-        q = NEG_BIN_PARAMS[2]
 
         # Write to metadata file current setting parameters
         metafile = DATA_FOLDER * "alpha_$(alpha)_low_pop/metadata_$(pop).csv"
