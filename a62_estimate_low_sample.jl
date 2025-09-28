@@ -17,11 +17,11 @@ using StatsBase
 
 import Random: seed!
 
-ALPHAS::Vector{Float64} = [0.5, 2.0] # Heterogeneity parameters
+ALPHAS::Vector{Float64} = [2.0] # Heterogeneity parameters
 DATA_FOLDER::String = "./_100_input/simulated/" # Folder with simulated data
 breaks_T::Vector{Int64} = collect(5:5:50) # Number of capture occasions to use for estimation
 OUTPUT_FOLDER::String = "./_900_output/data/appendix/low_sample/" # Folder to save estimation results
-pops::Vector{Int64} = [600, 800] # Population sizes
+pops::Vector{Int64} = [600, 1000, 5000, 1000] # Population sizes
 N_BENCHMARKS::Int = 14 # Number of benchmark methods (excluding Morgan): Schnabel, Chao, Zelterman, CMP, Turing, Turing-G, Chao Lee Jeng (3), Jackknife (5)
 SEED::Int = 777
 
