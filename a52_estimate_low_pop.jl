@@ -14,6 +14,7 @@ import .Utils
 import .Benchmarks
 
 using StatsBase
+using Optim
 
 import Random: seed!
 
