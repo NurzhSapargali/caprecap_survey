@@ -23,11 +23,11 @@ DATA_FOLDER::String = "./_100_input/simulated/" # Folder with simulated data
 breaks_T::Vector{Int64} = collect(5:5:50) # Number of capture occasions to use for estimation
 OUTPUT_FOLDER::String = "./_900_output/data/simulated/" # Folder to save estimation results
 pops::Vector{Int64} = [1000, 5000, 10000] # Population sizes
-N_BENCHMARKS::Int = 1#14 # Number of benchmark methods (excluding Morgan): Schnabel, Chao, Zelterman, CMP, Turing, Turing-G, Chao Lee Jeng (3), Jackknife (5)
+N_BENCHMARKS::Int = 0#14 # Number of benchmark methods (excluding Morgan): Schnabel, Chao, Zelterman, CMP, Turing, Turing-G, Chao Lee Jeng (3), Jackknife (5)
 SEED::Int = 777
 
 seed!(SEED) # Set random seed for reproducibility
-total_estimators = N_BENCHMARKS + 2 # +2 for MPLE-NB and MPLE-G
+total_estimators = N_BENCHMARKS + 1 # +2 for MPLE-NB and MPLE-G
 
 for alpha in ALPHAS
     # Create output folder and write header to output file
@@ -85,8 +85,22 @@ for alpha in ALPHAS
 
                 N_hat = No + exp(minx[2])
                 w = OneNbin.w_hat(minx[1], minx[2], f)
+                a_hat = exp(minx[1])
 
-                nbin_row = [w, exp(minx[1]), exp(minx[2]), N_hat, No, trial_no, t, alpha, N, "MPLE-NB"]
+                (minf_alt, minx_alt) = OneNbin.fit_oi_nbin_trunc(
+                    [log(1.0), log(No * 3)],
+                    f;
+                    upper = [20.0, 23.0],
+                    verbose = false,
+                    method = Optim.GradientDescent()
+                )
+                if minf_alt > minf
+                    N_hat = No + exp(minx_alt[2])
+                    w = OneNbin.w_hat(minx_alt[1], minx_alt[2], f)
+                    a_hat = exp(minx_alt[1])
+                end
+
+                nbin_row = [w, a_hat, N_hat - No, N_hat, No, trial_no, t, alpha, N, "MPLE-NB"]
                 println(nbin_row)
 
                 draws[(i - 1) * total_estimators + j] = nbin_row
