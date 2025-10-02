@@ -87,17 +87,19 @@ for alpha in ALPHAS
                 w = OneNbin.w_hat(minx[1], minx[2], f)
                 a_hat = exp(minx[1])
 
-                (minf_alt, minx_alt) = OneNbin.fit_oi_nbin_trunc(
-                    [log(1.0), log(No * 3)],
-                    f;
-                    upper = [20.0, 23.0],
-                    verbose = false,
-                    method = Optim.GradientDescent()
-                )
-                if minf_alt > minf
-                    N_hat = No + exp(minx_alt[2])
-                    w = OneNbin.w_hat(minx_alt[1], minx_alt[2], f)
-                    a_hat = exp(minx_alt[1])
+                for alt_init in [log(No * 3), log(initial_N)]
+                    (minf_alt, minx_alt) = OneNbin.fit_oi_nbin_trunc(
+                        [log(1.0), alt_init],
+                        f;
+                        upper = [20.0, 23.0],
+                        verbose = false,
+                        method = Optim.GradientDescent()
+                    )
+                    if No + exp(minx_alt[2]) < N_hat
+                        N_hat = No + exp(minx_alt[2])
+                        w = OneNbin.w_hat(minx_alt[1], minx_alt[2], f)
+                        a_hat = exp(minx_alt[1])
+                    end
                 end
 
                 nbin_row = [w, a_hat, N_hat - No, N_hat, No, trial_no, t, alpha, N, "MPLE-NB"]
