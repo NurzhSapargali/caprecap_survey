@@ -14,6 +14,7 @@ import .Utils
 import .Benchmarks
 
 using StatsBase
+using Optim
 
 import Random: seed!
 
@@ -22,7 +23,7 @@ DATA_FOLDER::String = "./_100_input/simulated/" # Folder with simulated data
 breaks_T::Vector{Int64} = collect(5:5:50) # Number of capture occasions to use for estimation
 OUTPUT_FOLDER::String = "./_900_output/data/simulated/" # Folder to save estimation results
 pops::Vector{Int64} = [1000, 5000, 10000] # Population sizes
-N_BENCHMARKS::Int = 14 # Number of benchmark methods (excluding Morgan): Schnabel, Chao, Zelterman, CMP, Turing, Turing-G, Chao Lee Jeng (3), Jackknife (5)
+N_BENCHMARKS::Int = 1#14 # Number of benchmark methods (excluding Morgan): Schnabel, Chao, Zelterman, CMP, Turing, Turing-G, Chao Lee Jeng (3), Jackknife (5)
 SEED::Int = 777
 
 seed!(SEED) # Set random seed for reproducibility
@@ -30,7 +31,7 @@ total_estimators = N_BENCHMARKS + 2 # +2 for MPLE-NB and MPLE-G
 
 for alpha in ALPHAS
     # Create output folder and write header to output file
-    output_file = OUTPUT_FOLDER * "estimates_$(alpha).csv" 
+    output_file = OUTPUT_FOLDER * "estimates_$(alpha)_mplenb.csv"
     
     Utils.create_folder_if_not_exists(OUTPUT_FOLDER)
     
@@ -78,7 +79,8 @@ for alpha in ALPHAS
                     [log(1.0), log(initial_N - No)],
                     f;
                     upper = [20.0, 23.0],
-                    verbose = false
+                    verbose = false,
+                    method = Optim.GradientDescent()
                 )
 
                 N_hat = No + exp(minx[2])
@@ -91,58 +93,58 @@ for alpha in ALPHAS
                 j += 1
 
                 # Fit MPLE-G model and store results
-                (minf, minx) = OneNbin.fit_oi_geom_trunc(
-                    [log(initial_N - No)],
-                    f,
-                    upper = [23.0],
-                    verbose = false
-                )
+                #(minf, minx) = OneNbin.fit_oi_geom_trunc(
+                #    [log(initial_N - No)],
+                #    f,
+                #    upper = [23.0],
+                #    verbose = false
+                #)
 
-                N_hat = No + exp(minx[1])
-                w = OneNbin.w_hat(log(1.0), minx[1], f)
+                #N_hat = No + exp(minx[1])
+                #w = OneNbin.w_hat(log(1.0), minx[1], f)
 
-                geom_row = [w, 1.0, exp(minx[1]), N_hat, No, trial_no, t, alpha, N, "MPLE-G"]
-                println(geom_row)
+                #geom_row = [w, 1.0, exp(minx[1]), N_hat, No, trial_no, t, alpha, N, "MPLE-G"]
+                #println(geom_row)
 
-                draws[(i - 1) * total_estimators + j] = geom_row
-                j += 1
+                #draws[(i - 1) * total_estimators + j] = geom_row
+                #j += 1
 
                 # Run benchmark methods and store results except Morgan-Ridout (not parallelizable)
-                benchmarks["Turing"] = Benchmarks.turing(f, t)
-                benchmarks["Schnabel"] = Benchmarks.schnabel(S, n)
-                benchmarks["Zelterman"] = Benchmarks.zelterman(f)
-                benchmarks["Conway-Maxwell-Poisson"] = Benchmarks.conway_maxwell(f)
-                benchmarks["Turing Geometric"] = Benchmarks.turing_geometric(f)
-                for b in 0:2
-                    benchmarks["Chao Lee Jeng $b"] = Benchmarks.chao_lee_jeng(
-                        f, t, n, b
-                    )
-                end
-                for k in 1:5
-                    jk = Benchmarks.jackknife(t, f, k)
-                    benchmarks["Jackknife k = $(k)"] = jk
-                end
-                for b in keys(benchmarks)
-                    draws[(i - 1) * total_estimators + j] = [
-                        -999.0, -999.0, benchmarks[b] - No, benchmarks[b], No, trial_no, t, alpha, N, b
-                    ]
-                    j += 1
-                end
+                #benchmarks["Turing"] = Benchmarks.turing(f, t)
+                #benchmarks["Schnabel"] = Benchmarks.schnabel(S, n)
+                #benchmarks["Zelterman"] = Benchmarks.zelterman(f)
+                #benchmarks["Conway-Maxwell-Poisson"] = #Benchmarks.conway_maxwell(f)
+                #benchmarks["Turing Geometric"] = Benchmarks.turing_geometric(f)
+                #for b in 0:2
+                #    benchmarks["Chao Lee Jeng $b"] = Benchmarks.chao_lee_jeng(
+                #        f, t, n, b
+                #    )
+                #end
+                #for k in 1:5
+                #    jk = Benchmarks.jackknife(t, f, k)
+                #    benchmarks["Jackknife k = $(k)"] = jk
+                #end
+                #for b in keys(benchmarks)
+                #    draws[(i - 1) * total_estimators + j] = [
+                #        -999.0, -999.0, benchmarks[b] - No, benchmarks[b], No, trial_no, t, alpha, N, b
+                    #]
+                    #j += 1
+                #end
             end
 
             # Run Morgan-Ridout method separately and store results
-            for t in breaks_T
-                S = samples[1:t]
-                K = Utils.cap_freq(S)
-                f = Utils.freq_of_freq(K)
-                n = [length(s) for s in S]
-                No = sum(values(f))
-                mr_hat = Benchmarks.morgan_ridout(f, t, "./estimateN.R")
-                push!(
-                    draws,
-                    [-999.0, -999.0, mr_hat - No, mr_hat, No, trial_no, t, alpha, N, "Morgan-Ridout"]
-                )
-            end
+            #for t in breaks_T
+            #    S = samples[1:t]
+            #    K = Utils.cap_freq(S)
+            #    f = Utils.freq_of_freq(K)
+            #    n = [length(s) for s in S]
+            #    No = sum(values(f))
+            #    mr_hat = Benchmarks.morgan_ridout(f, t, "./estimateN.R")
+            #    push!(
+            #        draws,
+            #        [-999.0, -999.0, mr_hat - No, mr_hat, No, trial_no, t, alpha, N, "Morgan-Ridout"]
+            #    )
+            #end
 
             # Write results to output file
             for d in draws

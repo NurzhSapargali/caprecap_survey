@@ -9,6 +9,7 @@ using .Benchmarks
 using CSV
 using DataFrames
 using Distributions
+using Optim
 
 import Random: seed!
 
@@ -49,7 +50,8 @@ for file in data_files
         [log(1.0), log(initial_N - No)],
         f;
         verbose = true,
-        upper = [20.0, 23.0]
+        upper = [10.0, 23.0],
+        method = Optim.GradientDescent()
     )
 
     N_hat_nb = No + exp(minx[2])
@@ -63,7 +65,8 @@ for file in data_files
             [log(1.0), log(initial_N - No)],
             b;
             verbose = false,
-            upper = [20.0, 23.0]
+            upper = [10.0, 23.0],
+            method = Optim.GradientDescent()
         )[2]
         push!(Nbs, No + exp(res_b[2]))
     end
@@ -75,7 +78,8 @@ for file in data_files
         [log(initial_N - No)],
         f,
         verbose = true,
-        upper = [23.0]
+        upper = [23.0],
+        method = Optim.LBFGS()
     )
 
     N_hat_geom = No + exp(minx[1])
@@ -88,7 +92,8 @@ for file in data_files
             [log(initial_N - No)],
             b;
             verbose = false,
-            upper = [23.0]
+            upper = [23.0],
+            method = Optim.LBFGS()
         )[2]
         push!(Nbs, No + exp(res_b[1]))
     end
