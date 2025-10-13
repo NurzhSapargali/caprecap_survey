@@ -73,7 +73,7 @@ for alpha in ALPHAS
                 benchmarks = Dict{}()
                 benchmarks["Chao"] = Benchmarks.chao(f) # Chao estimator first to use in MPLE initial value
 
-		        initial_N = benchmarks["Chao"] < Inf ? benchmarks["Chao"] : 2 * No
+                initial_N = benchmarks["Chao"] < Inf ? benchmarks["Chao"] : 2 * No
                 # Fit MPLE-NB model and store results
                 (minf, minx) = OneNbin.fit_oi_nbin_trunc(
                     [log(1.0), log(initial_N - No)],
