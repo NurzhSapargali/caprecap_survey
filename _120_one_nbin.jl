@@ -13,6 +13,19 @@ import LogExpFunctions: logistic, logit
 export fit_oi_nbin_trunc, fit_oi_geom_trunc, w_hat
 
 """
+    log_nbin(y, a, N, sum_n)
+
+Log-probability of observing count `y` from a Negative Binomial distribution
+with heterogeneity parameter `a`, population size `N`, and total sample size `sum_n
+"""
+function log_nbin(y, a, N, sum_n)
+    return ( -SpecialFunctions.loggamma(y + 1)
+             + a * (log(a) + log(N) - log(sum_n + a * N))
+             + y * (log(sum_n) - log(sum_n + a * N))
+             + SpecialFunctions.loggamma(y + a) - SpecialFunctions.loggamma(a) )
+end
+
+"""
     log_nbin_trunc(y, a, N, sum_n)
 
 Log-probability of observing count `y` from a zero-truncated Negative Binomial distribution
@@ -28,7 +41,7 @@ end
 """
     log_likelihood(logit_w, log_a, log_Nu, f; verbose = true)
 
-Log-likelihood of the zero-truncated one-inflated Negative Binomial model
+Log-likelihood of the one-inflated zero-truncated Negative Binomial model
 with parameters `logit_w` (logit of one-inflation probability), `log_a` (log of heterogeneity parameter),
 and `log_Nu` (log of the number of unobserved individuals), given the frequency of frequencies `f`.
 If `verbose` is true, prints the parameter values and log-likelihood.
@@ -52,6 +65,42 @@ function log_likelihood(logit_w, log_a, log_Nu, f; verbose = true)
     end
     return lh
 end
+
+"""
+    log_likelihood_ztoi(w, log_a, log_Nu, f; verbose = true)
+
+Log-likelihood of the zero-truncated one-inflated Negative Binomial model
+with parameters `w` (one-inflation probability), `log_a` (log of
+heterogeneity parameter), and `log_Nu` (log of the number of unobserved individuals),
+given the frequency of frequencies `f`.
+If `verbose` is true, prints the parameter values and log-likelihood.
+"""
+function log_likelihood_ztoi(w, log_a, log_Nu, f; verbose = true)
+    No = sum(values(f)) # Number of observed individuals across all capture occasions
+    N = exp(log_Nu) + No
+    a = exp(log_a)
+
+    sum_n = sum([get(f, i, 0) * i for i in keys(f)])
+    singles = get(f, 1, 0)
+    single_prob = exp(log_nbin(1, a, N, sum_n))
+    zero_prob = exp(log_nbin(0, a, N, sum_n))
+
+    lh = ( singles * (-log(1.0 - (1.0 - w) * zero_prob) + log(1.0 - (1.0 - w) * (1.0 - single_prob)))
+           + sum([f[i] * (log(1.0 - w) - log(1.0 - (1.0 - w) * zero_prob) + log_nbin(i, a, N, sum_n)) for i in keys(f) if i > 1])
+        )
+    if verbose
+        println("w = $w, log_a = $log_a, log_Nu = $log_Nu, N = $N, lh = $lh")
+    end
+    return lh
+end  
+
+"""
+    w_hat(log_a, log_Nu, f)
+
+Compute the maximum likelihood estimate of the one-inflation probability `w`
+given parameters `log_a` (log of heterogeneity parameter) and `log_Nu`
+and frequency of frequencies `f`.
+"""
 
 function w_hat(log_a, log_Nu, f)
     No = sum(values(f)) # Number of observed individuals across all capture occasions
@@ -194,8 +243,8 @@ end
 """
     fit_oi_nbin_trunc(
         theta, f;
-        frel_tol = 0.0,
-        lower = [-1e3, -1e3],
+        frel_tol = 1e-5,
+        lower = [-Inf, -750.0],
         upper = [10.0, 23.0],
         verbose = true,
         method = Optim.LBFGS()
@@ -205,8 +254,8 @@ Fit the zero-truncated one-inflated Negative Binomial model to frequency of freq
 using initial parameter estimates `theta` (a vector of `[log_a, log_Nu]`).
 
 Optional arguments:
-- `f_reltol`: function tolerance for optimization (default: 0.0)
-- `lower`: lower bounds for parameters (default: `[-1e3, -1e3]`)
+- `f_reltol`: function tolerance for optimization (default: 1e-5)
+- `lower`: lower bounds for parameters (default: `[-Inf, -750.0]`)
 - `upper`: upper bounds for parameters (default: `[10.0, 23.0]`)
 - `verbose`: if true, prints parameter values and log-likelihood during optimization (default: true)
 - `method`: optimization method from Optim.jl (default: Optim.LBFGS())
@@ -295,6 +344,54 @@ function fit_oi_geom_trunc(
         theta,
         Optim.Fminbox(method),
         Optim.Options(f_reltol = f_reltol)
+    )
+    #println("Optimization result: ", res)
+    (minf, minx) = (Optim.minimum(res), Optim.minimizer(res))
+
+    return (minf, minx)
+end
+
+
+"""
+    fit_trunc_nbin_oi(
+        theta, f;
+        freltol = 1e-5,
+        lower = [0.0, -Inf, -750.0],
+        upper = [1.0, 10.0, 23.0],
+        verbose = true,
+        method = Optim.NelderMead()
+    )
+
+Fit the zero-truncated Negative Binomial one-inflated model to frequency of frequencies `f`
+using initial parameter estimates `theta` (a vector of `[w, log_a, log_Nu]`).
+Optional arguments:
+- `f_reltol`: function tolerance for optimization (default: 1e-5
+- `lower`: lower bounds for parameters (default: `[0.0, -Inf, -750.0]`)
+- `upper`: upper bounds for parameters (default: `[1.0, 10.0, 23.0]`)
+- `verbose`: if true, prints parameter values and log-likelihood during optimization (default: true)
+- `method`: optimization method from Optim.jl (default: Optim.NelderMead())
+Returns a tuple `(minf, minx)` where `minf` is the minimum negative log-likelihood
+and `minx` is the vector of estimated parameters.
+"""
+function fit_trunc_nbin_oi(
+    theta, f;
+    freltol = 1e-5,
+    lower = [1e-5, -Inf, -750.0],
+    upper = [0.999, 10.0, 23.0],
+    verbose = true,
+    method = Optim.NelderMead()
+)
+    # Objective function
+    L(x) = -log_likelihood_ztoi(x[1], x[2], x[3], f; verbose = verbose)
+
+    # Optimize using box-constrained method
+    res = Optim.optimize(
+        L,
+        lower,
+        upper,
+        theta,
+        Optim.Fminbox(method),
+        Optim.Options(f_reltol = freltol)
     )
     #println("Optimization result: ", res)
     (minf, minx) = (Optim.minimum(res), Optim.minimizer(res))
