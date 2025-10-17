@@ -65,18 +65,9 @@ for (het in ALPHAS){
     box_plot <- estimates_boxplot(
       prep[prep$type %in% c("MPLE-G", "MPLE-NB"),],
       N,
-      log(N),
       "Log population estimate",
       "logN_hat"
-    ) + ggtitle(paste0("N = ", N)) + guides(fill = "none")
-    if (N == 600){
-      box_plot <- box_plot +
-        guides(fill = "legend") +
-        theme(
-          legend.title = element_blank(),
-          legend.position.inside = c(0.9, 0.9)
-        )
-    }
+    ) + ggtitle(paste0("N = ", N))
     box_ps[[i]] <- box_plot
   }
   
@@ -88,7 +79,7 @@ for (het in ALPHAS){
     units = "mm"
   )
   
-  ggarrange(plotlist = box_ps, ncol = 1, nrow = 2)
+  ggarrange(plotlist = box_ps, ncol = 1, nrow = 2, common.legend = TRUE, legend = "top")
   ggsave(
     paste0(OUTPUT_FOLDER, "estimates_box_", het_str, "_low_pop.pdf"),
     width = 210,

@@ -185,7 +185,10 @@ plot_lines <- function(agg, pop, y, ylim, ylab, title, xlim) {
     # Set the coordinate limits
     coord_cartesian(ylim = ylim, xlim = xlim) +
     # Set the decimal places for the y-axis
-    scale_y_continuous(labels = scales::number_format(accuracy = 0.1)) +
+    scale_y_continuous(
+      labels = scales::number_format(accuracy = 0.1),
+      breaks = scales::pretty_breaks(n = 5)
+    ) +
     # Remove the colour guide
     guides(colour = "none", shape = "none") +
     xlab("T") +
@@ -266,10 +269,11 @@ comparison_plots <- function(
 estimates_boxplot <- function(
   pr_results,
   pop,
-  true_val,
   ylab,
   to_plot = "N_hat"
 ) {
+  
+  dummy_df <- pr_results[1:2,]
   
   pr_results %>%
     filter(N == pop) %>%
@@ -284,11 +288,33 @@ estimates_boxplot <- function(
       size = 2.75,
       show.legend = FALSE,
     ) +
-    geom_hline(yintercept = true_val, linetype = "dashed") +
+    geom_point(
+      data = dummy_df,  # dummy data
+      aes(shape = "Mean"),
+      color = "gold",
+      size = 2.75,
+      alpha = 0.0
+    ) +
+    scale_shape_manual(
+      values = c("Mean" = 17)
+    ) +
+    geom_hline(aes(yintercept = log(N), linetype = "True log N")) +
+    scale_linetype_manual(
+      name = "",
+      values = c("True log N" = "dashed"),
+      labels = c("True log N")
+    ) +
     scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
     theme_minimal() +
     theme_pubr() +
-    guides(fill = "none") +
+    guides(
+      fill = "legend",
+      linetype = "legend",
+      shape = guide_legend(
+        override.aes = list(alpha = 1, color = "gold", size = 2.75)
+      )
+    ) +
+    theme(legend.title = element_blank()) +
     xlab("T") +
     ylab(ylab)
 }
