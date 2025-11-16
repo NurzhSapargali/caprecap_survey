@@ -191,7 +191,7 @@ plot_lines <- function(agg, pop, y, ylim, ylab, title, xlim) {
     ) +
     # Remove the colour guide
     guides(colour = "none", shape = "none") +
-    xlab("T") +
+    xlab("Sample draws") +
     theme_pubr() +
     ylab(ylab) +
     # Set the plot title
@@ -315,6 +315,6 @@ estimates_boxplot <- function(
       )
     ) +
     theme(legend.title = element_blank()) +
-    xlab("T") +
+    xlab("Sample draws") +
     ylab(ylab)
 }

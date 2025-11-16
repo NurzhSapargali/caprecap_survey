@@ -102,7 +102,7 @@ ggplot(
   geom_point() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
   labs(
-    x = "T",
+    x = "Sample draws",
     y = "Relative Bias",
     linetype = NULL
   ) +
