@@ -175,9 +175,4 @@ function resample_f(f::Dict, N_hat, B::Int)
     return out
 end
 
-
-function lower_pr(N, n, q)
-    return exp((n - 1) * ( log(N * (1.0 - q) - 1.0) - log(N) - log(1.0 - q) ) + log(n - 1.0 + N * (1.0 - q)) - log(N) - log(1.0 - q))
-end
-
 end

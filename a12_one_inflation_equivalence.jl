@@ -16,7 +16,12 @@ import .Benchmarks: chao
 
 INPUT_FOLDER::String = "./_100_input/datasets/"
 OUTPUT_FOLDER::String = "./_900_output/data/appendix/one_inflation_equiv/"
-UNSTABLE::Vector{String} = ["meth_usage.txt", "pleiades.txt", "illegal_immigrants.txt", "domestic_violence.txt"]
+UNSTABLE::Vector{String} = [
+    "meth_usage.txt",
+    "pleiades.txt",
+    "illegal_immigrants.txt",
+    "domestic_violence.txt"
+]
 FIGURE_FOLDER::String = "./_900_output/figures/appendix/"
 
 
@@ -90,6 +95,7 @@ CSV.write(OUTPUT_FOLDER * "one_inf_equiv.csv", df)
 
 cut = df[.!in.(df.dataset, Ref(UNSTABLE)), :]
 cut = sort!(cut, [:w_hat_oizt])
+
 plt = plot(
     xlabel = "MPLE of w (OIZT)",
     ylabel = "MPLE of w (ZTOI)",
@@ -103,9 +109,7 @@ plt = plot(
     legendfontsize = 12
 )
 plot!(
-    plt,
-    cut.w_hat_oizt,
-    cut.w_hat_ztoi,
+    plt, cut.w_hat_oizt, cut.w_hat_ztoi,
     label = "",
     seriestype = :scatter,
     markersize = 6,

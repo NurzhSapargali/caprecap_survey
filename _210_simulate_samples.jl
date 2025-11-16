@@ -4,7 +4,7 @@ import .SimFunctions
 
 import Random: seed!
 
-POPS::Vector{Int64} = [600, 800] # Population sizes
+POPS::Vector{Int64} = [1000, 5000, 10000] # Population sizes
 DRAWS::Int = 50 # Number of capture occasions
 T_MIN::Int = 5 # Minimum number of capture occasions with non-zero recaptures
 TRIALS::Int = 1000 # Number of trials per setting
@@ -24,6 +24,5 @@ SimFunctions.simulate_data(
     NEG_BIN_PARAMS[2],
     DATA_FOLDER,
     TRIALS;
-    min_draws = T_MIN,
-    subfolder_suffix = "_low_pop"
+    min_draws = T_MIN
 )

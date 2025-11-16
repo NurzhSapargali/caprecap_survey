@@ -38,26 +38,26 @@ preprocess <- function(results, minT = NA) {
   if (!is.na(minT)){
     results <- results[results$T >= minT, ]
   }
-  
+
   # Filter out rows where 'N_hat' is NA, NaN, Inf, or less than 0
   results <- results[(!is.na(results$N_hat)) & (!is.nan(results$N_hat)), ]
   results <- results[(results$N_hat != Inf) & (results$N_hat >= 0), ]
-  
+
   # Add a new column 'sq_dev' which is the square of the difference between
   #'N_hat' and 'N'
   results$sq_dev <- (results$N_hat - results$N)^2
-  
+
   # Convert 'T' to a factor
   results$T <- as.factor(results$T)
-  
+
   # Create a named vector to map the old names to the new names
   name_map <- setNames(NEW_NAMES, OLD_NAMES)
-  
+
   # Use the named vector to replace the old names with the new names in the
   # 'type' column
   names_to_replace <- results[results$type %in% OLD_NAMES, c("type")]
   results[results$type %in% OLD_NAMES, c("type")] <- name_map[names_to_replace]
-  
+
   # Return the preprocessed 'results' data frame
   results
 }
@@ -90,20 +90,20 @@ aggregate_data <- function(pr_results) {
       trials = length(N_hat),
       hat_var = var(N_hat)
     )
-  
+
   # Calculate the root mean square error (RMSE) and bias
   agg$rmse <- sqrt(agg$mse)
   agg$bias <- abs(agg$hat_mean - agg$N)
-  
+
   # Get the baseline values for "MPLE-NB"
   baseline <- agg[
     agg$type == "MPLE-NB",
     c("T", "N", "rmse", "bias", "hat_var")
   ]
-  
+
   # Join the baseline values with the other methods
   agg <- left_join(agg, baseline, by = c("T", "N"), suffix = c("", "_baseline"))
-  
+
   # Calculate the relative metrics
   agg <- mutate(
     agg,
@@ -116,21 +116,21 @@ aggregate_data <- function(pr_results) {
       lrel_rmse = log(rel_rmse),
       lrel_var = log(rel_var)
     )
-  
+
   # Remove the baseline columns
   agg <- select(agg, -ends_with("_baseline"))
-  
+
   # Mark incomplete estimates
   agg$incomplete <- (agg$trials < TRIALS)
   incomp_by_pop <- agg[agg$incomplete,][c("type", "N")] %>%
     distinct(type, N)
-  
+
   for (i in 1:nrow(incomp_by_pop)){
     estimator <- incomp_by_pop$type[i]
     pop <- incomp_by_pop$N[i]
     agg$type[agg$type == estimator & agg$N == pop] <- paste0(estimator, "*")
   }
-  
+
   # Return the aggregated 'pr_results' data frame
   agg
 }
@@ -159,10 +159,10 @@ aggregate_data <- function(pr_results) {
 plot_lines <- function(agg, pop, y, ylim, ylab, title, xlim) {
   # Convert the y variable to a symbol
   y_col <- sym(y)
-  
+
   # Vector of types to exclude
   exclude_types <- c("MPLE-NB", "Morgan-Ridout", "Morgan-Ridout*")
-  
+
   # Create the plot
   ggplot(
     # Get specified population and exclude "MPLE-NB" and "Morgan Ridout"
@@ -240,12 +240,12 @@ comparison_plots <- function(
 ) {
   # Create the plot title based on the population and graph density
   title <- paste0("N = ", as.character(pop))
-  
+
   # Create the RMSE plot
   p1 <- plot_lines(agg, pop, "lrel_rmse", ylim_rmse, "LogRelRMSE", title, xlim)
   # Create the bias plot
   p2 <- plot_lines(agg, pop, "lrel_bias", ylim_bias, "LogRelAbsBias", "", xlim)
-  
+
   # Return the plots as a list
   list(p1, p2)
 }
@@ -272,9 +272,9 @@ estimates_boxplot <- function(
   ylab,
   to_plot = "N_hat"
 ) {
-  
+
   dummy_df <- pr_results[1:2,]
-  
+
   pr_results %>%
     filter(N == pop) %>%
     ggplot(mapping = aes(x = T, y = !!sym(to_plot), fill = type)) +
