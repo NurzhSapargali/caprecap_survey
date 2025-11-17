@@ -1,6 +1,6 @@
 # File: _140_plot_functions.R
 #---------------------------#
-# This script is contains functions to plot the results of capture-recapture simulations.
+# This script contains functions to plot the results of simulations.
 # The functions read in the simulation results, preprocess the data, aggregate
 # it, and then generate plots to visualize the performance of different
 # estimation methods under various conditions. The plots include metrics such as
@@ -10,7 +10,9 @@
 # Author: Nurzhan Sapargali
 # Date created: 2024-02-26
 #---------------------------#
-library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
 library(directlabels)
 
 # 'preprocess' function for preprocessing the results data frame
@@ -26,14 +28,16 @@ library(directlabels)
 #
 # Args:
 #   results: A data frame containing the results to be preprocessed.
-#
+#   new_names: A vector of new names to replace the old names in the 'type'
+# column.
+#   old_names: A vector of old names to be replaced in the 'type'
 #   minT: The minimum value of 'T' to include in the results. Rows with 'T' less
 # than 'minT' are filtered out.
 #
 # Returns:
 #   The preprocessed 'results' data frame.
 
-preprocess <- function(results, minT = NA) {
+preprocess <- function(results, new_names, old_names, minT = NA) {
   # If 'minT' is not NA, filter out rows where 'T' is less than 'minT'
   if (!is.na(minT)){
     results <- results[results$T >= minT, ]
@@ -51,12 +55,12 @@ preprocess <- function(results, minT = NA) {
   results$T <- as.factor(results$T)
 
   # Create a named vector to map the old names to the new names
-  name_map <- setNames(NEW_NAMES, OLD_NAMES)
+  name_map <- setNames(new_names, old_names)
 
   # Use the named vector to replace the old names with the new names in the
   # 'type' column
-  names_to_replace <- results[results$type %in% OLD_NAMES, c("type")]
-  results[results$type %in% OLD_NAMES, c("type")] <- name_map[names_to_replace]
+  names_to_replace <- results[results$type %in% old_names, c("type")]
+  results[results$type %in% old_names, c("type")] <- name_map[names_to_replace]
 
   # Return the preprocessed 'results' data frame
   results
@@ -76,14 +80,15 @@ preprocess <- function(results, minT = NA) {
 #
 # Args:
 #   pr_results: A data frame containing the simulation results to be aggregated.
+#   trials: The number of trials in the simulation.
 #
 # Returns:
 #   The aggregated 'pr_results' data frame.
 
-aggregate_data <- function(pr_results) {
+aggregate_data <- function(pr_results, trials) {
   # Group by 'type', 'T', and 'N' and calculate several summary statistics
-  agg <- pr_results %>%
-    group_by(type, T, N) %>%
+  agg <- pr_results |>
+    group_by(type, T, N) |>
     summarise(
       mse = mean(sq_dev),
       hat_mean = mean(N_hat),
@@ -110,7 +115,7 @@ aggregate_data <- function(pr_results) {
     rel_bias = bias / bias_baseline,
     rel_var = hat_var / hat_var_baseline,
     rel_rmse = rmse / rmse_baseline,
-  ) %>%
+  ) |>
     mutate(
       lrel_bias = log(rel_bias),
       lrel_rmse = log(rel_rmse),
@@ -121,11 +126,11 @@ aggregate_data <- function(pr_results) {
   agg <- select(agg, -ends_with("_baseline"))
 
   # Mark incomplete estimates
-  agg$incomplete <- (agg$trials < TRIALS)
-  incomp_by_pop <- agg[agg$incomplete,][c("type", "N")] %>%
+  agg$incomplete <- (agg$trials < trials)
+  incomp_by_pop <- agg[agg$incomplete,][c("type", "N")] |>
     distinct(type, N)
 
-  for (i in 1:nrow(incomp_by_pop)){
+  for (i in seq_len(nrow(incomp_by_pop))) {
     estimator <- incomp_by_pop$type[i]
     pop <- incomp_by_pop$N[i]
     agg$type[agg$type == estimator & agg$N == pop] <- paste0(estimator, "*")
@@ -257,6 +262,9 @@ comparison_plots <- function(
 # population 'pop'. The true value of the population is specified by 'true_val'.
 # The y-axis is labeled with 'ylab', and the variable to be plotted on the
 # y-axis is specified by 'to_plot', with a default value of "N_hat".
+# The plot includes a horizontal line indicating the true log N value.
+# The mean of the estimates is highlighted with a gold triangle and a legend is
+# included to indicate this by creating a dummy data point with alpha = 0.
 #
 # Args:
 #   pr_results: A data frame containing the results to be plotted.
@@ -266,6 +274,7 @@ comparison_plots <- function(
 #   to_plot: The variable to be plotted on the y-axis. Default is "N_hat".
 # Returns:
 #   A ggplot object representing the box plot.
+
 estimates_boxplot <- function(
   pr_results,
   pop,
@@ -275,8 +284,8 @@ estimates_boxplot <- function(
 
   dummy_df <- pr_results[1:2,]
 
-  pr_results %>%
-    filter(N == pop) %>%
+  pr_results |>
+    filter(N == pop) |>
     ggplot(mapping = aes(x = T, y = !!sym(to_plot), fill = type)) +
     geom_boxplot() +
     stat_summary(
@@ -317,4 +326,198 @@ estimates_boxplot <- function(
     theme(legend.title = element_blank()) +
     xlab("Sample draws") +
     ylab(ylab)
+}
+
+
+# 'rel_bias_plots' function for creating relative bias plots
+
+# This function creates relative bias plots from the provided bias data
+# and saves the plot to the specified output filename.
+#
+# Args:
+#   bias_data: A list of data frames containing bias data.
+#   output_filename: The filename where the plot will be saved.
+# Returns:
+#   A ggplot object representing the relative bias plot.
+
+rel_bias_plots <- function(bias_data, output_filename) {
+  bias_data <- do.call(rbind, bias_data) |>
+    arrange(desc(type))
+
+  bias_data$rel_bias <- (bias_data$hat_mean - bias_data$N) / bias_data$N
+  bias_data$N <- as.factor(bias_data$N)
+
+  ggplot(
+    data = bias_data,
+    mapping = aes(
+      x = T,
+      y = rel_bias,
+      color = N,
+      linetype = type,
+      group = interaction(N, type)
+    )
+  ) +
+    geom_line() +
+    geom_point() +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+    labs(
+      x = "Sample draws",
+      y = "Relative Bias",
+      linetype = NULL
+    ) +
+    facet_wrap(
+      vars(alpha),
+      labeller = labeller(alpha = function(x) paste("alpha =", x))
+    ) +
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
+    scale_linetype_manual(
+      values = c("MPLE-NB" = "solid", "MPLE-G" = "dashed")
+    ) +
+    theme(legend.position = "top", legend.title = element_blank()) +
+    theme_pubr()
+}
+
+# 'plot_everything' function for plotting all results
+# This function generates and saves various plots based on the simulation
+# results for different alpha values and population sizes.
+# Args:
+#   alphas: A vector of alpha values to process.
+#   pops: A vector of population sizes to process.
+#   new_names: A vector of new names for the estimation methods.
+#   old_names: A vector of old names for the estimation methods.
+#   estimates_folder: The folder path where the estimates CSV files are stored.
+#   figures_folder: The folder path where the generated figures will be saved.
+#   trials: The number of trials in the simulation.
+#   minT: The minimum value of 'T' to include in the results. Default is NA.
+#   filename_suffix: A suffix to append to the filenames of the saved plots.
+#   box_facet_size: A vector specifying the size of the boxplot facet plot
+# (height, width) in mm
+#   comp_facet_size: A vector specifying the size of the RMSE comparison facet
+# plot (height, width) in mm
+#   rel_bias_facet_size: A vector specifying the size of the relative bias facet
+# plot (height, width) in mm
+#
+# Returns:
+#   None. The function saves the generated plots to the specified folder.
+
+plot_everything <- function(
+  alphas,
+  pops,
+  new_names,
+  old_names,
+  estimates_folder,
+  figures_folder,
+  trials,
+  minT = NA,
+  filename_suffix = "",
+  box_facet_size = c(297, 210),
+  comp_facet_size = c(297, 210),
+  rel_bias_facet_size = c(99, 210)
+) {
+  bias_data <- list()
+
+  # RMSE and absolute bias and boxplots of estimates for each alpha and N
+  for (het in alphas){
+    het_str <- format(het, nsmall = 1)
+    prep <- read.csv(
+      paste0(estimates_folder, "estimates_", het_str, filename_suffix, ".csv")
+    ) |>
+      preprocess(new_names, old_names, minT = minT)
+
+    agg <- aggregate_data(prep, trials)
+    bias_data[[het_str]] <- agg[
+      agg$type %in% c("MPLE-NB", "MPLE-G"), c("N", "T", "hat_mean", "type")
+    ]
+    bias_data[[het_str]]$alpha <- het
+
+    comp_ps <- c()
+    box_ps <- list()
+    prep$logN_hat <- log(prep$N_hat)
+
+    for (i in seq_along(pops)) {
+      N <- pops[i]
+      N_str <- as.character(N)
+      comp_ps <- c(
+        comp_ps,
+        comparison_plots(agg, N)
+      )
+
+      box_plot <- estimates_boxplot(
+        prep[prep$type %in% c("MPLE-G", "MPLE-NB"),],
+        N,
+        "Log population estimate",
+        "logN_hat"
+      ) + ggtitle(paste0("N = ", N))
+      box_ps[[i]] <- box_plot
+    }
+
+    # Collate and save comparison plots
+    figure_rows <- length(pops)
+    ggarrange(plotlist = comp_ps, ncol = 2, nrow = figure_rows)
+    ggsave(
+      paste0(figures_folder, "estimates_", het_str, filename_suffix, ".pdf"),
+      width = comp_facet_size[2],
+      height = comp_facet_size[1],
+      units = "mm"
+    )
+
+    # Collate and save box plots
+    ggarrange(
+      plotlist = box_ps,
+      ncol = 1,
+      nrow = figure_rows,
+      common.legend = TRUE,
+      legend = "top"
+    )
+    ggsave(
+      paste0(
+        figures_folder, "estimates_box_", het_str, filename_suffix, ".pdf"
+      ),
+      width = box_facet_size[2],
+      height = box_facet_size[1],
+      units = "mm"
+    )
+  }
+
+  # Plot relative bias
+  bias_data <- do.call(rbind, bias_data) |>
+    arrange(desc(type))
+  bias_data$rel_bias <- (bias_data$hat_mean - bias_data$N) / bias_data$N
+  bias_data$N <- as.factor(bias_data$N)
+
+  ggplot(
+    data = bias_data,
+    mapping = aes(
+      x = T,
+      y = rel_bias,
+      color = N,
+      linetype = type,
+      group = interaction(N, type)
+    )
+  ) +
+    geom_line() +
+    geom_point() +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+    labs(
+      x = "Sample draws",
+      y = "Relative Bias",
+      linetype = NULL
+    ) +
+    facet_wrap(
+      vars(alpha),
+      labeller = labeller(alpha = function(x) paste("alpha =", x))
+    ) +
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
+    scale_linetype_manual(
+      values = c("MPLE-NB" = "solid", "MPLE-G" = "dashed")
+    ) +
+    theme(legend.position = "top", legend.title = element_blank()) +
+    theme_pubr()
+
+  ggsave(
+    paste0(figures_folder, "relative_bias", filename_suffix, ".pdf"),
+    width = rel_bias_facet_size[2],
+    height = rel_bias_facet_size[1],
+    units = "mm"
+  )
 }
