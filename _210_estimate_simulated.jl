@@ -4,7 +4,7 @@ Estimate population size from simulated capture-recapture data using various met
 
 include("_140_simulation_functions.jl")
 
-using .EstimateSimulations
+import .SimFunctions
 
 import Random: seed!
 
@@ -17,11 +17,11 @@ SEED::Int = 777
 
 seed!(SEED) # Set random seed for reproducibility
 
-estimate_simulations(
+SimFunctions.estimate_simulations(
     DATA_FOLDER,
     OUTPUT_FOLDER,
     POPS,
     BREAKS_T,
     ALPHAS;
-    intermediate = false
+    intermediate = true
 )

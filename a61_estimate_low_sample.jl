@@ -23,5 +23,6 @@ estimate_simulations(
     POPS,
     BREAKS_T,
     ALPHAS;
-    intermediate = false
+    intermediate = false,
+    subfolder_suffix = "_low_sample"
 )

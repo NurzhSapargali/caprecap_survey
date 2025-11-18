@@ -26,13 +26,17 @@ export estimate_simulations, simulate_data
         r::Float64,
         q::Float64,
         data_folder::String,
-        trials::Int
+        trials::Int;
+        min_draws::Int64 = 5,
+        subfolder_suffix::String = ""
     )
 
 Simulate capture–recapture data for given population sizes (`pops`), numbers of
 capture occasions (`draws`), heterogeneity parameters (`alphas`), and Negative
 Binomial sample size parameters (`r`, `q`). Save the simulated data to `data_folder`.
-Each setting is repeated `trials` times.
+Each setting is repeated `trials` times. The optional parameter `min_draws` sets
+the minimum number of captures per individual. An optional `subfolder_suffix` can
+be added to the data subfolder names.
 """
 function simulate_data(
     pops::Vector{Int64},
@@ -90,13 +94,15 @@ end
         pops::Vector{Int64},
         breaks_T::Vector{Int64},
         alphas::Vector{Float64};
-        intermediate = false
+        intermediate = false,
+        subfolder_suffix::String = ""
     )
 
 Run estimation methods on simulated data located in `data_folder` for the specified
 population sizes (`pops`), numbers of capture occasions (`breaks_T`), and heterogeneity
 parameters (`alphas`). Save the results to CSV files in `output_folder`.
 If `intermediate` is true, randomly select 100 data files per setting for estimation.
+An optional `subfolder_suffix` can be added to the data subfolder names.
 """
 function estimate_simulations(
     data_folder::String,
@@ -104,7 +110,8 @@ function estimate_simulations(
     pops::Vector{Int64},
     breaks_T::Vector{Int64},
     alphas::Vector{Float64};
-    intermediate = false
+    intermediate = false,
+    subfolder_suffix::String = ""
 )
     Pkg.build("RCall")
     total_estimators = 14 + 2 # benchmarks + 2 for MPLE-NB and MPLE-G
@@ -124,7 +131,7 @@ function estimate_simulations(
         close(io)
 
         # Read data files for given alpha value 
-        subfolder = data_folder * "alpha_$(alpha)/"
+        subfolder = data_folder * "alpha_$(alpha)" * subfolder_suffix * "/"
         for N in pops
             # Filter data files for current population size
             data_files = [

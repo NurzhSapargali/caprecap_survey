@@ -7,7 +7,7 @@ import Random: seed!
 using CSV
 using DataFrames
 
-POPS::Vector{Int64} = [600, 1000, 5000, 10000] # Population sizes
+POPS::Vector{Int64} = [600, 1000, 5000] # Population sizes
 DRAWS::Int = 50 # Number of capture occasions
 T_MIN::Int = 5 # Minimum number of capture occasions with non-zero recaptures
 TRIALS::Int = 1000 # Number of trials per setting
