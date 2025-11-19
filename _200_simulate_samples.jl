@@ -1,3 +1,8 @@
+"""
+Simulate capture-recapture data under unequal probability sampling
+using a Negative Binomial distribution for sample sizes.
+"""
+
 include("_140_simulation_functions.jl")
 
 import .SimFunctions

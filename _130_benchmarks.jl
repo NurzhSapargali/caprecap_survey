@@ -1,3 +1,6 @@
+"""
+Implementations of various population size estimators for capture-recapture data.
+"""
 module Benchmarks
 
 using LinearAlgebra

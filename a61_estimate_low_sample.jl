@@ -23,6 +23,6 @@ SimFunctions.estimate_simulations(
     POPS,
     BREAKS_T,
     ALPHAS;
-    intermediate = true,
+    #intermediate = true,
     subfolder_suffix = "_low_sample"
 )

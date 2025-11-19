@@ -1,3 +1,8 @@
+"""
+Investigate the equivalence between Poisson MPLE and Horvitz-Thompson estimators
+for capture-recapture data under simple random sampling.
+"""
+
 include("_100_utils.jl")
 
 using Optim
@@ -13,10 +18,12 @@ import Random: seed!
 N_sim::Int64 = 10000
 n_sim::Vector{Int64} = [100, 200, 300]
 DRAWS::Vector{Int64} = 10:10:150
-seed!(777)
-
+SEED::Int = 777
 OUTPUT_FOLDER::String = "./_900_output/figures/appendix/"
 
+seed!(SEED)
+
+# Define functions for zero-truncated Poisson likelihood and MLE/MPLE estimation
 function zero_trunc_pois(freqs, rate)
     out = 0.0
     for i in keys(freqs)
@@ -40,6 +47,7 @@ function mple_pois(freqs)
     return Optim.minimizer(res)
 end
 
+# Simulate simple random sampling capture-recapture data
 function simulate_capture(ns, N)
     S = []
     for n in ns
@@ -50,6 +58,7 @@ function simulate_capture(ns, N)
     return Utils.freq_of_freq(K)
 end
 
+# Function to compute mean difference between HT and MPLE estimates
 function simulation_mean(ns, N, reps)
     diffs = []
     for i in 1:reps
@@ -65,7 +74,7 @@ function simulation_mean(ns, N, reps)
     return mean(diffs)
 end
 
-
+# Run simulations across different sample sizes and number of capture occasions
 df = DataFrame(
     n = Int[],
     t = Int[],
@@ -79,6 +88,7 @@ for n in n_sim
     end
 end
 
+# Plot results
 plt = plot(
     xlabel = "T",
     ylabel = "Mean difference",
@@ -110,4 +120,5 @@ end
 savefig(
     plt,
     OUTPUT_FOLDER * "poisson_equivalence.pdf"
-)
+) # Figure 1 in the supplementary material of the paper
+println("Plot saved to " * OUTPUT_FOLDER * "poisson_equivalence.pdf")

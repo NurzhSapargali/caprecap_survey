@@ -15,6 +15,35 @@ library(ggplot2)
 library(ggpubr)
 library(directlabels)
 
+OLD_NAMES <- c(
+  "Chao Lee Jeng 0",
+  "Chao Lee Jeng 1",
+  "Chao Lee Jeng 2",
+  "Conway-Maxwell-Poisson",
+  "Jackknife k = 1",
+  "Jackknife k = 2",
+  "Jackknife k = 3",
+  "Jackknife k = 4",
+  "Jackknife k = 5",
+  "Turing",
+  "Turing Geometric",
+  "MPLE-G"
+) # Names of the methods in the simulation results
+NEW_NAMES <- c(
+  "SC,0",
+  "SC,1",
+  "SC,2",
+  "LCMP",
+  "JK,1",
+  "JK,2",
+  "JK,3",
+  "JK,4",
+  "JK,5",
+  "TB",
+  "TG",
+  "MPLE-G"
+) # New names for the methods in plots
+
 # 'preprocess' function for preprocessing the results data frame
 #
 # This function performs several preprocessing steps on the 'results' data
@@ -80,12 +109,11 @@ preprocess <- function(results, new_names, old_names, minT = NA) {
 #
 # Args:
 #   pr_results: A data frame containing the simulation results to be aggregated.
-#   trials: The number of trials in the simulation.
 #
 # Returns:
 #   The aggregated 'pr_results' data frame.
 
-aggregate_data <- function(pr_results, trials) {
+aggregate_data <- function(pr_results) {
   # Group by 'type', 'T', and 'N' and calculate several summary statistics
   agg <- pr_results |>
     group_by(type, T, N) |>
@@ -93,7 +121,7 @@ aggregate_data <- function(pr_results, trials) {
       mse = mean(sq_dev),
       hat_mean = mean(N_hat),
       trials = length(N_hat),
-      hat_var = var(N_hat)
+      hat_var = var(N_hat),
     )
 
   # Calculate the root mean square error (RMSE) and bias
@@ -125,8 +153,16 @@ aggregate_data <- function(pr_results, trials) {
   # Remove the baseline columns
   agg <- select(agg, -ends_with("_baseline"))
 
+  agg$incomplete <- FALSE
+  for (t in levels(agg$T)) {
+    for (n in unique(agg$N)) {
+      max_trials <- max(
+        agg$trials[agg$T == t & agg$N == n]
+      )
+      agg$incomplete[agg$T == t & agg$N == n & agg$trials < max_trials] <- TRUE
+    }
+  }
   # Mark incomplete estimates
-  agg$incomplete <- (agg$trials < trials)
   incomp_by_pop <- agg[agg$incomplete,][c("type", "N")] |>
     distinct(type, N)
 
@@ -219,8 +255,7 @@ plot_lines <- function(agg, pop, y, ylim, ylab, title, xlim) {
 # This function creates two line plots of the aggregated data 'agg' for specific
 # population 'pop'. The y-axis limits for the bias and RMSE plots are specified
 # by 'ylim_bias' and 'ylim_rmse', respectively. The x-axis limits are specified
-# by 'xlim', with a default range of NA to 15.0. The graph density is specified
-# by 'dense', with a default value of NA.
+# by 'xlim', with a default range of NA to 15.0.
 #
 # Args:
 #   agg: A data frame containing the aggregated data to be plotted.
@@ -230,7 +265,6 @@ plot_lines <- function(agg, pop, y, ylim, ylab, title, xlim) {
 #   ylim_rmse: The limits for the y-axis of the RMSE plot.
 # Default is c(-3.0, 3.0).
 #   xlim: The limits for the x-axis. Default is c(NA, 15.0).
-#   dense: The graph density. Default is NA.
 #
 # Returns:
 #   A list containing two ggplot objects representing the line plots.
@@ -240,8 +274,7 @@ comparison_plots <- function(
   pop,
   ylim_bias = c(NA, NA),
   ylim_rmse = c(NA, NA),
-  xlim = c(NA, 12.2),
-  dense = NA
+  xlim = c(NA, 12.2)
 ) {
   # Create the plot title based on the population and graph density
   title <- paste0("N = ", as.character(pop))
@@ -387,7 +420,6 @@ rel_bias_plots <- function(bias_data, output_filename) {
 #   old_names: A vector of old names for the estimation methods.
 #   estimates_folder: The folder path where the estimates CSV files are stored.
 #   figures_folder: The folder path where the generated figures will be saved.
-#   trials: The number of trials in the simulation.
 #   minT: The minimum value of 'T' to include in the results. Default is NA.
 #   filename_suffix: A suffix to append to the filenames of the saved plots.
 #   box_facet_size: A vector specifying the size of the boxplot facet plot
@@ -407,12 +439,14 @@ plot_everything <- function(
   old_names,
   estimates_folder,
   figures_folder,
-  trials,
   minT = NA,
   filename_suffix = "",
   box_facet_size = c(297, 210),
   comp_facet_size = c(297, 210),
-  rel_bias_facet_size = c(99, 210)
+  rel_bias_facet_size = c(99, 210),
+  ylim_bias = c(NA, NA),
+  ylim_rmse = c(NA, NA),
+  xlim_comp = c(NA, 12.2)
 ) {
   bias_data <- list()
 
@@ -424,7 +458,7 @@ plot_everything <- function(
     ) |>
       preprocess(new_names, old_names, minT = minT)
 
-    agg <- aggregate_data(prep, trials)
+    agg <- aggregate_data(prep)
     bias_data[[het_str]] <- agg[
       agg$type %in% c("MPLE-NB", "MPLE-G"), c("N", "T", "hat_mean", "type")
     ]
@@ -439,7 +473,9 @@ plot_everything <- function(
       N_str <- as.character(N)
       comp_ps <- c(
         comp_ps,
-        comparison_plots(agg, N)
+        comparison_plots(
+          agg, N, ylim_bias = ylim_bias, ylim_rmse = ylim_rmse, xlim = xlim_comp
+        )
       )
 
       box_plot <- estimates_boxplot(

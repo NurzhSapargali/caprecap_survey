@@ -1,5 +1,6 @@
 """
-Run estimation methods on simulated data and save results to CSV files.
+Functions to simulate unequal probability sampling and run estimation methods 
+on simulated data.
 """
 module SimFunctions
 
@@ -118,10 +119,10 @@ function estimate_simulations(
 
     for alpha in alphas
         # Create output folder and write header to output file
-        output_file = output_folder * "estimates_$(alpha).csv"
+        output_file = output_folder * "estimates_$(alpha)" * subfolder_suffix * ".csv"
         # For intermediate results, set different output file name
         if intermediate
-            output_file = output_folder * "estimates_$(alpha)_intermediate.csv"
+            output_file = output_folder * "estimates_$(alpha)" * subfolder_suffix * "_intermediate.csv"
         end
     
         Utils.create_folder_if_not_exists(output_folder)

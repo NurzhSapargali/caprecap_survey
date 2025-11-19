@@ -7,79 +7,133 @@ using StatsBase
 
 export approx_loglike, fit_Beta
 
-function cond_likelihood(mu::Vector, x::Vector)
-    """
-        cond_likelihood(mu, x)
+"""
+    log_cond_likelihood(mu::Vector{Float64}, x::Vector{Float64})
 
-    Compute conditional likelihood of capture history x given capture probability mu
-    """
-    return prod(mu .^ x .* (1.0 .- mu) .^ (1 .- x))
+Compute log-likelihood of capture history `x` given probabilities `mu`.
+Uses log-space for numerical stability.
+"""
+function log_cond_likelihood(mu::Vector{Float64}, x::Vector{Float64})
+    s = 0.0
+    # Loop over capture occasions, vectorized, no bounds checking
+    @inbounds @simd for i in eachindex(mu) 
+        s += x[i] * log(mu[i]) + (1 - x[i]) * log1p(-mu[i])
+    end
+    return s
 end
 
-function mc_integration(
-    p::Vector,
-    x::Vector,
-    n::Vector{Int},
-)
-    """
-        mc_integration(p, x, n)
+"""
+    cond_likelihood(mu::Vector{Float64}, x::Vector{Float64})
 
-    Compute Monte Carlo integration of likelihood over capture history x
-    """
-    L(roll) = cond_likelihood(roll * n, x)
-    return mean(L.(p))
+Compute likelihood of capture history `x` given probabilities `mu`.
+"""
+function cond_likelihood(mu::Vector{Float64}, x::Vector{Float64})
+    return exp(log_cond_likelihood(mu, x))
 end
 
+"""
+    mc_integration(p::Vector{Float64}, x::Vector{Float64}, n::Vector{Float64})
+
+Monte Carlo integration over capture probabilities `p` for capture history `x`
+and total captures `n`.
+"""
+function mc_integration(p::Vector{Float64}, x::Vector{Float64}, n::Vector{Float64})
+    K = length(n)
+    tmp_mu = similar(n)  # preallocate once
+    s = 0.0
+    @inbounds for pi in p # No bounds checking
+        @simd for j in 1:K # loop over capture occasions, vectorized
+            tmp_mu[j] = pi * n[j]
+        end
+        s += cond_likelihood(tmp_mu, x)
+    end
+    return s / length(p)
+end
+
+"""
+    approx_loglike(
+        a::Real,
+        Nu::Real,
+        X::AbstractMatrix{<:Real},
+        u::Vector{Float64};
+        verbose::Bool=true
+    )
+
+Approximate log-likelihood of Beta-binomial model with parameters `a` and `Nu`
+given capture history matrix `X` and Monte Carlo draws `u`.
+"""
 function approx_loglike(
     a::Real,
     Nu::Real,
-    X::Matrix,
-    u::Vector;
+    X::AbstractMatrix{<:Real},
+    u::Vector{Float64};
     verbose::Bool = true
 )
-    """
-        loglh(a, N_u, X, u, [verbose,])
-
-    Compute marginal likelihood over entire data at parameter a, number of
-    unobserved individuals Nu, capture history of observed individuals X
-    and quantiles u for Monte Carlo integration
-    """
-    No = size(X)[1]
+    No, K = size(X)
     N = Nu + No
-    n = vec(sum(X, dims = 1))
+    n = vec(sum(X, dims = 1))  # sample sizes per capture occasion
+    n_f = Float64.(n) # convert to Float64 for arithmetic
 
+    # Beta quantiles
     d = Beta(a, a * (N - 1.0))
-    p = quantile.(d, u)
-    p = p[p .<= 1.0 / maximum(n)]
+    p = similar(u)
+    @inbounds for i in eachindex(u) # No bounds checking
+        p[i] = quantile(d, u[i])
+    end
+    p = p[p .<= 1.0 / maximum(n_f)]  # remove invalid quantiles
 
-    marginal(x) = mc_integration(p, x, n)
-    lh = sum(log.(mapslices(marginal, X, dims = 2)))
-    no_cap = zeros(Int, length(n))
-    lh += -No * log(1.0 - marginal(no_cap))
+    # Compute likelihood for each row
+    lh = 0.0
+    @inbounds for i in 1:No # No bounds checking
+        x_f = Float64.(view(X, i, :)) # convert to Float64 for arithmetic
+        lh += log(mc_integration(p, x_f, n_f))
+    end
+
+    no_cap = zeros(Float64, K)
+    lh += -No * log(1.0 - mc_integration(p, no_cap, n_f))
 
     if verbose
         println("a = $a, N = $N, lh = $lh")
     end
+
     return lh
 end
 
-function fit_Beta(
-    theta0::Vector,
-    X::Matrix;
-    lower::Vector = [-Inf, -Inf],
-    upper::Vector = [Inf, Inf],
-    draws::Int = 10000,
-    ftol = 1e-5,
-    verbose::Bool = true,
-)
-    """
-        fit_Beta(X, n, ngrid, theta0, [lower, upper, ftol,])
+"""
+    fit_Beta(
+        theta0::Vector{<:Real},
+        X::AbstractMatrix{<:Real};
+        lower::Vector{<:Real} = [-Inf, -Inf],
+        upper::Vector{<:Real} = [Inf, Inf],
+        draws::Int = 10000,
+        ftol = 1e-4,
+        verbose::Bool = true
+    )
 
-        Maximize likelihood with respect to model parameters
-    """
+Fit Beta-binomial model to capture history matrix `X` using optimization.
+Initial parameters are given in `theta0` (log-transformed).
+Returns (minimum function value, optimal parameters).
+"""
+function fit_Beta(
+    theta0::Vector{<:Real},
+    X::AbstractMatrix{<:Real};
+    lower::Vector{<:Real} = [-Inf, -Inf],
+    upper::Vector{<:Real} = [Inf, Inf],
+    draws::Int = 10000,
+    ftol = 1e-4,
+    verbose::Bool = true
+)
+     # Monte Carlo draws
     u = rand(draws)
 
-    L(x) = -approx_loglike(exp(x[1]), exp(x[2]), X, u; verbose = verbose)
+    # Optimization function expects log-parameters (theta0 already log-transformed)
+    L(x) = -approx_loglike(
+        exp(x[1]),
+        exp(x[2]),
+        X,
+        u;
+        verbose=verbose
+    )
 
     res = optimize(
         L,
@@ -87,10 +141,10 @@ function fit_Beta(
         upper,
         theta0,
         Fminbox(NelderMead()),
-        Optim.Options(iterations = 50, f_tol = ftol)
+        Optim.Options(iterations=50, f_abstol=ftol)
     )
-    (minf, minx) = (Optim.minimum(res), Optim.minimizer(res))
-    return (minf, minx)
+
+    return (Optim.minimum(res), Optim.minimizer(res))
 end
 
 end

@@ -1,10 +1,16 @@
+"""
+Estimate population sizes and other parameters from real datasets using MPLE-NB
+and MPLE-G methods with bootstrap percentile confidence intervals. Results are
+saved in output CSV files.
+"""
+
 include("_100_utils.jl")
 include("_120_one_nbin.jl")
 include("_130_benchmarks.jl")
 
-using .OneNbin
-using .Utils
-using .Benchmarks
+import .OneNbin
+import .Utils
+import .Benchmarks
 
 using CSV
 using DataFrames
@@ -58,7 +64,10 @@ for file in data_files
     w_hat_nb = OneNbin.w_hat(minx[1], minx[2], f)
     a_hat = exp(minx[1])
 
+    # Bootstrap sampling
     fb = Utils.resample_f(f, N_hat_nb, B)
+
+    # Percentile confidence intervals for NB model
     Nbs = []
     for b in fb
         res_b = OneNbin.fit_oi_nbin_trunc(
@@ -85,7 +94,10 @@ for file in data_files
     N_hat_geom = No + exp(minx[1])
     w_hat_geom = OneNbin.w_hat(log(1.0), minx[1], f)
 
+    # Bootstrap sampling for Geometric model
     fb = Utils.resample_f(f, N_hat_geom, B)
+
+    # Percentile confidence intervals for Geometric model
     Nbs = []
     for b in fb
         res_b = OneNbin.fit_oi_geom_trunc(
@@ -116,4 +128,46 @@ for file in data_files
     )
     append!(df, out)
 end
-CSV.write(OUTPUT_FOLDER * "estimates.csv", df)
+
+# Create the table of population estimates with true population sizes
+sample_effort = DataFrame(CSV.File(INPUT_FOLDER * "sampling_effort.csv"))
+pop_estimates = df[
+    :, 
+    [:dataset, :N_hat_nb, :lower_ci_nb, :upper_ci_nb, :N_hat_geom, :lower_ci_geom, :upper_ci_geom]
+]
+rename!(
+    pop_estimates,
+    Dict(
+        :N_hat_nb => :MPLE_NB,
+        :lower_ci_nb => :CI_lower_NB,
+        :upper_ci_nb => :CI_upper_NB,
+        :N_hat_geom => :MPLE_Geom,
+        :lower_ci_geom => :CI_lower_Geom,
+        :upper_ci_geom => :CI_upper_Geom
+    )
+)
+table2 = innerjoin(
+    sample_effort[:, [:dataset, :true_N]],
+    pop_estimates,
+    on = :dataset
+)
+table2[!, Not([:dataset, :true_N])] = round.(
+    Int64,
+    table2[:, Not([:dataset, :true_N])]
+)
+CSV.write(OUTPUT_FOLDER * "table2.csv", table2) # Table 2 in the paper
+
+# Create the table of all other estimates
+other_params = df[:, [:dataset, :No, :a_hat, :w_hat_nb, :w_hat_geom]]
+rename!(
+    other_params,
+    Dict(
+        :w_hat_nb => :w_NB,
+        :w_hat_geom => :w_Geom
+    )
+)
+other_params[!, Not([:dataset, :No])] = round.(
+    other_params[:, Not([:dataset, :No])],
+    digits=2
+)
+CSV.write(OUTPUT_FOLDER * "table3.csv", other_params) # Table 3 in the paper

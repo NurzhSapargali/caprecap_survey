@@ -1,3 +1,9 @@
+"""
+Estimate population size using Beta-binomial model on PPS capture-recapture data
+simulated under different heterogeneity settings. Results are saved in output
+CSV files.
+"""
+
 include("_100_utils.jl")
 include("_110_beta_estimator.jl")
 include("_130_benchmarks.jl")
@@ -10,45 +16,89 @@ using StatsBase
 
 import Random: seed!
 
-ALPHAS::Vector{Float64} = [0.5, 2.0]
-DATA_FOLDER::String = "./_100_input/simulated/"
-breaks_T::Vector{Int64} = collect(5:5:50)
-OUTPUT_FOLDER::String = "./_900_output/data/appendix/"
-pops::Vector{Int64} = [1000, 5000, 10000]
+ALPHAS::Vector{Float64} = [0.5, 2.0] # Heterogeneity parameters
+DATA_FOLDER::String = "./_100_input/simulated/" # Folder containing simulated datasets
+BREAKS_T::Vector{Int64} = collect(5:5:50) # Numbers of capture occasions to consider
+OUTPUT_FOLDER::String = "./_900_output/data/appendix/beta_bin/" # Output folder
+POPS::Vector{Int64} = [1000, 5000, 10000] # Population sizes to consider
+MC_DRAWS::Int = 1000 # Number of Monte Carlo draws for Beta-binomial estimation
 SEED::Int = 777
+INTERMEDIATE::Bool = true # Whether to perform estimation on subset of datasets to reduce runtime
 
 
 seed!(SEED)
 for i in eachindex(ALPHAS)
     alpha = ALPHAS[i]
-    output_file = OUTPUT_FOLDER * "estimates_$(alpha).csv"
-    Utils.write_row(output_file, ["a_hat", "Nu_hat", "N_hat", "No", "trial", "T", "alpha", "N", "type"])
-    for N in pops
+    # Create output folder and write header to output file
+    output_file = OUTPUT_FOLDER * "estimates_$(alpha)_betabin.csv"
+    if INTERMEDIATE
+        output_file = OUTPUT_FOLDER * "estimates_$(alpha)_betabin_intermediate.csv"
+    end
+    
+    Utils.create_folder_if_not_exists(OUTPUT_FOLDER)
+
+    io = open(output_file, "w")
+    println(io, "a_hat,Nu_hat,N_hat,No,trial,T,alpha,N,type")
+    close(io)
+
+    for N in POPS
         data_folder = DATA_FOLDER * "alpha_$(alpha)/"
-        data_files = [file for file in readdir(data_folder) if occursin("sample", file) && occursin("$(N).csv", file)]
-        for file in data_files[1:100]
+        # Process only first 100 files to limit runtime
+        data_files = [
+            file for file in readdir(data_folder) if occursin("sample", file) && occursin("$(N).csv", file)
+        ][1:100]
+
+        # If INTERMEDIATE is true, limit to first 10 files
+        if INTERMEDIATE
+            data_files = data_files[1:10]
+        end
+        for file in data_files
+            # Parse trial number from filename and read samples
             trial_no = parse(Int, split(split(file, "_")[2], ".")[1])
             samples = Utils.read_captures(data_folder * file)
-            draws = Array{Any}(undef, 10)
-            Threads.@threads for i in eachindex(breaks_T)
-                t = breaks_T[i]
+
+            # Initialize array to store results from different methods and numbers of capture occasions
+            draws = Array{Any}(nothing, length(BREAKS_T))
+            
+            # Run estimation methods for different numbers of capture occasions
+            Threads.@threads for i in eachindex(BREAKS_T)
+                t = BREAKS_T[i] # Number of capture occasions to use
                 S = samples[1:t]
-                O = Set([i for j in S for i in j])
-                X = Dict(i => [i in s for s in S] for i in O)
+
+                O = Set([i for j in S for i in j]) # Observed individuals
+                X = Dict(i => [i in s for s in S] for i in O) # Capture history matrix
                 X = Matrix(
                     transpose(hcat(values(X)...))
                 )
                 println("***TRIAL NO $file, $t***")
+
                 f = Utils.freq_of_freq(Utils.cap_freq(S))
-                initial_N = Benchmarks.turing(length(O), f, t)                
+
+                # Determine initial population size using Turing estimator
+                initial_N = Benchmarks.turing(f, t) < Inf ? Benchmarks.turing(f, t) : 2 * length(O)
+
+                # Fit Beta-binomial model and store results
                 (minf, minx) = BetaEstimator.fit_Beta(
                     [0.0, log(initial_N - size(X)[1])],
                     X;
-                    draws = 1000
+                    draws = MC_DRAWS, # Number of Monte Carlo draws for integration
+                    verbose = false
                 )
-                N_hat = length(O) + exp(minx[2])
+
+                N_hat = length(O) + exp(minx[2]) # Estimated population size
                 println([exp(minx[1]), exp(minx[2]), N_hat, length(O), trial_no, t, alpha, N])
-                draws[i] = [exp(minx[1]), exp(minx[2]), N_hat, length(O), trial_no, t, alpha, N, "Beta-binomial"]
+
+                draws[i] = [
+                    exp(minx[1]), # a_hat
+                    exp(minx[2]), # Nu_hat
+                    N_hat,
+                    length(O),
+                    trial_no,
+                    t,
+                    alpha,
+                    N,
+                    "Beta-binomial"
+                ]
             end
             for d in draws
                 Utils.write_row(output_file, d)
