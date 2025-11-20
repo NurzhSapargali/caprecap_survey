@@ -95,15 +95,16 @@ end
         pops::Vector{Int64},
         breaks_T::Vector{Int64},
         alphas::Vector{Float64};
-        intermediate = false,
+        intermediate::Vector{Int} = [0],
         subfolder_suffix::String = ""
     )
 
 Run estimation methods on simulated data located in `data_folder` for the specified
 population sizes (`pops`), numbers of capture occasions (`breaks_T`), and heterogeneity
 parameters (`alphas`). Save the results to CSV files in `output_folder`.
-If `intermediate` is true, randomly select 100 data files per setting for estimation.
-An optional `subfolder_suffix` can be added to the data subfolder names.
+If `intermediate` is not `[0]`, only the specified files (by index) will be processed
+per setting to reduce runtime. An optional `subfolder_suffix` can be added to the
+data subfolder names.
 """
 function estimate_simulations(
     data_folder::String,
@@ -111,17 +112,27 @@ function estimate_simulations(
     pops::Vector{Int64},
     breaks_T::Vector{Int64},
     alphas::Vector{Float64};
-    intermediate = false,
+    intermediate::Vector{Int} = [0],
     subfolder_suffix::String = ""
 )
     Pkg.build("RCall")
     total_estimators = 14 + 2 # benchmarks + 2 for MPLE-NB and MPLE-G
 
+    if intermediate != [0]
+        if 0 in intermediate
+            error("Intermediate cannot contain 0 index")
+        else
+            println(
+                "Running intermediate estimation with $(length(intermediate)) files per setting"
+            )
+        end
+    end
+
     for alpha in alphas
         # Create output folder and write header to output file
         output_file = output_folder * "estimates_$(alpha)" * subfolder_suffix * ".csv"
         # For intermediate results, set different output file name
-        if intermediate
+        if intermediate != [0]
             output_file = output_folder * "estimates_$(alpha)" * subfolder_suffix * "_intermediate.csv"
         end
     
@@ -138,10 +149,9 @@ function estimate_simulations(
             data_files = [
                 file for file in readdir(subfolder) if occursin("sample", file) && occursin("$(N).csv", file)
             ]
-            # If intermediate flag is set, randomly select 100 files
-            if intermediate
-                random_index = sample(1:length(data_files), 100; replace = false)
-                data_files = data_files[random_index]
+            # If intermediate flag is set, select only specified files
+            if intermediate != [0]
+                data_files = data_files[intermediate]
             end
 
             for file in data_files

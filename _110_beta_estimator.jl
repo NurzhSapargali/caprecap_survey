@@ -116,24 +116,16 @@ Returns (minimum function value, optimal parameters).
 """
 function fit_Beta(
     theta0::Vector{<:Real},
-    X::AbstractMatrix{<:Real};
+    X::AbstractMatrix{<:Real},
+    u::Vector{Float64}; # precomputed uniform draws for Monte Carlo integration
     lower::Vector{<:Real} = [-Inf, -Inf],
     upper::Vector{<:Real} = [Inf, Inf],
-    draws::Int = 10000,
     ftol = 1e-4,
     verbose::Bool = true
 )
-     # Monte Carlo draws
-    u = rand(draws)
 
     # Optimization function expects log-parameters (theta0 already log-transformed)
-    L(x) = -approx_loglike(
-        exp(x[1]),
-        exp(x[2]),
-        X,
-        u;
-        verbose=verbose
-    )
+    L(x) = -approx_loglike(exp(x[1]), exp(x[2]), X, u; verbose=verbose)
 
     res = optimize(
         L,

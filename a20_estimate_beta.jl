@@ -23,15 +23,24 @@ OUTPUT_FOLDER::String = "./_900_output/data/appendix/beta_bin/" # Output folder
 POPS::Vector{Int64} = [1000, 5000, 10000] # Population sizes to consider
 MC_DRAWS::Int = 1000 # Number of Monte Carlo draws for Beta-binomial estimation
 SEED::Int = 777
-INTERMEDIATE::Bool = true # Whether to perform estimation on subset of datasets to reduce runtime
+TRIALS::Int = 100
+INTERMEDIATE_COUNT::Int = 5 # Set to 0 to run full simulation
+
+ # Indices of files to process for intermediate results to compare against full simulation results
+ # Note that the random seed is set below, so each time different files are selected
+ # Possible to set specific indices or move this line below the seed!() call for reproducibility
+intermediate = sample(1:TRIALS, INTERMEDIATE_COUNT, replace = false)
 
 
 seed!(SEED)
+u = rand(MC_DRAWS) # Precompute uniform draws for Monte Carlo integration
+
 for i in eachindex(ALPHAS)
     alpha = ALPHAS[i]
     # Create output folder and write header to output file
     output_file = OUTPUT_FOLDER * "estimates_$(alpha)_betabin.csv"
-    if INTERMEDIATE
+    # If intermediate indices are specified, adjust output filename
+    if length(intermediate) > 0
         output_file = OUTPUT_FOLDER * "estimates_$(alpha)_betabin_intermediate.csv"
     end
     
@@ -46,11 +55,11 @@ for i in eachindex(ALPHAS)
         # Process only first 100 files to limit runtime
         data_files = [
             file for file in readdir(data_folder) if occursin("sample", file) && occursin("$(N).csv", file)
-        ][1:100]
+        ][1:TRIALS]
 
-        # If INTERMEDIATE is true, limit to first 10 files
-        if INTERMEDIATE
-            data_files = data_files[1:10]
+        # If intermediate indices are specified, select only those files
+        if length(intermediate) > 0
+            data_files = data_files[intermediate]
         end
         for file in data_files
             # Parse trial number from filename and read samples
@@ -80,8 +89,8 @@ for i in eachindex(ALPHAS)
                 # Fit Beta-binomial model and store results
                 (minf, minx) = BetaEstimator.fit_Beta(
                     [0.0, log(initial_N - size(X)[1])],
-                    X;
-                    draws = MC_DRAWS, # Number of Monte Carlo draws for integration
+                    X,
+                    u;
                     verbose = false
                 )
 
