@@ -24,7 +24,7 @@ POPS::Vector{Int64} = [1000, 5000, 10000] # Population sizes to consider
 MC_DRAWS::Int = 1000 # Number of Monte Carlo draws for Beta-binomial estimation
 SEED::Int = 777
 TRIALS::Int = 100
-INTERMEDIATE_COUNT::Int = 5 # Set to 0 to run full simulation
+INTERMEDIATE_COUNT::Int = 2 # Set to 0 to run full simulation
 
  # Indices of files to process for intermediate results to compare against full simulation results
  # Note that the random seed is set below, so each time different files are selected
@@ -61,7 +61,9 @@ for i in eachindex(ALPHAS)
         if length(intermediate) > 0
             data_files = data_files[intermediate]
         end
-        for file in data_files
+        rows = Array{Any}(nothing, length(data_files) * length(BREAKS_T))
+        Threads.@threads for j in eachindex(data_files)
+            file = data_files[j]
             # Parse trial number from filename and read samples
             trial_no = parse(Int, split(split(file, "_")[2], ".")[1])
             samples = Utils.read_captures(data_folder * file)
@@ -70,7 +72,7 @@ for i in eachindex(ALPHAS)
             draws = Array{Any}(nothing, length(BREAKS_T))
             
             # Run estimation methods for different numbers of capture occasions
-            Threads.@threads for i in eachindex(BREAKS_T)
+            for i in eachindex(BREAKS_T)
                 t = BREAKS_T[i] # Number of capture occasions to use
                 S = samples[1:t]
 
@@ -109,9 +111,14 @@ for i in eachindex(ALPHAS)
                     "Beta-binomial"
                 ]
             end
-            for d in draws
-                Utils.write_row(output_file, d)
+            # Store results in rows array
+            for i in eachindex(BREAKS_T)
+                rows[(j - 1) * length(BREAKS_T) + i] = draws[i]
             end
+        end
+        # Write results to output file
+        for r in rows
+            Utils.write_row(output_file, r)
         end
     end
 end
