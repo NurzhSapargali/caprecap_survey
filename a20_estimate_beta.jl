@@ -24,7 +24,7 @@ POPS::Vector{Int64} = [1000, 5000, 10000] # Population sizes to consider
 MC_DRAWS::Int = 1000 # Number of Monte Carlo draws for Beta-binomial estimation
 SEED::Int = 777
 TRIALS::Int = 100
-INTERMEDIATE_COUNT::Int = 2 # Set to 0 to run full simulation
+INTERMEDIATE_COUNT::Int = 0 # Set to 0 to run full simulation
 
  # Indices of files to process for intermediate results to compare against full simulation results
  # Note that the random seed is set below, so each time different files are selected
@@ -43,7 +43,7 @@ for i in eachindex(ALPHAS)
     if length(intermediate) > 0
         output_file = OUTPUT_FOLDER * "estimates_$(alpha)_betabin_intermediate.csv"
     end
-    
+
     Utils.create_folder_if_not_exists(OUTPUT_FOLDER)
 
     io = open(output_file, "w")
@@ -72,6 +72,7 @@ for i in eachindex(ALPHAS)
             draws = Array{Any}(nothing, length(BREAKS_T))
             
             # Run estimation methods for different numbers of capture occasions
+            println("***TRIAL NO $file***")
             for i in eachindex(BREAKS_T)
                 t = BREAKS_T[i] # Number of capture occasions to use
                 S = samples[1:t]
@@ -81,7 +82,6 @@ for i in eachindex(ALPHAS)
                 X = Matrix(
                     transpose(hcat(values(X)...))
                 )
-                println("***TRIAL NO $file, $t***")
 
                 f = Utils.freq_of_freq(Utils.cap_freq(S))
 
@@ -97,7 +97,7 @@ for i in eachindex(ALPHAS)
                 )
 
                 N_hat = length(O) + exp(minx[2]) # Estimated population size
-                println([exp(minx[1]), exp(minx[2]), N_hat, length(O), trial_no, t, alpha, N])
+                #println([exp(minx[1]), exp(minx[2]), N_hat, length(O), trial_no, t, alpha, N])
 
                 draws[i] = [
                     exp(minx[1]), # a_hat
@@ -115,6 +115,7 @@ for i in eachindex(ALPHAS)
             for i in eachindex(BREAKS_T)
                 rows[(j - 1) * length(BREAKS_T) + i] = draws[i]
             end
+            println("Trials left: $(length(rows[rows .!= nothing]))")
         end
         # Write results to output file
         for r in rows
