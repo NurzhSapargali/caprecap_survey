@@ -28,13 +28,12 @@ FIGURE_FOLDER::String = "./_900_output/figures/appendix/"
 data_files = [file for file in readdir(INPUT_FOLDER) if endswith(file, ".txt")]
 df = DataFrame(
     dataset = String[],
-    No = Float64[],
-    a_hat_oizt = Float64[],
-    a_hat_ztoi = Float64[],
     log_pseudo_oizt = Float64[],
     log_pseudo_ztoi = Float64[],
     N_hat_oizt = Float64[],
     N_hat_ztoi = Float64[],
+    a_hat_oizt = Float64[],
+    a_hat_ztoi = Float64[],
     w_hat_oizt = Float64[],
     w_hat_ztoi = Float64[]
 )
@@ -79,22 +78,31 @@ for file in data_files
     # Store results in DataFrame
     out = DataFrame(
         dataset = file,
-        No = No,
-        a_hat_oizt = a_hat_oizt,
-        a_hat_ztoi = a_hat_ztoi,
         log_pseudo_oizt = log_pseudo_oizt,
         log_pseudo_ztoi = log_pseudo_ztoi,
         N_hat_oizt = N_hat_oizt,
         N_hat_ztoi = N_hat_ztoi,
+        a_hat_oizt = a_hat_oizt,
+        a_hat_ztoi = a_hat_ztoi,
         w_hat_oizt = w_hat_oizt,
         w_hat_ztoi = w_hat_ztoi
     )
     append!(df, out)
 end
-CSV.write(OUTPUT_FOLDER * "one_inf_equiv.csv", df)
 
 cut = df[.!in.(df.dataset, Ref(UNSTABLE)), :]
 cut = sort!(cut, [:w_hat_oizt])
+
+rounded = df
+rounded.w_hat_oizt = round.(df.w_hat_oizt; digits = 2)
+rounded.w_hat_ztoi = round.(df.w_hat_ztoi; digits = 2)
+rounded.log_pseudo_oizt = round.(df.log_pseudo_oizt; digits = 3)
+rounded.log_pseudo_ztoi = round.(df.log_pseudo_ztoi; digits = 3)
+rounded.a_hat_oizt = round.(df.a_hat_oizt; digits = 2)
+rounded.a_hat_ztoi = round.(df.a_hat_ztoi; digits = 2)
+rounded.N_hat_oizt = round.(df.N_hat_oizt; digits = 0)
+rounded.N_hat_ztoi = round.(df.N_hat_ztoi; digits = 0)
+CSV.write(OUTPUT_FOLDER * "one_inf_equiv.csv", rounded)
 
 plt = plot(
     xlabel = "MPLE of w (OIZT)",

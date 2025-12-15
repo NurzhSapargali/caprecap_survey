@@ -89,9 +89,7 @@ function ar_pareto_sample(p::Vector{Float64}, n::Int64)
         car = sum(1.0 .- pr[S]) / sum(Jk[S] / A .* (1.0 .- pr[S])) # Equation (22) on page 710
         U = rand()
         #println("car = $car, U = $U")
-        if (U <= car)
-            accept = true
-        end
+        accept = (U <= car)
     end
     return S
 end

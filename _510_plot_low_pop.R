@@ -25,22 +25,8 @@ plot_everything(
   figures_folder = OUTPUT_FOLDER,
   filename_suffix = "_low_pop",
   box_facet_size = c(198, 210),
-  comp_facet_size = c(198, 210)
-)
-
-# Plots figures from intermediate data (random 100 simulated datasets per setting)
-# The filenames are as above but with suffix "_intermediate", e.g.,
-# estimates_box_2.0_low_pop_intermediate.pdf, estimates_0.5_low_pop_intermediate.pdf
-plot_everything(
-  ALPHAS,
-  POP_SIZES,
-  NEW_NAMES,
-  OLD_NAMES,
-  estimates_folder = RESULTS_FOLDER,
-  figures_folder = OUTPUT_FOLDER,
-  filename_suffix = "_low_pop_intermediate",
-  ylim_bias = c(NA, 8.0), # Approximately same limits as with all simulated data
+  comp_facet_size = c(198, 210),
+  ylim_bias = c(NA, 6.0),
   ylim_rmse = c(NA, 4.0),
-  box_facet_size = c(198, 210),
-  comp_facet_size = c(198, 210)
+  # filename_suffix = "_low_pop_intermediate" # Consider only intermediate results, all output files will have this suffix, e.g., estimates_box_2.0_low_pop_intermediate.pdf
 )

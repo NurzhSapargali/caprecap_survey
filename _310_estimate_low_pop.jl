@@ -17,12 +17,15 @@ OUTPUT_FOLDER::String = "./_900_output/data/appendix/low_pop/" # Folder to save 
 POPS::Vector{Int64} = [600, 800] # Population sizes
 SEED::Int = 777
 TRIALS::Int = 1000
-INTERMEDIATE_COUNT::Int = 50
+INTERMEDIATE_COUNT::Int = parse(Int, get(ENV, "JULIA_INTERMEDIATE_COUNT", "0"))
 
  # Indices of files to process for intermediate results to compare against full simulation results
  # Note that the random seed is set below, so each time different files are selected
  # Possible to set specific indices or move this line below the seed!() call for reproducibility
-intermediate = sample(1:TRIALS, INTERMEDIATE_COUNT, replace = false)
+intermediate = [0] # Default to full simulation
+if INTERMEDIATE_COUNT > 0
+    intermediate = sample(1:TRIALS, INTERMEDIATE_COUNT, replace = false)
+end
 
 seed!(SEED) # Set random seed for reproducibility
 

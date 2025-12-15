@@ -24,12 +24,15 @@ POPS::Vector{Int64} = [1000, 5000, 10000] # Population sizes to consider
 MC_DRAWS::Int = 1000 # Number of Monte Carlo draws for Beta-binomial estimation
 SEED::Int = 777
 TRIALS::Int = 100
-INTERMEDIATE_COUNT::Int = 0 # Set to 0 to run full simulation
+INTERMEDIATE_COUNT::Int = parse(Int, get(ENV, "JULIA_INTERMEDIATE_COUNT", "0")) # Set to 0 to run full simulation
 
  # Indices of files to process for intermediate results to compare against full simulation results
  # Note that the random seed is set below, so each time different files are selected
  # Possible to set specific indices or move this line below the seed!() call for reproducibility
-intermediate = sample(1:TRIALS, INTERMEDIATE_COUNT, replace = false)
+intermediate = [] # Default to full simulation
+if INTERMEDIATE_COUNT > 0
+    intermediate = sample(1:TRIALS, INTERMEDIATE_COUNT, replace = false)
+end
 
 
 seed!(SEED)
@@ -97,7 +100,7 @@ for i in eachindex(ALPHAS)
                 )
 
                 N_hat = length(O) + exp(minx[2]) # Estimated population size
-                #println([exp(minx[1]), exp(minx[2]), N_hat, length(O), trial_no, t, alpha, N])
+                println([exp(minx[1]), exp(minx[2]), N_hat, length(O), trial_no, t, alpha, N])
 
                 draws[i] = [
                     exp(minx[1]), # a_hat

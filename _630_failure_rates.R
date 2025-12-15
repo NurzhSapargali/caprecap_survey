@@ -34,6 +34,7 @@ NEW_NAMES <- c(
   "TG",
   "MPLE-G"
 ) # New names for the methods in plots
+INTERMEDIATE <- FALSE # Whether to consider file with intermediate results or final results
 
 preprocess <- function(results, minT = NA) {
   # If 'minT' is not NA, filter out rows where 'T' is less than 'minT'
@@ -66,13 +67,16 @@ preprocess <- function(results, minT = NA) {
 
 for (het in ALPHAS){
   het_str <- format(het, nsmall = 1)
-
-  prep <- read.csv(
-    paste0(RESULTS_FOLDER, "estimates_", het_str, ".csv")
-  ) %>%
+  
+  filename <- paste0(RESULTS_FOLDER, "estimates_", het_str, ".csv")
+  if (INTERMEDIATE){
+    filename <- paste0(RESULTS_FOLDER, "estimates_", het_str, "_intermediate.csv")
+  }
+  prep <- read.csv(filename) |>
     preprocess()
-  agg <- prep %>%
-    group_by(type, T, N) %>%
+  
+  agg <- prep |>
+    group_by(type, T, N) |>
     summarise(
       fails = TRIALS - n()
     )

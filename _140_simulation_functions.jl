@@ -62,8 +62,10 @@ function simulate_data(
         for alpha in alphas
             # Write to metadata file current setting parameters
             metafile = data_folder * "alpha_$(alpha)" * subfolder_suffix * "/metadata_$(N).csv"
-            Utils.write_row(metafile, ["N", "T", "alpha", "r", "q"])
-            Utils.write_row(metafile, [N, draws, alpha, r, q])
+            open(metafile, "w") do io
+                println(io, "N,T,alpha,r,q")
+                println(io, "$(N),$(draws),$(alpha),$(r),$(q)")
+            end
 
             # Repeatedly simulate data and save to files
             for trial in 1:trials
@@ -73,12 +75,16 @@ function simulate_data(
                 samples = Utils.simulate_samples(N, draws, alpha, r, q, min_draws)
                 println(
                     "Unique captured individuals: ",
-                    length(Set([i for s in samples for i in s]))
+                    length(Set([i for s in samples for i in s])),
+                    " samples generated: ",
+                    length(samples)
                 )
                 println("-----")
 
                 # Save sample lists to file
                 file = data_folder * "alpha_$(alpha)" * subfolder_suffix * "/sample_$(trial)_$(N).csv"
+                f = open(file, "w")
+                close(f)
                 for s in samples
                     Utils.write_row(file, s)
                 end

@@ -2,10 +2,11 @@ library(tidyverse)
 library(ggpubr)
 
 SIM_FOLDER <- "./_900_output/data/simulated/"
-APP_FOLDER <- "./_900_output/data/appendix/"
+APP_FOLDER <- "./_900_output/data/appendix/beta_bin/"
 OUTPUT_FOLDER <- "./_900_output/figures/appendix/"
 POP_SIZES <- c(1000, 5000, 10000)
 ALPHAS <- c(0.5, 2.0)
+INTERMEDIATE <- FALSE # Whether to consider file with intermediate results or final results
 
 aggregate_data <- function(results) {
   # Group by 'T', and 'N' and calculate several summary statistics
@@ -24,15 +25,21 @@ aggregate_data <- function(results) {
 
 for (het in ALPHAS){
   het_str <- format(het, nsmall = 1)
-
-  app <- read.csv(
-    paste0(APP_FOLDER, "estimates_", het_str, ".csv")
-  )
+  
+  filename <- paste0(APP_FOLDER, "estimates_", het_str, "_betabin.csv")
+  if (INTERMEDIATE){
+    filename <- paste0(APP_FOLDER, "estimates_", het_str, "_betabin_intermediate.csv")
+  }
+  
+  app <- read.csv(filename)
   app$T <- as.factor(app$T)
 
-  sim <- read.csv(
-    paste0(SIM_FOLDER, "estimates_", het_str, ".csv")
-  )
+  filename <- paste0(SIM_FOLDER, "estimates_", het_str, ".csv")
+  if (INTERMEDIATE){
+    filename <- paste0(SIM_FOLDER, "estimates_", het_str, "_intermediate.csv")
+  }
+  
+  sim <- read.csv(filename)
   sim$T <- as.factor(sim$T)
   sim <- sim[sim$type == "MPLE-NB",]
   sim <- sim[sim$trial %in% app$trial,]
