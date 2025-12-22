@@ -102,7 +102,8 @@ rounded.a_hat_oizt = round.(df.a_hat_oizt; digits = 2)
 rounded.a_hat_ztoi = round.(df.a_hat_ztoi; digits = 2)
 rounded.N_hat_oizt = round.(df.N_hat_oizt; digits = 0)
 rounded.N_hat_ztoi = round.(df.N_hat_ztoi; digits = 0)
-CSV.write(OUTPUT_FOLDER * "one_inf_equiv.csv", rounded)
+# Table 1 in supplementary material
+CSV.write(OUTPUT_FOLDER * "table1_supp.csv", rounded)
 
 plt = plot(
     xlabel = "MPLE of w (OIZT)",
@@ -132,6 +133,7 @@ plot!(
     color = "#003f5c",
     linestyle = :dot
 )
+# Figure 4 in supplementary material
 savefig(
     plt,
     FIGURE_FOLDER * "one_inflation_equiv.pdf"

@@ -81,10 +81,20 @@ for (het in ALPHAS){
     line_ps[[N_str]] <- line_plot
   }
   ggarrange(plotlist = line_ps, ncol = 1, nrow = 3)
-  ggsave(
-    paste0(OUTPUT_FOLDER, "instability_", het_str, ".pdf"),
-    width = 210,
-    height = 297,
-    units = "mm"
-  )
+  # Figures 2 and 3 in the supplementary material
+  if (INTERMEDIATE){
+    ggsave(
+      paste0(OUTPUT_FOLDER, "instability_", het_str, "_intermediate.pdf"),
+      width = 210,
+      height = 297,
+      units = "mm"
+    )
+  } else{
+    ggsave(
+      paste0(OUTPUT_FOLDER, "instability_", het_str, ".pdf"),
+      width = 210,
+      height = 297,
+      units = "mm"
+    )
+  }
 }

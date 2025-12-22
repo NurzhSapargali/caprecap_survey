@@ -6,6 +6,12 @@ RESULTS_FOLDER <- "./_900_output/data/simulated/" # Folder containing the simula
 OUTPUT_FOLDER <- "./_900_output/figures/simulated/" # Folder to save the figures
 ALPHAS <- c(0.5, 2.0) # Different values of alpha in the simulation
 POP_SIZES <- c(1000, 5000, 10000) # Different population sizes in the simulation
+INTERMEDIATE <- FALSE # Whether to consider file with intermediate results or final results
+
+filename_suffix <- ""
+if (INTERMEDIATE){
+  filename_suffix <- "_intermediate"
+}
 
 # Plots figures 1, 2, 3, 4 and 5 of the main text corresponding to files:
 # ------------------------------
@@ -25,5 +31,5 @@ plot_everything(
   figures_folder = OUTPUT_FOLDER,
   ylim_bias = c(NA, 7.0),
   ylim_rmse = c(NA, 4.0),
-  #filename_suffix = "_intermediate", # Consider only intermediate results, all output files will have this suffix, e.g., estimates_box_2.0_intermediate.pdf
+  filename_suffix = filename_suffix # all output files will have this suffix, e.g., estimates_box_2.0_intermediate.pdf
 )

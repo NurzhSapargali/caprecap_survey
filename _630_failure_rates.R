@@ -100,6 +100,7 @@ for (het in ALPHAS){
     theme_pubr() +
     ylab("Failure rate")
 
+  # Figure 5 and 6 in the supplementary material
   ggsave(
     paste0(OUTPUT_FOLDER, "fail_rates_", het_str, ".pdf"),
     width = 210,

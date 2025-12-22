@@ -65,7 +65,7 @@ for i in eachindex(ALPHAS)
             data_files = data_files[intermediate]
         end
         rows = Array{Any}(nothing, length(data_files) * length(BREAKS_T))
-        Threads.@threads for j in eachindex(data_files)
+        for j in eachindex(data_files)
             file = data_files[j]
             # Parse trial number from filename and read samples
             trial_no = parse(Int, split(split(file, "_")[2], ".")[1])
@@ -76,7 +76,7 @@ for i in eachindex(ALPHAS)
             
             # Run estimation methods for different numbers of capture occasions
             println("***TRIAL NO $file***")
-            for i in eachindex(BREAKS_T)
+            Threads.@threads for i in eachindex(BREAKS_T)
                 t = BREAKS_T[i] # Number of capture occasions to use
                 S = samples[1:t]
 
@@ -100,7 +100,9 @@ for i in eachindex(ALPHAS)
                 )
 
                 N_hat = length(O) + exp(minx[2]) # Estimated population size
-                println([exp(minx[1]), exp(minx[2]), N_hat, length(O), trial_no, t, alpha, N])
+                println(
+                    [exp(minx[1]), exp(minx[2]), N_hat, length(O), trial_no, t, alpha, N]
+                )
 
                 draws[i] = [
                     exp(minx[1]), # a_hat
@@ -118,7 +120,7 @@ for i in eachindex(ALPHAS)
             for i in eachindex(BREAKS_T)
                 rows[(j - 1) * length(BREAKS_T) + i] = draws[i]
             end
-            println("Trials left: $(length(rows[rows .!= nothing]))")
+            #println("Trials left: $(length(rows[rows .!= nothing]) - j)")
         end
         # Write results to output file
         for r in rows
