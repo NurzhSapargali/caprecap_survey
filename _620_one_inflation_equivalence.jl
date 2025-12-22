@@ -24,6 +24,7 @@ UNSTABLE::Vector{String} = [
 ]
 FIGURE_FOLDER::String = "./_900_output/figures/appendix/"
 
+Utils.create_folder_if_not_exists(OUTPUT_FOLDER)
 
 data_files = [file for file in readdir(INPUT_FOLDER) if endswith(file, ".txt")]
 df = DataFrame(

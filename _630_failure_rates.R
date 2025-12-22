@@ -36,6 +36,11 @@ NEW_NAMES <- c(
 ) # New names for the methods in plots
 INTERMEDIATE <- FALSE # Whether to consider file with intermediate results or final results
 
+if (!dir.exists(OUTPUT_FOLDER)) {
+  ok <- dir.create(OUTPUT_FOLDER, recursive = TRUE)
+  if (!ok) stop("Failed to create directory: ", dir_path)
+}
+
 preprocess <- function(results, minT = NA) {
   # If 'minT' is not NA, filter out rows where 'T' is less than 'minT'
   if (!is.na(minT)){
@@ -75,15 +80,23 @@ for (het in ALPHAS){
   prep <- read.csv(filename) |>
     preprocess()
   
+  total_trials <- length(unique(prep$trial))
+  
   agg <- prep |>
     group_by(type, T, N) |>
     summarise(
-      fails = TRIALS - n()
+      fails = total_trials - n()
     )
 
   faulty <- unique(agg[agg$fails > 0,]$type)
+  if (length(faulty) == 0){
+    print(
+      paste0("No failures for alpha = ", het_str, ". Skipping failure rate plot.")
+    )
+    next
+  }
   cut <- agg[agg$type %in% faulty,]
-  cut$rate <- cut$fails / TRIALS
+  cut$rate <- cut$fails / total_trials
 
   # Plot the failure rates for different population sizes
   ggplot(
@@ -99,12 +112,20 @@ for (het in ALPHAS){
     ) +
     theme_pubr() +
     ylab("Failure rate")
-
-  # Figure 5 and 6 in the supplementary material
-  ggsave(
-    paste0(OUTPUT_FOLDER, "fail_rates_", het_str, ".pdf"),
-    width = 210,
-    height = 210,
-    units = "mm"
-  )
+  if (!INTERMEDIATE) {
+    # Figure 5 and 6 in the supplementary material
+    ggsave(
+      paste0(OUTPUT_FOLDER, "fail_rates_", het_str, ".pdf"),
+      width = 210,
+      height = 210,
+      units = "mm"
+    )
+  } else {
+    ggsave(
+      paste0(OUTPUT_FOLDER, "fail_rates_", het_str, "_intermediate.pdf"),
+      width = 210,
+      height = 210,
+      units = "mm"
+    )
+  }
 }

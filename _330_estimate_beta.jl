@@ -118,13 +118,10 @@ for i in eachindex(ALPHAS)
             end
             # Store results in rows array
             for i in eachindex(BREAKS_T)
-                rows[(j - 1) * length(BREAKS_T) + i] = draws[i]
+                Utils.write_row(output_file, draws[i])
             end
             #println("Trials left: $(length(rows[rows .!= nothing]) - j)")
         end
         # Write results to output file
-        for r in rows
-            Utils.write_row(output_file, r)
-        end
     end
 end

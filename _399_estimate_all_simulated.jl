@@ -21,7 +21,11 @@ CONFIG = [
 for (script_path, count) in CONFIG
     println("\n" * "="^60)
     println("LAUNCHING: $script_path")
-    println("Intermediate Count: $count")
+    if count > 0
+        println("Intermediate Count: $count")
+    else
+        println("Estimating over all datasets")
+    end
     println("="^60)
 
     # Set the environment variable just for this specific command.

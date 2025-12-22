@@ -8,6 +8,11 @@ POP_SIZES <- c(1000, 5000, 10000)
 ALPHAS <- c(0.5, 2.0)
 INTERMEDIATE <- FALSE # Whether to consider file with intermediate results or final results
 
+if (!dir.exists(OUTPUT_FOLDER)) {
+  ok <- dir.create(OUTPUT_FOLDER, recursive = TRUE)
+  if (!ok) stop("Failed to create directory: ", dir_path)
+}
+
 aggregate_data <- function(results) {
   # Group by 'T', and 'N' and calculate several summary statistics
   agg <- results %>%
@@ -42,7 +47,11 @@ for (het in ALPHAS){
   sim <- read.csv(filename)
   sim$T <- as.factor(sim$T)
   sim <- sim[sim$type == "MPLE-NB",]
-  sim <- sim[sim$trial %in% app$trial,]
+  
+  # If considering full results, match the simulation trial ids in both datasets
+  if (!INTERMEDIATE){
+    sim <- sim[sim$trial %in% app$trial,]
+  }
 
   sim <- aggregate_data(sim)
   app <- aggregate_data(app)

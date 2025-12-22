@@ -8,6 +8,11 @@ ALPHAS <- c(0.5, 2.0) # Different values of alpha in the simulation
 POP_SIZES <- c(600, 800) # Different population sizes in the simulation
 INTERMEDIATE <- FALSE # Whether to consider file with intermediate results or final results
 
+if (!dir.exists(OUTPUT_FOLDER)) {
+  ok <- dir.create(OUTPUT_FOLDER, recursive = TRUE)
+  if (!ok) stop("Failed to create directory: ", dir_path)
+}
+
 filename_suffix <- "_low_pop"
 if (INTERMEDIATE){
   filename_suffix <- "_low_pop_intermediate"
@@ -31,7 +36,5 @@ plot_everything(
   figures_folder = OUTPUT_FOLDER,
   box_facet_size = c(198, 210),
   comp_facet_size = c(198, 210),
-  ylim_bias = c(NA, 6.0),
-  ylim_rmse = c(NA, 4.0),
   filename_suffix = filename_suffix # all output files will have this suffix, e.g., estimates_box_2.0_low_pop_intermediate.pdf
 )

@@ -250,7 +250,7 @@ function estimate_simulations(
                     benchmarks["Turing"] = Benchmarks.turing(f, t)
                     benchmarks["Schnabel"] = Benchmarks.schnabel(S, n)
                     benchmarks["Zelterman"] = Benchmarks.zelterman(f)
-                    benchmarks["Conway-Maxwell-Poisson"] = #Benchmarks.conway_maxwell(f)
+                    benchmarks["Conway-Maxwell-Poisson"] = Benchmarks.conway_maxwell(f)
                     benchmarks["Turing Geometric"] = Benchmarks.turing_geometric(f)
                     for b in 0:2
                         benchmarks["Chao Lee Jeng $b"] = Benchmarks.chao_lee_jeng(

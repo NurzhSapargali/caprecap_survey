@@ -114,7 +114,7 @@ function conway_maxwell(f::Dict)
     x = x[inds,:]
 
     # Weight matrix for weighted least squares
-    w = LinearAlgebra.inv(
+    w = inv(
         LinearAlgebra.diagm(
             [1.0 / get(f, i - 1, 0) + 1.0 / get(f, i, 0) for i in 2:maximum(keys(f))]
         )
