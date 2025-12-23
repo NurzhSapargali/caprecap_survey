@@ -82,7 +82,9 @@ function simulate_data(
                 println("-----")
 
                 # Save sample lists to file
-                file = data_folder * "alpha_$(alpha)" * subfolder_suffix * "/sample_$(trial)_$(N).csv"
+                file = (
+                    data_folder * "alpha_$(alpha)" * subfolder_suffix * "/sample_$(trial)_$(N).csv"
+                )
                 f = open(file, "w")
                 close(f)
                 for s in samples
@@ -139,7 +141,9 @@ function estimate_simulations(
         output_file = output_folder * "estimates_$(alpha)" * subfolder_suffix * ".csv"
         # For intermediate results, set different output file name
         if intermediate != [0]
-            output_file = output_folder * "estimates_$(alpha)" * subfolder_suffix * "_intermediate.csv"
+            output_file = (
+                output_folder * "estimates_$(alpha)" * subfolder_suffix * "_intermediate.csv"
+            )
         end
     
         Utils.create_folder_if_not_exists(output_folder)
@@ -153,7 +157,8 @@ function estimate_simulations(
         for N in pops
             # Filter data files for current population size
             data_files = [
-                file for file in readdir(subfolder) if occursin("sample", file) && occursin("$(N).csv", file)
+                file for file in readdir(subfolder)
+                if occursin("sample", file) && occursin("$(N).csv", file)
             ]
             # If intermediate flag is set, select only specified files
             if intermediate != [0]
@@ -165,7 +170,7 @@ function estimate_simulations(
                 trial_no = parse(Int, split(split(file, "_")[2], ".")[1])
                 samples = Utils.read_captures(subfolder * file)
 
-                # Initialize array to store results from different methods and numbers of capture occasions
+                # Initialize array to store results from different methods and T
                 draws = Array{Any}(nothing, total_estimators * length(breaks_T))
 
                 # Run estimation methods for different numbers of capture occasions

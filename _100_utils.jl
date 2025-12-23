@@ -13,7 +13,7 @@ export ar_pareto_sample, write_row, freq_of_freq,
 """
     write_row(filename::String, row::Vector)
 
-Append `row` as a comma-separated line to `filename`.
+Append elements of vector `row` as a comma-separated line to `filename`.
 If the file does not exist, it will be created.
 """
 function write_row(filename::String, row::Vector)
@@ -31,7 +31,7 @@ end
 """
     create_folder_if_not_exists(folder::String)
 
-Create the folder if it does not already exist.
+Create the folder specified by `folder` if it does not already exist.
 """
 function create_folder_if_not_exists(folder::String)
     if !isdir(folder)
@@ -39,6 +39,13 @@ function create_folder_if_not_exists(folder::String)
     end
 end
 
+"""
+    read_captures(filename::String)
+
+Read capture data from `filename`, where each line corresponds to a sample
+containing comma-separated individual IDs of captured individuals.
+Returns a vector of vectors of IDs coerced to `Int64`.
+"""
 function read_captures(filename::String)
     raw = open(f -> read(f, String), filename);
     out = Vector{Int64}[];
@@ -88,7 +95,6 @@ function ar_pareto_sample(p::Vector{Float64}, n::Int64)
         S = pareto_sample(p, n)
         car = sum(1.0 .- pr[S]) / sum(Jk[S] / A .* (1.0 .- pr[S])) # Equation (22) on page 710
         U = rand()
-        #println("car = $car, U = $U")
         accept = (U <= car)
     end
     return S
@@ -98,10 +104,17 @@ end
     simulate_samples(pop::Int64, T::Int64, alpha::Float64, r::Float64, q::Float64)
 
 Simulate capture–recapture samples for a population of size `pop` over `T` occasions
-with heterogeneity parameter `alpha` and Negative Binomial sample size parameters `r` and `
-q`.
+with heterogeneity parameter `alpha` > 0 and Negative Binomial sample size parameters
+`r` and `q`, corresponding to number of failures and success probability, respectively.
 """
-function simulate_samples(pop::Int64, T::Int64, alpha::Float64, r::Float64, q::Float64, T_min::Int64 = 5)
+function simulate_samples(
+    pop::Int64,
+    T::Int64,
+    alpha::Float64,
+    r::Float64, 
+    ::Float64,
+    T_min::Int64 = 5
+)
     n = rand(Distributions.NegativeBinomial(r, q), T) .+ 1 # Sample sizes for T occasions
 
     # Generate proportional to size probabilities from truncated Beta distribution
@@ -127,7 +140,7 @@ end
 """
     cap_freq(S::Vector)
 
-Compute the capture frequencies of individuals in the list of samples `S`.
+Compute the capture frequencies of individuals in the vector of samples `S`.
 Returns a dictionary mapping individual IDs to their capture counts.
 """
 function cap_freq(S::Vector)
@@ -142,7 +155,8 @@ end
     freq_of_freq(K::Dict)
 
 Compute the frequency of frequencies from the capture frequency dictionary `K`.
-Returns a dictionary mapping capture counts to the number of individuals with that count.
+Returns a dictionary mapping capture counts to the number of individuals with
+that count.
 """
 function freq_of_freq(K::Dict)
     return countmap(values(K));

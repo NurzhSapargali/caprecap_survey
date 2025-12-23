@@ -1,3 +1,5 @@
+# Plots mean population size estimates under beta-binomial capture heterogeneity
+# model and compares them to MPLE-NB estimates from simulated data
 library(tidyverse)
 library(ggpubr)
 
@@ -6,13 +8,20 @@ APP_FOLDER <- "./_900_output/data/appendix/beta_bin/"
 OUTPUT_FOLDER <- "./_900_output/figures/appendix/"
 POP_SIZES <- c(1000, 5000, 10000)
 ALPHAS <- c(0.5, 2.0)
-INTERMEDIATE <- FALSE # Whether to consider file with intermediate results or final results
+INTERMEDIATE <- FALSE # Whether to consider file with intermediate results or full results
 
 if (!dir.exists(OUTPUT_FOLDER)) {
   ok <- dir.create(OUTPUT_FOLDER, recursive = TRUE)
   if (!ok) stop("Failed to create directory: ", dir_path)
 }
 
+# `aggregate_data` function to compute mean, median, and standard deviation of N_hat
+# from the results data frame
+#
+# Args:
+#   results: data frame containing at least the columns 'T', 'N', and '
+# Returns:
+#   aggregated data frame with mean, median, and standard deviation of N_hat
 aggregate_data <- function(results) {
   # Group by 'T', and 'N' and calculate several summary statistics
   agg <- results %>%

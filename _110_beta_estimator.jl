@@ -10,7 +10,7 @@ export approx_loglike, fit_Beta
 """
     log_cond_likelihood(mu::Vector{Float64}, x::Vector{Float64})
 
-Compute log-likelihood of capture history `x` given probabilities `mu`.
+Compute log-likelihood of a binary vector `x` given probabilities `mu`.
 Uses log-space for numerical stability.
 """
 function log_cond_likelihood(mu::Vector{Float64}, x::Vector{Float64})
@@ -25,7 +25,7 @@ end
 """
     cond_likelihood(mu::Vector{Float64}, x::Vector{Float64})
 
-Compute likelihood of capture history `x` given probabilities `mu`.
+Compute likelihood of a binary vector `x` given probabilities `mu`.
 """
 function cond_likelihood(mu::Vector{Float64}, x::Vector{Float64})
     return exp(log_cond_likelihood(mu, x))
@@ -60,7 +60,10 @@ end
     )
 
 Approximate log-likelihood of Beta-binomial model with parameters `a` and `Nu`
-given capture history matrix `X` and Monte Carlo draws `u`.
+given capture history matrix `X` and Monte Carlo uniform variates `u`.
+
+Optional arguments:
+- `verbose`: if true, prints parameter values and log-likelihood (default: true)
 """
 function approx_loglike(
     a::Real,
@@ -110,9 +113,18 @@ end
         verbose::Bool = true
     )
 
-Fit Beta-binomial model to capture history matrix `X` using optimization.
-Initial parameters are given in `theta0` (log-transformed).
-Returns (minimum function value, optimal parameters).
+Fit Beta-binomial model to capture history matrix `X` (rows are individuals, columns
+are capture occasions) using maximum likelihood estimation. Initial parameters
+are given in `theta0` (= log(a), log(Nu)). Returns a tuple (minimum function
+value, optimal parameters).
+
+Optional arguments:
+- `lower`: lower bounds for parameters (default: `[-Inf, -Inf]`)
+- `upper`: upper bounds for parameters (default: `[Inf, Inf]`)
+- `draws`: number of Monte Carlo draws for integration (default: 10000)
+- `ftol`: function tolerance for optimization (default: 1e-4)
+- `verbose`: if true, prints parameter values and log-likelihood during optimization
+(default: true)
 """
 function fit_Beta(
     theta0::Vector{<:Real},

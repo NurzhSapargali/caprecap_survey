@@ -57,7 +57,8 @@ for i in eachindex(ALPHAS)
         data_folder = DATA_FOLDER * "alpha_$(alpha)/"
         # Process only first 100 files to limit runtime
         data_files = [
-            file for file in readdir(data_folder) if occursin("sample", file) && occursin("$(N).csv", file)
+            file for file in readdir(data_folder)
+            if occursin("sample", file) && occursin("$(N).csv", file)
         ][1:TRIALS]
 
         # If intermediate indices are specified, select only those files
@@ -71,7 +72,7 @@ for i in eachindex(ALPHAS)
             trial_no = parse(Int, split(split(file, "_")[2], ".")[1])
             samples = Utils.read_captures(data_folder * file)
 
-            # Initialize array to store results from different methods and numbers of capture occasions
+            # Initialize array to store results from different methods and T
             draws = Array{Any}(nothing, length(BREAKS_T))
             
             # Run estimation methods for different numbers of capture occasions
@@ -120,7 +121,6 @@ for i in eachindex(ALPHAS)
             for i in eachindex(BREAKS_T)
                 Utils.write_row(output_file, draws[i])
             end
-            #println("Trials left: $(length(rows[rows .!= nothing]) - j)")
         end
         # Write results to output file
     end

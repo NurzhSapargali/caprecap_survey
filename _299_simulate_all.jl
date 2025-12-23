@@ -1,7 +1,7 @@
-# ==============================================================================
-# MASTER SIMULATOR
-# Executes separate data simulation scripts sequentially in isolated processes.
-# ==============================================================================
+"""
+MASTER SIMULATOR
+Executes separate data simulation scripts sequentially in isolated processes.
+"""
 
 scripts = [
     "_200_simulate_samples.jl",

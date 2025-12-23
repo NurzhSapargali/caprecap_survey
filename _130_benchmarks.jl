@@ -11,10 +11,11 @@ export lincoln, schnabel, chao,
        turing, conway_maxwell, turing_geometric
 
 
-"""    
+"""
     lincoln(S::Vector, n::Vector{Int})
 
-Lincoln-Petersen estimator for population size given two capture samples `S` and their sizes `n`.
+Lincoln-Petersen estimator for population size given a vector of two capture
+samples `S` and their sizes `n`.
 """
 function lincoln(S::Vector, n::Vector{Int})
     r = intersect(Set(S[1]), Set(S[2]))
@@ -24,7 +25,8 @@ end
 """
     schnabel(S::Vector, n::Vector{Int})
 
-Schnabel estimator for population size given capture samples `S` and their sizes `n`.
+Schnabel estimator for population size given capture samples `S` and their sizes
+`n`.
 """
 function schnabel(S::Vector, n::Vector{Int})
     pool = Set(S[1]) # Set of marked individuals prior to capture t
@@ -60,8 +62,8 @@ end
 """
     jackknife(T::Int, f::Dict, k::Int)
 
-Jackknife estimator of order `k` for population size given number of capture occasions `T`
-and frequency of capture frequencies `f`.
+Jackknife estimator of order `k` for population size given number of capture
+occasions `T` and frequency of capture frequencies `f`.
 """
 function jackknife(T::Int, f::Dict, k::Int)
     N_o = sum(values(f))
@@ -212,8 +214,8 @@ end
 """
     turing_geometric(f::Dict)
 
-Turing estimator for population size under assumption of geometric counts given frequency
-of capture frequencies `f`
+Turing estimator for population size under assumption of geometric counts given
+frequency of capture frequencies `f`
 """
 function turing_geometric(f::Dict)
     denom = sum([i * get(f, i, 0) for i in 1:maximum(keys(f))]);

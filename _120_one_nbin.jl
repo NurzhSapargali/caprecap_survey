@@ -16,7 +16,7 @@ export fit_oi_nbin_trunc, fit_oi_geom_trunc, w_hat
     log_nbin(y, a, N, sum_n)
 
 Log-probability of observing count `y` from a Negative Binomial distribution
-with heterogeneity parameter `a`, population size `N`, and total sample size `sum_n
+with heterogeneity parameter `a`, population size `N`, and total sample size `sum_n`.
 """
 function log_nbin(y, a, N, sum_n)
     return ( -SpecialFunctions.loggamma(y + 1)
@@ -28,8 +28,9 @@ end
 """
     log_nbin_trunc(y, a, N, sum_n)
 
-Log-probability of observing count `y` from a zero-truncated Negative Binomial distribution
-with heterogeneity parameter `a`, population size `N`, and total sample size `sum_n`.
+Log-probability of observing count `y` from a zero-truncated Negative Binomial
+distribution with heterogeneity parameter `a`, population size `N`, and total
+sample size `sum_n`.
 """
 function log_nbin_trunc(y, a, N, sum_n)
     ratio = 1.0 + sum_n / (a * N)
@@ -42,9 +43,10 @@ end
     log_likelihood(logit_w, log_a, log_Nu, f; verbose = true)
 
 Log-likelihood of the one-inflated zero-truncated Negative Binomial model
-with parameters `logit_w` (logit of one-inflation probability), `log_a` (log of heterogeneity parameter),
-and `log_Nu` (log of the number of unobserved individuals), given the frequency of frequencies `f`.
-If `verbose` is true, prints the parameter values and log-likelihood.
+with parameters `logit_w` (logit of one-inflation probability), `log_a`
+(log of heterogeneity parameter), and `log_Nu` (log of the number of unobserved
+individuals), given the frequency of frequencies `f`. If `verbose` is true,
+prints the parameter values and log-likelihood.
 """
 function log_likelihood(logit_w, log_a, log_Nu, f; verbose = true)
     No = sum(values(f)) # Number of observed individuals across all capture occasions
@@ -85,9 +87,19 @@ function log_likelihood_ztoi(w, log_a, log_Nu, f; verbose = true)
     single_prob = exp(log_nbin(1, a, N, sum_n))
     zero_prob = exp(log_nbin(0, a, N, sum_n))
 
-    lh = ( singles * (-log(1.0 - (1.0 - w) * zero_prob) + log(1.0 - (1.0 - w) * (1.0 - single_prob)))
-           + sum([f[i] * (log(1.0 - w) - log(1.0 - (1.0 - w) * zero_prob) + log_nbin(i, a, N, sum_n)) for i in keys(f) if i > 1])
-        )
+    lh_single = (
+        -log(1.0 - (1.0 - w) * zero_prob)
+        + log(1.0 - (1.0 - w) * (1.0 - single_prob))
+    )
+    lh_nonsingles = sum(
+        [
+            f[i] * (log(1.0 - w)
+            - log(1.0 - (1.0 - w) * zero_prob)
+            + log_nbin(i, a, N, sum_n)) for i in keys(f) if i > 1
+        ]
+    )
+
+    lh = singles * lh_single + lh_nonsingles
     if verbose
         println("w = $w, log_a = $log_a, log_Nu = $log_Nu, N = $N, lh = $lh")
     end
@@ -119,9 +131,10 @@ end
     profile_log_likelihood(log_a, log_Nu, f; verbose = true)
 
 Profile log-likelihood of the zero-truncated one-inflated Negative Binomial model
-with parameters `log_a` (log of heterogeneity parameter) and `log_Nu` (log of the number of unobserved individuals),
-given the frequency of frequencies `f`. The one-inflation probability `w` is profiled out.
-If `verbose` is true, prints the parameter values and log-likelihood.
+with parameters `log_a` (log of heterogeneity parameter) and `log_Nu` (log of
+the number of unobserved individuals), given the frequency of frequencies `f`.
+The one-inflation probability `w` is profiled out. If `verbose` is true, prints
+the parameter values and log-likelihood.
 """
 function profile_log_likelihood(log_a, log_Nu, f; verbose = true)
     No = sum(values(f)) # Number of observed individuals across all capture occasions
@@ -172,8 +185,8 @@ end
 """
     log_nbin_gradient_a(y, a, N, sum_n)
 
-Gradient of the log-probability of observing count `y` from a zero-truncated Negative Binomial
-distribution with respect to the heterogeneity parameter `a`.
+Gradient of the log-probability of observing count `y` from a zero-truncated
+Negative Binomial distribution with respect to the heterogeneity parameter `a`.
 """
 function log_nbin_gradient_a(y, a, N, sum_n)
     ratio = 1.0 + sum_n / a / N
@@ -208,8 +221,9 @@ end
 """
     log_nbin_gradient_Nu(y, a, N, sum_n)
 
-Gradient of the log-probability of observing count `y` from a zero-truncated Negative Binomial
-distribution with respect to the number of unobserved individuals `Nu`.
+Gradient of the log-probability of observing count `y` from a zero-truncated
+Negative Binomial distribution with respect to the number of unobserved individuals
+`Nu`.
 """
 function log_nbin_gradient_Nu(y, a, N, sum_n)
     ratio = 1.0 + sum_n / a / N
@@ -250,14 +264,16 @@ end
         method = Optim.LBFGS()
     )
 
-Fit the zero-truncated one-inflated Negative Binomial model to frequency of frequencies `f`
-using initial parameter estimates `theta` (a vector of `[log_a, log_Nu]`).
+Fit the zero-truncated one-inflated Negative Binomial model to frequency of
+frequencies `f` using initial parameter estimates `theta` (a vector of `[log_a,
+log_Nu]`).
 
 Optional arguments:
 - `f_reltol`: function tolerance for optimization (default: 1e-5)
 - `lower`: lower bounds for parameters (default: `[-Inf, -750.0]`)
 - `upper`: upper bounds for parameters (default: `[10.0, 23.0]`)
-- `verbose`: if true, prints parameter values and log-likelihood during optimization (default: true)
+- `verbose`: if true, prints parameter values and log-likelihood during optimization
+(default: true)
 - `method`: optimization method from Optim.jl (default: Optim.LBFGS())
 
 Returns a tuple `(minf, minx)` where `minf` is the minimum negative log-likelihood
@@ -290,7 +306,6 @@ function fit_oi_nbin_trunc(
         Optim.Fminbox(method),
         Optim.Options(f_reltol = f_reltol)
     )
-    #println("Optimization result: ", res)
     (minf, minx) = (Optim.minimum(res), Optim.minimizer(res))
 
     return (minf, minx)
@@ -313,7 +328,8 @@ Optional arguments:
 - `f_reltol`: function tolerance for optimization (default: 1e-5)
 - `lower`: lower bounds for parameters (default: `[-Inf]`)
 - `upper`: upper bounds for parameters (default: `[23.0]`)
-- `verbose`: if true, prints parameter values and log-likelihood during optimization (default: true)
+- `verbose`: if true, prints parameter values and log-likelihood during optimization
+(default: true)
 - `method`: optimization method from Optim.jl (default: Optim.LBFGS())
 
 Returns a tuple `(minf, minx)` where `minf` is the minimum negative log-likelihood
@@ -345,7 +361,6 @@ function fit_oi_geom_trunc(
         Optim.Fminbox(method),
         Optim.Options(f_reltol = f_reltol)
     )
-    #println("Optimization result: ", res)
     (minf, minx) = (Optim.minimum(res), Optim.minimizer(res))
 
     return (minf, minx)
@@ -368,7 +383,8 @@ Optional arguments:
 - `f_reltol`: function tolerance for optimization (default: 1e-5
 - `lower`: lower bounds for parameters (default: `[0.0, -Inf, -750.0]`)
 - `upper`: upper bounds for parameters (default: `[1.0, 10.0, 23.0]`)
-- `verbose`: if true, prints parameter values and log-likelihood during optimization (default: true)
+- `verbose`: if true, prints parameter values and log-likelihood during optimization
+(default: true)
 - `method`: optimization method from Optim.jl (default: Optim.NelderMead())
 Returns a tuple `(minf, minx)` where `minf` is the minimum negative log-likelihood
 and `minx` is the vector of estimated parameters.
@@ -393,7 +409,6 @@ function fit_trunc_nbin_oi(
         Optim.Fminbox(method),
         Optim.Options(f_reltol = freltol)
     )
-    #println("Optimization result: ", res)
     (minf, minx) = (Optim.minimum(res), Optim.minimizer(res))
 
     return (minf, minx)

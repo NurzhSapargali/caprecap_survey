@@ -1,3 +1,4 @@
+# Plots failure rates of different estimation methods on simulated data
 library(tidyverse)
 library(ggpubr)
 
@@ -41,6 +42,17 @@ if (!dir.exists(OUTPUT_FOLDER)) {
   if (!ok) stop("Failed to create directory: ", dir_path)
 }
 
+# `preprocess` function cleans the results data frame by removing invalid estimates,
+# adding a squared deviation column, converting 'T' to a factor, and renaming methods
+# according to the provided mapping.
+# 
+# Args:
+#   results: Data frame containing simulation results with columns 'N_hat', 'N', 'T', and 'type'.
+#   minT: Minimum value of 'T' to consider;
+#         rows with 'T' less than 'minT' will be removed. Default is NA (no filtering).
+# 
+# Returns:
+#   A cleaned and modified data frame ready for analysis.
 preprocess <- function(results, minT = NA) {
   # If 'minT' is not NA, filter out rows where 'T' is less than 'minT'
   if (!is.na(minT)){

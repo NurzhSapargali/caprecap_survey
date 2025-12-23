@@ -23,7 +23,11 @@ OUTPUT_FOLDER::String = "./_900_output/figures/appendix/"
 
 seed!(SEED)
 
-# Define functions for zero-truncated Poisson likelihood and MLE/MPLE estimation
+"""
+    zero_trunc_pois(freqs, rate)
+
+Compute the log-likelihood of zero-truncated Poisson for given frequencies and rate.
+"""
 function zero_trunc_pois(freqs, rate)
     out = 0.0
     for i in keys(freqs)
@@ -32,12 +36,22 @@ function zero_trunc_pois(freqs, rate)
     return out - sum(values(freqs)) * log(1 - pdf(Poisson(rate), 0))
 end
 
+"""
+    mle_pois(freqs)
+
+Compute the MLE of the Poisson rate parameter given frequencies.
+"""
 function mle_pois(freqs)
     sum_n = sum([i * freqs[i] for i in keys(freqs)])
     res = optimize(rate -> -zero_trunc_pois(freqs, rate), 1e-8, 5 * sum_n / N_sim)
     return Optim.minimizer(res)
 end
 
+"""
+    mple_pois(freqs)
+
+Compute the MPLE of the population size N given frequencies.
+"""
 function mple_pois(freqs)
     sum_n = sum([i * freqs[i] for i in keys(freqs)])
     res = optimize(
@@ -47,7 +61,14 @@ function mple_pois(freqs)
     return Optim.minimizer(res)
 end
 
-# Simulate simple random sampling capture-recapture data
+"""
+    simulate_capture(ns, N)
+
+Simulate capture-recapture data with vector of sample sizes `ns` and population
+size `N`.
+
+Returns the frequency of frequencies.
+"""
 function simulate_capture(ns, N)
     S = []
     for n in ns
@@ -58,7 +79,15 @@ function simulate_capture(ns, N)
     return Utils.freq_of_freq(K)
 end
 
-# Function to compute mean difference between HT and MPLE estimates
+"""
+    simulation_mean(ns, N, reps)
+
+Run `reps` simulations of capture-recapture with sample sizes `ns` and population
+size `N`.
+
+Returns the mean difference between Horvitz-Thompson and Poisson MPLE estimates
+of population size.
+"""
 function simulation_mean(ns, N, reps)
     diffs = []
     for i in 1:reps

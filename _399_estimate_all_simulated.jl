@@ -1,14 +1,15 @@
-# ==============================================================================
-# MASTER RUNNER
-# Runs estimations on all simulated data.
-# ==============================================================================
+"""
+ MASTER RUNNER
+ Runs estimations on all simulated data.
+ ==============================================================================
 
-# Configuration: Set the Intermediate Count for each script here.
-# A random subset of trials will be run if Intermediate Count > 0.
-# Set to 0 to run the full simulation.
-# WARNING: ALL OUTPUT FILES IN THE TARGET FOLDERS WILL BE OVERWRITTEN IF THEY EXIST.
-# THIS INCLUDES INTERMEDIATE OR FULL SIMULATION FILES DEPENDING ON WHICH IS RUN HERE.
-# ==============================================================================
+ Configuration: Set the Intermediate Count for each script here.
+ A random subset of trials will be run if Intermediate Count > 0.
+ Set to 0 to run the full simulation.
+ WARNING: ALL OUTPUT FILES IN THE TARGET FOLDERS WILL BE OVERWRITTEN IF THEY EXIST.
+ THIS INCLUDES INTERMEDIATE OR FULL SIMULATION FILES DEPENDING ON WHICH IS RUN HERE.
+ ==============================================================================
+"""
 CONFIG = [
     # (Script Path, Intermediate Count)
     ("./_300_estimate_simulated.jl", 1),   

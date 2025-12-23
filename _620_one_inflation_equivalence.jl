@@ -1,3 +1,8 @@
+"""
+Constructs a table showing equivalence of one-inflated models (OIZT and ZTOI)
+on various datasets. Plots equivalence of MPLE estimates of one-inflation parameter w.
+"""
+
 include("_100_utils.jl")
 include("_120_one_nbin.jl")
 include("_130_benchmarks.jl")
@@ -18,8 +23,8 @@ INPUT_FOLDER::String = "./_100_input/datasets/"
 OUTPUT_FOLDER::String = "./_900_output/data/appendix/one_inflation_equiv/"
 UNSTABLE::Vector{String} = [
     "meth_usage.txt",
-    "pleiades.txt",
-    "illegal_immigrants.txt",
+    "flare_stars.txt",
+    "dutch_illegal_immigrants.txt",
     "domestic_violence.txt"
 ]
 FIGURE_FOLDER::String = "./_900_output/figures/appendix/"
