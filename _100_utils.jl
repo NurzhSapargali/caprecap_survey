@@ -112,7 +112,7 @@ function simulate_samples(
     T::Int64,
     alpha::Float64,
     r::Float64, 
-    ::Float64,
+    q::Float64,
     T_min::Int64 = 5
 )
     n = rand(Distributions.NegativeBinomial(r, q), T) .+ 1 # Sample sizes for T occasions
