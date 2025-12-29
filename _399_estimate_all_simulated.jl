@@ -12,10 +12,10 @@
 """
 CONFIG = [
     # (Script Path, Intermediate Count)
-    ("./_300_estimate_simulated.jl", 1),   
-    ("./_310_estimate_low_pop.jl", 1),
-    ("./_320_estimate_low_sample.jl", 1),
-    ("./_330_estimate_beta.jl", 1)
+    ("./_300_estimate_simulated.jl", 1), # Count higher than 1000 will run full estimation
+    ("./_310_estimate_low_pop.jl", 1), # Count higher than 1000 will run full estimation
+    ("./_320_estimate_low_sample.jl", 1), # Count higher than 1000 will run full estimation
+    ("./_330_estimate_beta.jl", 1) # Count higher than 100 will run full estimation
 ]
 
 # --- Execution Loop ---
