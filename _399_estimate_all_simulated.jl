@@ -34,7 +34,7 @@ for (script_path, count) in CONFIG
     withenv("JULIA_INTERMEDIATE_COUNT" => string(count)) do
         # This spawns a new Julia process.
         # It is exactly the same as typing `julia -t 10 script_name.jl` in your terminal.
-        run(`julia -t 10 $script_path`)
+        run(`julia --project=. -t 10 $script_path`)
         
     end
     
