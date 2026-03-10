@@ -35,10 +35,12 @@ function run_comparison(inter_csv::String, full_csv::String)
     println("="^80)
     
     # Logic: N_hat within five digits
-    divergences = filter(r -> abs(r.N_hat_inter - r.N_hat_full) > 1e-5, m)
+    divergences = filter(
+        r -> abs(r.N_hat_inter - r.N_hat_full) > 1e-5 || abs(r.a_hat_inter - r.a_hat_full) > 1e-5, m
+    )
 
     if nrow(divergences) == 0
-        println("SUCCESS: All $(nrow(m)) trials matched within five digits for N_hat.")
+        println("SUCCESS: All $(nrow(m)) trials matched within five digits for N_hat and a_hat.")
     else
         println("MATCHES: $(nrow(m) - nrow(divergences))")
         println("DIVERGENCES: $(nrow(divergences))")
